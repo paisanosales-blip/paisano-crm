@@ -14,7 +14,7 @@ export default function RegisterPage() {
             <PaisanoLogo className="h-12 w-12 text-primary" />
           </div>
           <CardTitle className="text-2xl font-headline">Crear una cuenta</CardTitle>
-          <CardDescription>Ingresa tus datos para registrarte.</CardDescription>
+          <CardDescription>Ingrese sus datos para registrarse.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="grid gap-4">
@@ -23,7 +23,7 @@ export default function RegisterPage() {
               <Input id="name" type="text" placeholder="Juan Pérez" required />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input id="email" type="email" placeholder="m@example.com" required />
             </div>
             <div className="grid gap-2">
@@ -35,7 +35,7 @@ export default function RegisterPage() {
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            ¿Ya tienes una cuenta?{' '}
+            ¿Ya tiene una cuenta?{' '}
             <Link href="/login" className="underline">
               Inicia sesión
             </Link>

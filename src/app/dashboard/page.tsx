@@ -6,51 +6,51 @@ import { opportunities, activities, clients } from '@/lib/data';
 import { DashboardCharts } from '@/components/dashboard-charts';
 
 export default function DashboardPage() {
-    const totalRevenue = opportunities.filter(o => o.stage === 'Closed Won').reduce((sum, o) => sum + o.value, 0);
-    const activeOpportunities = opportunities.filter(o => !['Closed Won', 'Closed Lost'].includes(o.stage)).length;
-    const conversionRate = (opportunities.filter(o => o.stage === 'Closed Won').length / opportunities.length * 100).toFixed(0);
+    const totalRevenue = opportunities.filter(o => o.stage === 'Ganada').reduce((sum, o) => sum + o.value, 0);
+    const activeOpportunities = opportunities.filter(o => !['Ganada', 'Perdida'].includes(o.stage)).length;
+    const conversionRate = (opportunities.filter(o => o.stage === 'Ganada').length / opportunities.length * 100).toFixed(0);
 
     return (
         <div className="grid gap-6">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                        <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                        <p className="text-xs text-muted-foreground">+20.1% desde el mes pasado</p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Opportunities</CardTitle>
+                        <CardTitle className="text-sm font-medium">Oportunidades Activas</CardTitle>
                         <Activity className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{activeOpportunities}</div>
-                        <p className="text-xs text-muted-foreground">{opportunities.length} total</p>
+                        <p className="text-xs text-muted-foreground">{opportunities.length} en total</p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">New Clients</CardTitle>
+                        <CardTitle className="text-sm font-medium">Nuevos Clientes</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">+{clients.length}</div>
-                        <p className="text-xs text-muted-foreground">This quarter</p>
+                        <p className="text-xs text-muted-foreground">Este trimestre</p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
+                        <CardTitle className="text-sm font-medium">Tasa de Conversión</CardTitle>
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{conversionRate}%</div>
-                        <p className="text-xs text-muted-foreground">+5% from last month</p>
+                        <p className="text-xs text-muted-foreground">+5% desde el mes pasado</p>
                     </CardContent>
                 </Card>
             </div>
@@ -59,17 +59,17 @@ export default function DashboardPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
-                    <CardDescription>A log of the latest interactions and notes.</CardDescription>
+                    <CardTitle>Actividad Reciente</CardTitle>
+                    <CardDescription>Un registro de las últimas interacciones y notas.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Client</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Notes</TableHead>
-                                <TableHead className="text-right">Date</TableHead>
+                                <TableHead>Cliente</TableHead>
+                                <TableHead>Tipo</TableHead>
+                                <TableHead>Notas</TableHead>
+                                <TableHead className="text-right">Fecha</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -77,7 +77,7 @@ export default function DashboardPage() {
                                 const client = clients.find(c => c.id === activity.entityId);
                                 return (
                                     <TableRow key={activity.id}>
-                                        <TableCell className="font-medium">{client?.nombreDelCliente || 'N/A'}</TableCell>
+                                        <TableCell className="font-medium">{client?.nombreDelCliente || 'No disponible'}</TableCell>
                                         <TableCell>
                                             <Badge variant="outline">{activity.type}</Badge>
                                         </TableCell>

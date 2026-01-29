@@ -15,7 +15,7 @@ export type Client = {
   createdAt: string;
 };
 
-export type OpportunityStage = 'Prospect' | 'Qualification' | 'Proposal' | 'Negotiation' | 'Closed Won' | 'Closed Lost';
+export type OpportunityStage = 'Prospecto' | 'Calificación' | 'Propuesta' | 'Negociación' | 'Ganada' | 'Perdida';
 
 export type Opportunity = {
   id: string;
@@ -35,7 +35,7 @@ export type Quotation = {
   sellerId: string;
   value: number;
   currency: 'USD' | 'MXN';
-  status: 'Draft' | 'Sent' | 'Accepted' | 'Rejected';
+  status: 'Borrador' | 'Enviada' | 'Aceptada' | 'Rechazada';
   version: number;
   pdfUrl?: string;
   createdAt: string;
@@ -44,7 +44,7 @@ export type Quotation = {
 export type Activity = {
   id: string;
   entityId: string; // Could be clientId or opportunityId
-  type: 'Call' | 'Email' | 'Meeting' | 'Note';
+  type: 'Llamada' | 'Correo' | 'Reunión' | 'Nota';
   notes: string;
   date: string;
   followUpDate?: string;

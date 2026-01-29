@@ -10,39 +10,39 @@ export default function QuotationsPage() {
     return (
         <div className="grid gap-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-headline font-bold">Quotations</h1>
+                <h1 className="text-2xl font-headline font-bold">Cotizaciones</h1>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    New Quotation
+                    Nueva Cotización
                 </Button>
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle>Quotation History</CardTitle>
-                    <CardDescription>Track and manage all client quotations.</CardDescription>
+                    <CardTitle>Historial de Cotizaciones</CardTitle>
+                    <CardDescription>Rastrea y gestiona todas las cotizaciones de clientes.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Quotation ID</TableHead>
-                                <TableHead>Client</TableHead>
-                                <TableHead>Value</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Version</TableHead>
-                                <TableHead>Date</TableHead>
+                                <TableHead>ID de Cotización</TableHead>
+                                <TableHead>Cliente</TableHead>
+                                <TableHead>Valor</TableHead>
+                                <TableHead>Estado</TableHead>
+                                <TableHead>Versión</TableHead>
+                                <TableHead>Fecha</TableHead>
                                 <TableHead>PDF</TableHead>
-                                <TableHead><span className="sr-only">Actions</span></TableHead>
+                                <TableHead><span className="sr-only">Acciones</span></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {quotations.map(quote => {
                                 const client = clients.find(c => c.id === quote.clientId);
                                 const statusVariant : 'default' | 'secondary' | 'destructive' | 'outline' = {
-                                    'Sent': 'default',
-                                    'Accepted': 'secondary', // Using secondary for success state
-                                    'Rejected': 'destructive',
-                                    'Draft': 'outline',
+                                    'Enviada': 'default',
+                                    'Aceptada': 'secondary',
+                                    'Rechazada': 'destructive',
+                                    'Borrador': 'outline',
                                 }[quote.status] || 'default';
 
                                 return (
@@ -56,7 +56,7 @@ export default function QuotationsPage() {
                                     <TableCell>
                                         <Button variant="outline" size="sm" disabled={!quote.pdfUrl}>
                                             <FileDown className="mr-2 h-3 w-3"/>
-                                            Download
+                                            Descargar
                                         </Button>
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -68,10 +68,10 @@ export default function QuotationsPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem>Edit</DropdownMenuItem>
-                                                <DropdownMenuItem>Create New Version</DropdownMenuItem>
-                                                <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                <DropdownMenuItem>Editar</DropdownMenuItem>
+                                                <DropdownMenuItem>Crear Nueva Versión</DropdownMenuItem>
+                                                <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>

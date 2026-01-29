@@ -30,7 +30,7 @@ export function DashboardHeader() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search everything..."
+              placeholder="Buscar en todo..."
               className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
             />
           </div>
@@ -43,17 +43,17 @@ export function DashboardHeader() {
                 <AvatarImage src={userImage?.imageUrl} alt={currentUser.name} />
                 <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
             </Avatar>
-            <span className="sr-only">Toggle user menu</span>
+            <span className="sr-only">Menú de usuario</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>{currentUser.name}</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Settings</DropdownMenuItem>
-          <DropdownMenuItem>Support</DropdownMenuItem>
+          <DropdownMenuItem>Configuración</DropdownMenuItem>
+          <DropdownMenuItem>Soporte</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <Link href="/login">Logout</Link>
+            <Link href="/login">Cerrar sesión</Link>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

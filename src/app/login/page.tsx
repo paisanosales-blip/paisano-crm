@@ -14,19 +14,19 @@ export default function LoginPage() {
             <PaisanoLogo className="h-12 w-12 text-primary" />
           </div>
           <CardTitle className="text-2xl font-headline">Paisano Sales Hub</CardTitle>
-          <CardDescription>Ingresa tu correo para iniciar sesión en tu cuenta</CardDescription>
+          <CardDescription>Ingrese su correo para iniciar sesión en su cuenta</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input id="email" type="email" placeholder="m@example.com" required />
             </div>
             <div className="grid gap-2">
               <div className="flex items-center">
                 <Label htmlFor="password">Contraseña</Label>
                 <Link href="#" className="ml-auto inline-block text-sm underline">
-                  ¿Olvidaste tu contraseña?
+                  ¿Olvidó su contraseña?
                 </Link>
               </div>
               <Input id="password" type="password" required />
@@ -36,7 +36,7 @@ export default function LoginPage() {
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            ¿No tienes una cuenta?{' '}
+            ¿No tiene una cuenta?{' '}
             <Link href="/register" className="underline">
               Regístrate
             </Link>

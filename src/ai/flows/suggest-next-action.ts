@@ -1,11 +1,11 @@
 'use server';
 
 /**
- * @fileOverview An AI agent that suggests the next best action for a salesperson to take with a client.
+ * @fileOverview Un agente de IA que sugiere la siguiente mejor acción para que un vendedor la tome con un cliente.
  *
- * - suggestNextAction - A function that suggests the next best action for a salesperson.
- * - SuggestNextActionInput - The input type for the suggestNextAction function.
- * - SuggestNextActionOutput - The return type for the suggestNextAction function.
+ * - suggestNextAction - Una función que sugiere la siguiente mejor acción para un vendedor.
+ * - SuggestNextActionInput - El tipo de entrada para la función suggestNextAction.
+ * - SuggestNextActionOutput - El tipo de retorno para la función suggestNextAction.
  */
 
 import {ai} from '@/ai/genkit';
@@ -15,19 +15,19 @@ const SuggestNextActionInputSchema = z.object({
   pastInteractions: z
     .string()
     .describe(
-      'A summary of past interactions with the client, including dates, topics discussed, and outcomes.'
+      'Un resumen de las interacciones pasadas con el cliente, incluyendo fechas, temas discutidos y resultados.'
     ),
   quotationStatus: z
     .string()
     .describe(
-      'The current status of the quotation, including whether it has been sent, accepted, rejected, or is pending.'
+      'El estado actual de la cotización, incluyendo si ha sido enviada, aceptada, rechazada o está pendiente.'
     ),
   salesPipelineStage: z
     .string()
     .describe(
-      'The current stage of the client in the sales pipeline (e.g., Prospect, Qualification, Proposal, Negotiation, Closed Won, Closed Lost).'
+      'La etapa actual del cliente en el pipeline de ventas (p. ej., Prospecto, Calificación, Propuesta, Negociación, Ganada, Perdida).'
     ),
-  clientDetails: z.string().describe('Details about the client and their needs.'),
+  clientDetails: z.string().describe('Detalles sobre el cliente y sus necesidades.'),
 });
 export type SuggestNextActionInput = z.infer<typeof SuggestNextActionInputSchema>;
 
@@ -35,12 +35,12 @@ const SuggestNextActionOutputSchema = z.object({
   nextAction: z
     .string()
     .describe(
-      'The suggested next action for the salesperson to take with the client. This should be a specific and actionable step.'
+      'La siguiente acción sugerida para que el vendedor la tome con el cliente. Este debe ser un paso específico y procesable.'
     ),
   rationale: z
     .string()
     .describe(
-      'The rationale behind the suggested next action. Explain why this action is recommended based on the input data.'
+      'La justificación detrás de la siguiente acción sugerida. Explica por qué se recomienda esta acción en función de los datos de entrada.'
     ),
 });
 export type SuggestNextActionOutput = z.infer<typeof SuggestNextActionOutputSchema>;
@@ -55,23 +55,23 @@ const prompt = ai.definePrompt({
   name: 'suggestNextActionPrompt',
   input: {schema: SuggestNextActionInputSchema},
   output: {schema: SuggestNextActionOutputSchema},
-  prompt: `You are an AI assistant helping a salesperson determine the next best action to take with a client.
+  prompt: `Eres un asistente de IA que ayuda a un vendedor a determinar la siguiente mejor acción a tomar con un cliente.
 
-  Based on the following information, suggest the single, most effective next action for the salesperson to take.
-  Explain your rationale for the suggestion.
+  Basado en la siguiente información, sugiere la única y más efectiva siguiente acción para que el vendedor la tome.
+  Explica tu justificación para la sugerencia.
 
-  Client Details: {{{clientDetails}}}
-  Past Interactions: {{{pastInteractions}}}
-  Quotation Status: {{{quotationStatus}}}
-  Sales Pipeline Stage: {{{salesPipelineStage}}}
+  Detalles del Cliente: {{{clientDetails}}}
+  Interacciones Pasadas: {{{pastInteractions}}}
+  Estado de la Cotización: {{{quotationStatus}}}
+  Etapa del Pipeline de Ventas: {{{salesPipelineStage}}}
 
-  Consider the client's needs, the current stage in the sales pipeline, and the status of any outstanding quotations.
-  Suggest a specific and actionable next step that the salesperson can take to move the deal forward.
-  The suggestion should be realistic.
+  Considera las necesidades del cliente, la etapa actual en el pipeline de ventas y el estado de cualquier cotización pendiente.
+  Sugiere un siguiente paso específico y procesable que el vendedor pueda tomar para avanzar en el trato.
+  La sugerencia debe ser realista.
 
-  The response should be formatted as follows:
-  Next Action: [The suggested next action]
-  Rationale: [Explanation of why this action is recommended]
+  La respuesta debe tener el siguiente formato:
+  Siguiente Acción: [La siguiente acción sugerida]
+  Justificación: [Explicación de por qué se recomienda esta acción]
   `,
 });
 

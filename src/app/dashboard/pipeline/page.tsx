@@ -8,7 +8,7 @@ import type { Opportunity, OpportunityStage } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 
-const stages: OpportunityStage[] = ['Prospect', 'Qualification', 'Proposal', 'Negotiation', 'Closed Won', 'Closed Lost'];
+const stages: OpportunityStage[] = ['Prospecto', 'Calificación', 'Propuesta', 'Negociación', 'Ganada', 'Perdida'];
 
 export default function PipelinePage() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>(initialOpportunities);
@@ -22,10 +22,10 @@ export default function PipelinePage() {
   return (
     <div className="flex flex-col h-full">
         <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-headline font-bold">Sales Pipeline</h1>
+            <h1 className="text-2xl font-headline font-bold">Pipeline de Ventas</h1>
             <Button>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                New Opportunity
+                Nueva Oportunidad
             </Button>
         </div>
       <div className="flex-1 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-start overflow-x-auto">
@@ -49,7 +49,7 @@ export default function PipelinePage() {
                         </p>
                         <Select value={op.stage} onValueChange={(newStage: OpportunityStage) => handleStageChange(op.id, newStage)}>
                           <SelectTrigger className="mt-2 h-8 text-xs">
-                            <SelectValue placeholder="Change stage" />
+                            <SelectValue placeholder="Cambiar etapa" />
                           </SelectTrigger>
                           <SelectContent>
                             {stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}

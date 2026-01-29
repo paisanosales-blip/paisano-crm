@@ -15,24 +15,24 @@ export const clients: Client[] = [
 ];
 
 export const opportunities: Opportunity[] = [
-  { id: '1', name: 'Project Alpha', clientId: '1', sellerId: '3', stage: 'Proposal', value: 50000, currency: 'USD', closeDate: '2024-08-30' },
-  { id: '2', name: 'Project Beta', clientId: '2', sellerId: '3', stage: 'Qualification', value: 75000, currency: 'USD', closeDate: '2024-09-15' },
-  { id: '3', name: 'Project Gamma', clientId: '3', sellerId: '4', stage: 'Negotiation', value: 120000, currency: 'MXN', closeDate: '2024-07-25' },
-  { id: '4', name: 'Project Delta', clientId: '4', sellerId: '4', stage: 'Closed Won', value: 90000, currency: 'USD', closeDate: '2024-06-01' },
-  { id: '5', name: 'Project Epsilon', clientId: '1', sellerId: '3', stage: 'Prospect', value: 25000, currency: 'MXN', closeDate: '2024-10-10' },
-  { id: '6', name: 'Project Zeta', clientId: '2', sellerId: '4', stage: 'Closed Lost', value: 60000, currency: 'USD', closeDate: '2024-05-20' },
+  { id: '1', name: 'Project Alpha', clientId: '1', sellerId: '3', stage: 'Propuesta', value: 50000, currency: 'USD', closeDate: '2024-08-30' },
+  { id: '2', name: 'Project Beta', clientId: '2', sellerId: '3', stage: 'Calificación', value: 75000, currency: 'USD', closeDate: '2024-09-15' },
+  { id: '3', name: 'Project Gamma', clientId: '3', sellerId: '4', stage: 'Negociación', value: 120000, currency: 'MXN', closeDate: '2024-07-25' },
+  { id: '4', name: 'Project Delta', clientId: '4', sellerId: '4', stage: 'Ganada', value: 90000, currency: 'USD', closeDate: '2024-06-01' },
+  { id: '5', name: 'Project Epsilon', clientId: '1', sellerId: '3', stage: 'Prospecto', value: 25000, currency: 'MXN', closeDate: '2024-10-10' },
+  { id: '6', name: 'Project Zeta', clientId: '2', sellerId: '4', stage: 'Perdida', value: 60000, currency: 'USD', closeDate: '2024-05-20' },
 ];
 
 export const quotations: Quotation[] = [
-  { id: 'q1', opportunityId: '1', clientId: '1', sellerId: '3', value: 50000, currency: 'USD', status: 'Sent', version: 2, createdAt: '2024-07-01' },
-  { id: 'q2', opportunityId: '3', clientId: '3', sellerId: '4', value: 120000, currency: 'MXN', status: 'Sent', version: 1, createdAt: '2024-06-20' },
-  { id: 'q3', opportunityId: '4', clientId: '4', sellerId: '4', value: 90000, currency: 'USD', status: 'Accepted', version: 1, createdAt: '2024-05-15' },
-  { id: 'q4', opportunityId: '2', clientId: '2', sellerId: '3', value: 75000, currency: 'USD', status: 'Draft', version: 1, createdAt: '2024-07-05' },
+  { id: 'q1', opportunityId: '1', clientId: '1', sellerId: '3', value: 50000, currency: 'USD', status: 'Enviada', version: 2, createdAt: '2024-07-01' },
+  { id: 'q2', opportunityId: '3', clientId: '3', sellerId: '4', value: 120000, currency: 'MXN', status: 'Enviada', version: 1, createdAt: '2024-06-20' },
+  { id: 'q3', opportunityId: '4', clientId: '4', sellerId: '4', value: 90000, currency: 'USD', status: 'Aceptada', version: 1, createdAt: '2024-05-15' },
+  { id: 'q4', opportunityId: '2', clientId: '2', sellerId: '3', value: 75000, currency: 'USD', status: 'Borrador', version: 1, createdAt: '2024-07-05' },
 ];
 
 export const activities: Activity[] = [
-  { id: 'a1', entityId: '1', type: 'Call', notes: 'Discussed initial requirements for Project Alpha.', date: '2024-06-15', followUpDate: '2024-07-22' },
-  { id: 'a2', entityId: '1', type: 'Email', notes: 'Sent follow-up email with brochure.', date: '2024-06-16' },
-  { id: 'a3', entityId: '3', type: 'Meeting', notes: 'Met with stakeholders to negotiate terms.', date: '2024-06-18' },
-  { id: 'a4', entityId: '1', type: 'Note', notes: 'Client is concerned about budget.', date: '2024-07-02' },
+  { id: 'a1', entityId: '1', type: 'Llamada', notes: 'Discussed initial requirements for Project Alpha.', date: '2024-06-15', followUpDate: '2024-07-22' },
+  { id: 'a2', entityId: '1', type: 'Correo', notes: 'Sent follow-up email with brochure.', date: '2024-06-16' },
+  { id: 'a3', entityId: '3', type: 'Reunión', notes: 'Met with stakeholders to negotiate terms.', date: '2024-06-18' },
+  { id: 'a4', entityId: '1', type: 'Nota', notes: 'Client is concerned about budget.', date: '2024-07-02' },
 ];

@@ -31,15 +31,15 @@ export default function DashboardLayout({
         <SidebarContent>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Dashboard">
+              <SidebarMenuButton asChild tooltip="Panel">
                 <Link href="/dashboard">
                   <Home />
-                  <span>Dashboard</span>
+                  <span>Panel</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Sales Pipeline">
+              <SidebarMenuButton asChild tooltip="Pipeline de Ventas">
                 <Link href="/dashboard/pipeline">
                   <GanttChartSquare />
                   <span>Pipeline</span>
@@ -47,18 +47,18 @@ export default function DashboardLayout({
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Clients">
+              <SidebarMenuButton asChild tooltip="Clientes">
                 <Link href="/dashboard/clients">
                   <Users />
-                  <span>Clients</span>
+                  <span>Clientes</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Quotations">
+              <SidebarMenuButton asChild tooltip="Cotizaciones">
                 <Link href="/dashboard/quotations">
                   <FileText />
-                  <span>Quotations</span>
+                  <span>Cotizaciones</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -1,24 +1,24 @@
 'use server';
 
 /**
- * @fileOverview Summarizes client interactions for sales managers.
+ * @fileOverview Resume las interacciones con los clientes para los gerentes de ventas.
  *
- * - summarizeClientInteractions - A function that generates a summary of client interactions.
- * - SummarizeClientInteractionsInput - The input type for the summarizeClientInteractions function.
- * - SummarizeClientInteractionsOutput - The return type for the summarizeClientInteractions function.
+ * - summarizeClientInteractions - Una función que genera un resumen de las interacciones con el cliente.
+ * - SummarizeClientInteractionsInput - El tipo de entrada para la función summarizeClientInteractions.
+ * - SummarizeClientInteractionsOutput - El tipo de retorno para la función summarizeClientInteractions.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SummarizeClientInteractionsInputSchema = z.object({
-  interactions: z.string().describe('A list of interactions with the client.'),
-  clientName: z.string().describe('The name of the client.'),
+  interactions: z.string().describe('Una lista de interacciones con el cliente.'),
+  clientName: z.string().describe('El nombre del cliente.'),
 });
 export type SummarizeClientInteractionsInput = z.infer<typeof SummarizeClientInteractionsInputSchema>;
 
 const SummarizeClientInteractionsOutputSchema = z.object({
-  summary: z.string().describe('A summary of the interactions with the client.'),
+  summary: z.string().describe('Un resumen de las interacciones con el cliente.'),
 });
 export type SummarizeClientInteractionsOutput = z.infer<typeof SummarizeClientInteractionsOutputSchema>;
 
@@ -30,7 +30,7 @@ const prompt = ai.definePrompt({
   name: 'summarizeClientInteractionsPrompt',
   input: {schema: SummarizeClientInteractionsInputSchema},
   output: {schema: SummarizeClientInteractionsOutputSchema},
-  prompt: `You are a sales expert. Please summarize the following interactions with {{clientName}} to provide a quick overview for a sales manager:\n\nInteractions:\n{{{interactions}}}`,
+  prompt: `Eres un experto en ventas. Por favor, resume las siguientes interacciones con {{clientName}} para proporcionar una visión general rápida para un gerente de ventas:\n\nInteracciones:\n{{{interactions}}}`,
 });
 
 const summarizeClientInteractionsFlow = ai.defineFlow(

@@ -13,7 +13,7 @@ const salesByRegionData = [
 ];
 
 const salesByRegionConfig = {
-    sales: { label: 'Sales', color: 'hsl(var(--primary))' },
+    sales: { label: 'Ventas', color: 'hsl(var(--primary))' },
     norte: { label: 'Norte', color: 'hsl(var(--chart-1))' },
     centro: { label: 'Centro', color: 'hsl(var(--chart-2))' },
     sur: { label: 'Sur', color: 'hsl(var(--chart-3))' },
@@ -21,7 +21,7 @@ const salesByRegionConfig = {
 
 const pipelineData = Object.entries(
     opportunities.reduce((acc, opp) => {
-        if (!['Closed Won', 'Closed Lost'].includes(opp.stage)) {
+        if (!['Ganada', 'Perdida'].includes(opp.stage)) {
             acc[opp.stage] = (acc[opp.stage] || 0) + 1;
         }
         return acc;
@@ -30,11 +30,11 @@ const pipelineData = Object.entries(
 
 
 const pipelineConfig = {
-    count: { label: 'Opportunities' },
-    Prospect: { label: 'Prospect', color: 'hsl(var(--chart-1))' },
-    Qualification: { label: 'Qualification', color: 'hsl(var(--chart-2))' },
-    Proposal: { label: 'Proposal', color: 'hsl(var(--chart-3))' },
-    Negotiation: { label: 'Negotiation', color: 'hsl(var(--chart-4))' },
+    count: { label: 'Oportunidades' },
+    Prospecto: { label: 'Prospecto', color: 'hsl(var(--chart-1))' },
+    Calificación: { label: 'Calificación', color: 'hsl(var(--chart-2))' },
+    Propuesta: { label: 'Propuesta', color: 'hsl(var(--chart-3))' },
+    Negociación: { label: 'Negociación', color: 'hsl(var(--chart-4))' },
 } satisfies ChartConfig;
 
 
@@ -43,8 +43,8 @@ export function DashboardCharts() {
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <Card className="lg:col-span-4">
             <CardHeader>
-                <CardTitle>Sales by Region</CardTitle>
-                <CardDescription>A look at sales performance across different regions.</CardDescription>
+                <CardTitle>Ventas por Región</CardTitle>
+                <CardDescription>Un vistazo al rendimiento de ventas en diferentes regiones.</CardDescription>
             </CardHeader>
             <CardContent className="pl-2">
                  <ChartContainer config={salesByRegionConfig} className="h-[300px] w-full">
@@ -74,8 +74,8 @@ export function DashboardCharts() {
         </Card>
         <Card className="lg:col-span-3">
             <CardHeader>
-                <CardTitle>Pipeline Overview</CardTitle>
-                <CardDescription>Current distribution of opportunities in the sales pipeline.</CardDescription>
+                <CardTitle>Resumen del Pipeline</CardTitle>
+                <CardDescription>Distribución actual de oportunidades en el pipeline de ventas.</CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-center [&>div]:h-[250px]">
                 <ChartContainer config={pipelineConfig} className="mx-auto aspect-square h-full">

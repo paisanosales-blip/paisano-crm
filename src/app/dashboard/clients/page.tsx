@@ -10,27 +10,27 @@ export default function ClientsPage() {
     return (
         <div className="grid gap-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-headline font-bold">Clients</h1>
+                <h1 className="text-2xl font-headline font-bold">Clientes</h1>
                 <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    New Client
+                    Nuevo Cliente
                 </Button>
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle>Client List</CardTitle>
-                    <CardDescription>Manage your prospects and clients.</CardDescription>
+                    <CardTitle>Lista de Clientes</CardTitle>
+                    <CardDescription>Administra tus prospectos y clientes.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Customer ID</TableHead>
-                                <TableHead>Client Name</TableHead>
-                                <TableHead>Region</TableHead>
-                                <TableHead>Assigned Seller</TableHead>
-                                <TableHead>Created At</TableHead>
-                                <TableHead><span className="sr-only">Actions</span></TableHead>
+                                <TableHead>ID de Cliente</TableHead>
+                                <TableHead>Nombre del Cliente</TableHead>
+                                <TableHead>Región</TableHead>
+                                <TableHead>Vendedor Asignado</TableHead>
+                                <TableHead>Fecha de Creación</TableHead>
+                                <TableHead><span className="sr-only">Acciones</span></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -41,7 +41,7 @@ export default function ClientsPage() {
                                     <TableCell className="font-medium">{client.numeroDeCliente}</TableCell>
                                     <TableCell className="font-semibold">{client.nombreDelCliente}</TableCell>
                                     <TableCell><Badge variant="secondary">{client.region}</Badge></TableCell>
-                                    <TableCell>{seller?.name || 'Unassigned'}</TableCell>
+                                    <TableCell>{seller?.name || 'No asignado'}</TableCell>
                                     <TableCell>{new Date(client.createdAt).toLocaleDateString()}</TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>
@@ -52,10 +52,10 @@ export default function ClientsPage() {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem>Edit</DropdownMenuItem>
-                                                <DropdownMenuItem>View Details</DropdownMenuItem>
-                                                <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                <DropdownMenuItem>Editar</DropdownMenuItem>
+                                                <DropdownMenuItem>Ver Detalles</DropdownMenuItem>
+                                                <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>

@@ -1,26 +1,26 @@
 'use server';
 /**
- * @fileOverview Quotation summary generator.
+ * @fileOverview Generador de resúmenes de cotizaciones.
  *
- * - generateQuotationSummary - A function that generates a summary of a quotation.
- * - GenerateQuotationSummaryInput - The input type for the generateQuotationSummary function.
- * - GenerateQuotationSummaryOutput - The return type for the generateQuotationSummary function.
+ * - generateQuotationSummary - Una función que genera un resumen de una cotización.
+ * - GenerateQuotationSummaryInput - El tipo de entrada para la función generateQuotationSummary.
+ * - GenerateQuotationSummaryOutput - El tipo de retorno para la función generateQuotationSummary.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateQuotationSummaryInputSchema = z.object({
-  quotationDetails: z.string().describe('The details of the quotation.'),
-  keyTerms: z.string().describe('Key terms and conditions of the quotation.'),
+  quotationDetails: z.string().describe('Los detalles de la cotización.'),
+  keyTerms: z.string().describe('Términos y condiciones clave de la cotización.'),
 });
 export type GenerateQuotationSummaryInput = z.infer<
   typeof GenerateQuotationSummaryInputSchema
 >;
 
 const GenerateQuotationSummaryOutputSchema = z.object({
-  summary: z.string().describe('A short summary of the quotation.'),
-  progress: z.string().describe('Progress of the quotation summary generation.'),
+  summary: z.string().describe('Un resumen corto de la cotización.'),
+  progress: z.string().describe('Progreso de la generación del resumen de la cotización.'),
 });
 export type GenerateQuotationSummaryOutput = z.infer<
   typeof GenerateQuotationSummaryOutputSchema
@@ -36,8 +36,7 @@ const prompt = ai.definePrompt({
   name: 'generateQuotationSummaryPrompt',
   input: {schema: GenerateQuotationSummaryInputSchema},
   output: {schema: GenerateQuotationSummaryOutputSchema},
-  prompt: `You are an AI assistant helping a sales person.
-  Create a short summary of the quotation with the following details: {{{quotationDetails}}}. Also, highlight the following key terms and conditions: {{{keyTerms}}}. Finally, add one short, one-sentence summary of what you have generated to the 'progress' field in the output.`,
+  prompt: `Eres un asistente de IA que ayuda a un vendedor. Crea un resumen corto de la cotización con los siguientes detalles: {{{quotationDetails}}}. Además, resalta los siguientes términos y condiciones clave: {{{keyTerms}}}. Finalmente, agrega un resumen corto de una oración de lo que has generado al campo 'progress' en la salida.`,
 });
 
 const generateQuotationSummaryFlow = ai.defineFlow(
