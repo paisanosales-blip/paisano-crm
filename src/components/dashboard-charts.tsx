@@ -74,8 +74,8 @@ export function DashboardCharts() {
         </Card>
         <Card className="lg:col-span-3">
             <CardHeader>
-                <CardTitle>Resumen del Pipeline</CardTitle>
-                <CardDescription>Distribución actual de oportunidades en el pipeline de ventas.</CardDescription>
+                <CardTitle>Resumen del Flujo de Ventas</CardTitle>
+                <CardDescription>Distribución actual de oportunidades en el flujo de ventas.</CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-center [&>div]:h-[250px]">
                 <ChartContainer config={pipelineConfig} className="mx-auto aspect-square h-full">

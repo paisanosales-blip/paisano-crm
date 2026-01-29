@@ -39,10 +39,10 @@ export default function DashboardLayout({
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Pipeline de Ventas">
+              <SidebarMenuButton asChild tooltip="Flujo de Ventas">
                 <Link href="/dashboard/pipeline">
                   <GanttChartSquare />
-                  <span>Pipeline</span>
+                  <span>Flujo de Ventas</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

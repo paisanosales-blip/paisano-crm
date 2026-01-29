@@ -25,7 +25,7 @@ const SuggestNextActionInputSchema = z.object({
   salesPipelineStage: z
     .string()
     .describe(
-      'La etapa actual del cliente en el pipeline de ventas (p. ej., Prospecto, Calificación, Propuesta, Negociación, Ganada, Perdida).'
+      'La etapa actual del cliente en el flujo de ventas (p. ej., Prospecto, Calificación, Propuesta, Negociación, Ganada, Perdida).'
     ),
   clientDetails: z.string().describe('Detalles sobre el cliente y sus necesidades.'),
 });
@@ -63,9 +63,9 @@ const prompt = ai.definePrompt({
   Detalles del Cliente: {{{clientDetails}}}
   Interacciones Pasadas: {{{pastInteractions}}}
   Estado de la Cotización: {{{quotationStatus}}}
-  Etapa del Pipeline de Ventas: {{{salesPipelineStage}}}
+  Etapa del Flujo de Ventas: {{{salesPipelineStage}}}
 
-  Considera las necesidades del cliente, la etapa actual en el pipeline de ventas y el estado de cualquier cotización pendiente.
+  Considera las necesidades del cliente, la etapa actual en el flujo de ventas y el estado de cualquier cotización pendiente.
   Sugiere un siguiente paso específico y procesable que el vendedor pueda tomar para avanzar en el trato.
   La sugerencia debe ser realista.
 
