@@ -46,6 +46,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -405,10 +411,9 @@ export default function PipelinePage() {
               }
         },
         (error) => {
-          console.error("Error en la subida del archivo:", error);
-          let description = `Error al subir: ${error.message}`;
-          if (error.code === 'storage/unauthorized' || error.code === 'storage/unknown') {
-            description = 'Fallo al subir el archivo. Esto suele ser un problema de permisos CORS en el bucket de Storage. Por favor, asegúrese de que la configuración CORS es correcta.';
+          let description = 'Ocurrió un problema al subir el archivo. Inténtelo de nuevo.';
+          if (error.code === 'storage/unauthorized') {
+              description = 'Fallo al subir el archivo. Esto suele ser un problema de permisos CORS en el bucket de Storage. Por favor, asegúrese de que la configuración CORS es correcta.';
           }
           toast({ variant: 'destructive', title: 'Error de Subida', description });
           setIsSubmitting(false);
@@ -701,6 +706,8 @@ export default function PipelinePage() {
                 
                 const defaultTab = availableSummaries.length > 0 ? availableSummaries[availableSummaries.length - 1].key : undefined;
 
+                const infoSentActivity = prospect.activities.find((act: any) => act.type === 'Información Enviada');
+
                 return (
                   <TableRow key={prospect.id}>
                     <TableCell className="font-medium align-top w-[350px]">
@@ -777,51 +784,51 @@ export default function PipelinePage() {
                                   <PlusCircle className="mr-2 h-4 w-4" />
                                   Agregar Seguimiento
                                 </Button>
-                                {prospect.activities.length > 0 ? prospect.activities.map((act: any) => (
-                                    <div key={act.id} className="p-2 border rounded-md bg-background/50 text-xs">
-                                        <div className="flex items-start gap-3">
-                                            <Checkbox 
-                                                id={`activity-${act.id}`}
-                                                className="mt-0.5"
+                                {prospect.activities.length > 0 ? (
+                                    <Accordion type="single" collapsible className="w-full" defaultValue={prospect.activities[0]?.id}>
+                                      {prospect.activities.map((act: any) => (
+                                        <AccordionItem value={act.id} key={act.id} className="border-b-0">
+                                          <AccordionTrigger className="p-2 text-xs hover:no-underline rounded-md [&[data-state=open]]:bg-muted/50">
+                                            <div className="flex items-center gap-3 w-full">
+                                              <Checkbox
+                                                id={`activity-check-${act.id}`}
                                                 checked={act.completed}
                                                 onCheckedChange={(checked) => handleToggleActivityComplete(act.id, !!checked)}
-                                            />
-                                            <div className={cn("grid gap-1 w-full", act.completed && "line-through text-muted-foreground")}>
-                                                <div className="flex items-center justify-between">
-                                                     <span className="font-bold text-foreground">{act.type} {act.dueDate ? ` - ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
-                                                      <span className="text-xs text-muted-foreground">{format(new Date(act.createdDate), "dd/MM/yy")}</span>
-                                                </div>
-                                                {act.description && <p className="italic">"{act.description}"</p>}
-                                                {act.contactChannels && act.contactChannels.length > 0 && (
-                                                    <div className="flex flex-wrap gap-1 mt-1">
-                                                        {act.contactChannels.map((channel: string) => (
-                                                            <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
-                                                        ))}
-                                                    </div>
-                                                )}
+                                                onClick={(e) => e.stopPropagation()} // Prevent accordion from toggling
+                                              />
+                                              <div className={cn("grid gap-0.5 text-left", act.completed && "line-through text-muted-foreground")}>
+                                                <span className="font-bold text-foreground">{act.type} {act.dueDate ? `- ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
+                                                <span className="text-xs text-muted-foreground">Creado: {format(new Date(act.createdDate), "dd/MM/yy")}</span>
+                                              </div>
                                             </div>
-                                            <DropdownMenu>
-                                              <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
-                                                  <MoreVertical className="h-4 w-4" />
-                                                </Button>
-                                              </DropdownMenuTrigger>
-                                              <DropdownMenuContent>
-                                                <DropdownMenuItem onSelect={() => handleEditActivityClick(act, prospect)}>
+                                          </AccordionTrigger>
+                                          <AccordionContent className="pb-2 pt-0 pl-4 pr-2">
+                                            <div className="pl-6 border-l-2 ml-2 py-2">
+                                              {act.description && <p className="italic mb-2 text-muted-foreground">"{act.description}"</p>}
+                                              {act.contactChannels && act.contactChannels.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                  {act.contactChannels.map((channel: string) => (
+                                                    <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
+                                                  ))}
+                                                </div>
+                                              )}
+                                              <div className="flex justify-end gap-1 mt-2">
+                                                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleEditActivityClick(act, prospect)}>
+                                                  <Pencil className="h-3 w-3 mr-1" />
                                                   Editar
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem
-                                                  className="text-destructive"
-                                                  onSelect={() => handleDeleteActivityClick(act)}
-                                                >
+                                                </Button>
+                                                <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => handleDeleteActivityClick(act)}>
+                                                  <X className="h-3 w-3 mr-1" />
                                                   Eliminar
-                                                </DropdownMenuItem>
-                                              </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                    </div>
-                                )) : (
-                                     <div className="py-2 text-xs text-center text-muted-foreground">No hay seguimientos registrados.</div>
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          </AccordionContent>
+                                        </AccordionItem>
+                                      ))}
+                                    </Accordion>
+                                ) : (
+                                    <div className="py-2 text-xs text-center text-muted-foreground">No hay seguimientos registrados.</div>
                                 )}
                             </CollapsibleContent>
                         </Collapsible>
@@ -886,7 +893,7 @@ export default function PipelinePage() {
                                 ))}
                             </TabsList>
                             <TabsContent value="info">
-                                {prospect.opportunity.sentPrices !== undefined && (
+                                {currentIndex >= 1 && prospect.opportunity.sentPrices !== undefined && (
                                     <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
                                         <div className="flex items-center justify-between mb-1">
                                             <p className="font-bold text-foreground">RESUMEN: ENVIÓ DE INFORMACIÓN</p>
@@ -901,11 +908,21 @@ export default function PipelinePage() {
                                             <li>Info. Empresa: <span className="font-semibold">{prospect.opportunity.sentCompanyInfo ? '✓ Sí' : '✗ No'}</span></li>
                                             <li>Fotos/Videos: <span className="font-semibold">{prospect.opportunity.sentMedia ? '✓ Sí' : '✗ No'}</span></li>
                                         </ul>
+                                         {infoSentActivity && infoSentActivity.contactChannels?.length > 0 && (
+                                            <div className="mt-2 pt-2 border-t border-dashed">
+                                                <p className="font-semibold text-foreground/80">VÍAS DE CONTACTO USADAS</p>
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {infoSentActivity.contactChannels.map((channel: string) => (
+                                                        <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </TabsContent>
                              <TabsContent value="quot">
-                                {prospect.quotation && (
+                                {currentIndex >= 2 && prospect.quotation && (
                                     <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
                                         <div className="flex items-center justify-between">
                                             <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
@@ -926,7 +943,7 @@ export default function PipelinePage() {
                                 )}
                             </TabsContent>
                              <TabsContent value="neg">
-                                {prospect.opportunity.acceptedPrice !== undefined && (
+                                {currentIndex >= 3 && prospect.opportunity.acceptedPrice !== undefined && (
                                     <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
                                         <div className="flex items-center justify-between mb-1">
                                             <p className="font-bold text-foreground">RESUMEN: NEGOCIACIÓN</p>
@@ -950,7 +967,7 @@ export default function PipelinePage() {
                                 )}
                             </TabsContent>
                             <TabsContent value="close">
-                                {prospect.opportunity.clientMadeDownPayment !== undefined && (
+                                {currentIndex >= 4 && prospect.opportunity.clientMadeDownPayment !== undefined && (
                                     <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
                                         <div className="flex items-center justify-between mb-1">
                                             <p className="font-bold text-foreground">RESUMEN: CIERRE DE VENTA</p>

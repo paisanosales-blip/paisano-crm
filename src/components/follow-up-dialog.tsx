@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -105,7 +106,7 @@ export function FollowUpDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-lg"
+        className="sm:max-w-xl"
         onPointerDownOutside={(e) => {
             const target = e.target as HTMLElement;
             if (target.closest('[data-radix-popper-content-wrapper]') || target.closest('.rdp')) {
