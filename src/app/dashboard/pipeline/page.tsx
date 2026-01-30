@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -206,28 +206,45 @@ export default function PipelinePage() {
       });
 
 
-      // 2. Create a new Activity for the follow-up if provided
-      const isFollowUpProvided = nextContactDate && nextContactType && observations;
-      if (isFollowUpProvided) {
+      // 2. Create or Update Activity for the follow-up
+      const existingActivity = currentProspect.activities?.find((act: any) => !act.completed);
+      
+      // Determine if there's any follow-up info to save
+      const hasFollowUpData = nextContactDate !== undefined || nextContactType || observations || (contactChannels && Object.values(contactChannels).some(v => v));
+
+      if (hasFollowUpData) {
         const selectedChannels = contactChannels ? Object.entries(contactChannels)
           .filter(([, value]) => value)
           .map(([key]) => key) : [];
 
-        const activityData = {
-          leadId: currentProspect.id,
-          sellerId: user.uid,
-          sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
-          type: nextContactType,
-          description: observations,
-          contactChannels: selectedChannels,
-          dueDate: nextContactDate.toISOString(),
-          completed: false,
-          createdDate: new Date().toISOString(),
-        };
-        
-        await addDoc(collection(firestore, 'activities'), activityData);
-        
-        toast({ title: 'Actividad Creada', description: `Próximo contacto para ${currentProspect.clientName} agendado.` });
+        if (existingActivity) {
+          // Update existing activity
+          const activityRef = doc(firestore, 'activities', existingActivity.id);
+          const activityUpdatePayload = {
+            type: nextContactType,
+            description: observations,
+            contactChannels: selectedChannels,
+            dueDate: nextContactDate ? nextContactDate.toISOString() : null, // Allow clearing the date
+          };
+          await updateDoc(activityRef, activityUpdatePayload);
+          toast({ title: 'Actividad Actualizada', description: `Seguimiento para ${currentProspect.clientName} actualizado.` });
+
+        } else {
+          // Create new activity
+          const activityData = {
+            leadId: currentProspect.id,
+            sellerId: user.uid,
+            sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+            type: nextContactType || 'Nota', // Default to Note if not provided
+            description: observations || '',
+            contactChannels: selectedChannels,
+            dueDate: nextContactDate ? nextContactDate.toISOString() : null,
+            completed: false,
+            createdDate: new Date().toISOString(),
+          };
+          await addDoc(collection(firestore, 'activities'), activityData);
+          toast({ title: 'Actividad Creada', description: `Próximo contacto para ${currentProspect.clientName} agendado.` });
+        }
       }
 
       setInfoSentDialogOpen(false);
@@ -577,42 +594,52 @@ export default function PipelinePage() {
                       <Badge variant="outline" className={`font-bold ${getBadgeClass(classification)}`}>{classification}</Badge>
                     </TableCell>
                     <TableCell className="align-top">
-                      <div className="flex items-center gap-2">
-                        {stages.map((stage, index) => {
-                          const currentIndex = stages.indexOf(prospect.opportunity.stage);
-                          const isCompleted = index < currentIndex;
-                          const isCurrent = index === currentIndex;
-                          const isNext = index === currentIndex + 1;
-                          const canMoveTo = isNext || isCompleted;
-                          
-                          return (
-                            <React.Fragment key={stage}>
-                              <div
-                                onClick={() => requestStageChange(prospect, stage)}
-                                className={cn(
-                                    'flex flex-col items-center gap-1 text-center transition-opacity w-28',
-                                    (isNext || isCompleted) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
-                                    !isCompleted && !isCurrent && !isNext && 'opacity-50'
-                                )}
-                                title={canMoveTo ? `Mover a: ${stage}` : stage}
-                              >
-                                <div className={cn(
-                                    'w-6 h-6 rounded-full flex items-center justify-center transition-colors',
-                                    (isCompleted || isCurrent) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
-                                )}>
-                                    {index + 1}
-                                </div>
-                                <span className={cn(
-                                    'text-xs',
-                                    isCurrent ? 'font-bold text-primary' : 'text-muted-foreground'
-                                )}>
-                                    {stage}
-                                </span>
-                              </div>
-                              {index < stages.length - 1 && <div className="flex-1 h-px bg-border mt-[-1.25rem]" />}
-                            </React.Fragment>
-                          )
-                        })}
+                      <div className="flex items-center">
+                          {stages.map((stage, index) => {
+                              const currentIndex = stages.indexOf(prospect.opportunity.stage);
+                              const isCompleted = index < currentIndex;
+                              const isCurrent = index === currentIndex;
+                              const isNext = index === currentIndex + 1;
+                              const canMoveTo = isNext || isCompleted;
+
+                              return (
+                                  <React.Fragment key={stage}>
+                                      <div
+                                          onClick={() => requestStageChange(prospect, stage)}
+                                          className={cn(
+                                              'relative flex flex-col items-center gap-1.5 text-center transition-opacity w-28',
+                                              (isNext || isCompleted) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
+                                              !isCompleted && !isCurrent && !isNext && 'opacity-50'
+                                          )}
+                                          title={canMoveTo ? `Mover a: ${stage}` : stage}
+                                      >
+                                          <div className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-background">
+                                            <div className={cn(
+                                                'flex h-6 w-6 items-center justify-center rounded-full transition-colors scale-100 group-hover:scale-110',
+                                                (isCompleted || isCurrent) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                                            )}>
+                                                {isCompleted ? <Check className="h-4 w-4" /> : <span className={cn(isCurrent && "font-bold")}>{index + 1}</span>}
+                                            </div>
+                                          </div>
+
+                                          <span className={cn(
+                                              'text-xs max-w-full truncate',
+                                              isCurrent ? 'font-bold text-primary' : 'text-muted-foreground'
+                                          )}>
+                                              {stage}
+                                          </span>
+                                      </div>
+                                      {index < stages.length - 1 && (
+                                        <div className="relative h-px w-full flex-1 bg-border">
+                                            <div className={cn(
+                                                "absolute inset-y-0 left-0 h-px bg-primary transition-all",
+                                                isCompleted ? "w-full" : "w-0"
+                                            )} />
+                                        </div>
+                                      )}
+                                  </React.Fragment>
+                              )
+                          })}
                       </div>
                        <div className="mt-4 pt-4 border-t border-dashed">
                         {availableSummaries.length > 0 ? (
@@ -645,7 +672,7 @@ export default function PipelinePage() {
                                                 <div className="space-y-1.5">
                                                     <p className="font-bold text-foreground">SEGUIMIENTO AGENDADO</p>
                                                     <div>
-                                                        <p>Próximo Contacto: <span className="font-semibold">{format(new Date(followUpActivity.dueDate), "PP 'a las' p", { locale: es })}</span></p>
+                                                        <p>Próximo Contacto: <span className="font-semibold">{followUpActivity.dueDate ? format(new Date(followUpActivity.dueDate), "PP 'a las' p", { locale: es }) : 'No especificado'}</span></p>
                                                         <p>Tipo: <span className="font-semibold">{followUpActivity.type}</span></p>
                                                     </div>
                                                     {followUpActivity.contactChannels && followUpActivity.contactChannels.length > 0 && (
@@ -770,6 +797,7 @@ export default function PipelinePage() {
             }}
             onConfirm={handleInfoSentConfirm}
             opportunity={currentProspect.opportunity}
+            activity={currentProspect.activities?.find((act: any) => !act.completed)}
             isSubmitting={isSubmitting}
         />
       )}

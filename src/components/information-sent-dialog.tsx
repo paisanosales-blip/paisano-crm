@@ -59,6 +59,7 @@ interface InformationSentDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: (payload: InfoSentConfirmPayload) => void;
   opportunity: Opportunity;
+  activity?: any; // The existing follow-up activity
   isSubmitting: boolean;
 }
 
@@ -67,6 +68,7 @@ export function InformationSentDialog({
   onOpenChange,
   onConfirm,
   opportunity,
+  activity,
   isSubmitting,
 }: InformationSentDialogProps) {
   const [checklist, setChecklist] = useState<ChecklistState>({
@@ -96,15 +98,27 @@ export function InformationSentDialog({
             sentCompanyInfo: opportunity.sentCompanyInfo || false,
             sentMedia: opportunity.sentMedia || false,
         });
-        // For editing, we don't pre-fill follow-up as it's for creating a *new* follow-up activity
-        // If we wanted to edit an existing activity, we'd need to pass it in.
-        // For now, reset them.
-        setContactChannels(initialChannelsState);
-        setObservations('');
-        setNextContactDate(undefined);
-        setNextContactType('');
+        
+        // Pre-fill from existing activity if present
+        if (activity) {
+          const channels = contactChannelItems.reduce((acc, channel) => {
+            acc[channel] = activity.contactChannels?.includes(channel) || false;
+            return acc;
+          }, {} as { [key: string]: boolean });
+          
+          setContactChannels(channels);
+          setObservations(activity.description || '');
+          setNextContactDate(activity.dueDate ? new Date(activity.dueDate) : undefined);
+          setNextContactType(activity.type || '');
+        } else {
+          // Reset if no activity
+          setContactChannels(initialChannelsState);
+          setObservations('');
+          setNextContactDate(undefined);
+          setNextContactType('');
+        }
     }
-  }, [open, opportunity]);
+  }, [open, opportunity, activity]);
 
 
   const handleSwitchChange = (id: keyof ChecklistState, checked: boolean) => {
