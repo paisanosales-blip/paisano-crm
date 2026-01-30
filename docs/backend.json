@@ -59,17 +59,51 @@
           "type": "string",
           "description": "Reference to UserProfile. (Relationship: UserProfile 1:N Lead) The ID of the seller assigned to the lead."
         },
+        "sellerName": {
+          "type": "string",
+          "description": "Denormalized name of the seller assigned to the lead for efficient display."
+        },
         "clienteNumber": {
           "type": "string",
           "description": "Customer number."
         },
         "clientName": {
           "type": "string",
-          "description": "Name of the client."
+          "description": "Name of the client company."
+        },
+        "contactPerson": {
+          "type": "string",
+          "description": "Name of the contact person at the client company."
         },
         "region": {
           "type": "string",
           "description": "Region of the client."
+        },
+        "country": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "contactMethod": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string",
+          "format": "uri"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "language": {
+          "type": "string"
         },
         "status": {
           "type": "string",
@@ -84,8 +118,14 @@
       "required": [
         "id",
         "sellerId",
+        "sellerName",
         "clientName",
+        "contactPerson",
         "region",
+        "country",
+        "city",
+        "contactMethod",
+        "language",
         "status",
         "createdDate"
       ]
@@ -103,6 +143,14 @@
         "leadId": {
           "type": "string",
           "description": "Reference to Lead. (Relationship: Lead 1:N Opportunity) The ID of the associated lead."
+        },
+        "sellerId": {
+          "type": "string",
+          "description": "Denormalized seller ID for rules and queries."
+        },
+        "sellerName": {
+          "type": "string",
+          "description": "Denormalized seller name for display."
         },
         "stage": {
           "type": "string",
@@ -129,6 +177,8 @@
       "required": [
         "id",
         "leadId",
+        "sellerId",
+        "sellerName",
         "stage",
         "value",
         "currency",
@@ -149,6 +199,14 @@
         "opportunityId": {
           "type": "string",
           "description": "Reference to Opportunity. (Relationship: Opportunity 1:N Quotation) The ID of the associated opportunity."
+        },
+        "sellerId": {
+          "type": "string",
+          "description": "Denormalized seller ID for rules and queries."
+        },
+        "sellerName": {
+          "type": "string",
+          "description": "Denormalized seller name for display."
         },
         "pdfUrl": {
           "type": "string",
@@ -176,6 +234,8 @@
       "required": [
         "id",
         "opportunityId",
+        "sellerId",
+        "sellerName",
         "pdfUrl",
         "value",
         "currency",
@@ -196,6 +256,14 @@
         "leadId": {
           "type": "string",
           "description": "Reference to Lead. (Relationship: Lead 1:N Activity) The ID of the associated lead."
+        },
+        "sellerId": {
+          "type": "string",
+          "description": "Denormalized seller ID for rules and queries."
+        },
+        "sellerName": {
+          "type": "string",
+          "description": "Denormalized seller name for display."
         },
         "type": {
           "type": "string",
@@ -218,6 +286,8 @@
       "required": [
         "id",
         "leadId",
+        "sellerId",
+        "sellerName",
         "type",
         "description",
         "dueDate",
