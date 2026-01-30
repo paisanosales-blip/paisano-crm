@@ -27,7 +27,7 @@ export default function LoginPage() {
   const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { user, isUserLoading, userError } = useUser();
+  const { user, isUserLoading } = useUser();
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -43,18 +43,16 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router]);
 
-  useEffect(() => {
-    if (userError) {
+  async function onSubmit(values: z.infer<typeof loginSchema>) {
+    try {
+      await initiateEmailSignIn(auth, values.email, values.password);
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Error al iniciar sesión',
         description: 'Credenciales inválidas. Por favor, inténtelo de nuevo.',
       });
     }
-  }, [userError, toast]);
-
-  function onSubmit(values: z.infer<typeof loginSchema>) {
-    initiateEmailSignIn(auth, values.email, values.password);
   }
   
   if (isUserLoading || (!isUserLoading && user)) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -33,10 +33,7 @@ export default function RegisterPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
-  const { user, isUserLoading, userError } = useUser();
-
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [formData, setFormData] = useState<RegisterFormValues | null>(null);
+  const { user, isUserLoading } = useUser();
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -47,60 +44,49 @@ export default function RegisterPage() {
     },
   });
 
-  // Effect to handle user creation and profile setup
+  // Effect to redirect if already logged in
   useEffect(() => {
-    if (isRegistering && user && formData && firestore) {
-      const [firstName, ...lastNameParts] = formData.name.split(' ');
+    if (!isUserLoading && user) {
+      router.replace('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
+
+
+  async function onSubmit(values: RegisterFormValues) {
+    if (!firestore) return;
+
+    try {
+      const userCredential = await initiateEmailSignUp(auth, values.email, values.password);
+      const newUser = userCredential.user;
+      
+      const [firstName, ...lastNameParts] = values.name.split(' ');
       const lastName = lastNameParts.join(' ');
       
       const userProfile = {
-        id: user.uid,
-        firebaseUid: user.uid,
+        id: newUser.uid,
+        firebaseUid: newUser.uid,
         firstName: firstName || '',
         lastName: lastName || '',
-        email: user.email,
+        email: newUser.email,
         phone: '',
         role: 'seller', // Default role for new users
       };
 
-      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDocRef = doc(firestore, 'users', newUser.uid);
       setDocumentNonBlocking(userDocRef, userProfile, { merge: true });
 
-      setIsRegistering(false);
-      setFormData(null);
       toast({
         title: '¡Cuenta Creada!',
-        description: 'Bienvenido a Paisano Sales Hub.',
+        description: 'Bienvenido a Paisano Sales Hub. Serás redirigido.',
       });
-      router.replace('/dashboard');
-    }
-  }, [isRegistering, user, formData, firestore, router, toast]);
-
-  // Effect to redirect if already logged in
-  useEffect(() => {
-    if (!isUserLoading && user && !isRegistering) {
-      router.replace('/dashboard');
-    }
-  }, [user, isUserLoading, router, isRegistering]);
-
-  // Effect to show registration errors
-  useEffect(() => {
-    if (userError && isRegistering) {
-      toast({
+      
+    } catch (error) {
+       toast({
         variant: 'destructive',
         title: 'Error de Registro',
         description: 'Este correo electrónico ya está en uso o la contraseña es inválida.',
       });
-      setIsRegistering(false);
-      setFormData(null);
     }
-  }, [userError, isRegistering, toast]);
-
-
-  function onSubmit(values: RegisterFormValues) {
-    setIsRegistering(true);
-    setFormData(values);
-    initiateEmailSignUp(auth, values.email, values.password);
   }
 
   if (isUserLoading || (!isUserLoading && user)) {
@@ -169,8 +155,8 @@ export default function RegisterPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isRegistering}>
-                {isRegistering ? 'Registrando...' : 'Registrarse'}
+              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? 'Registrando...' : 'Registrarse'}
               </Button>
             </form>
           </Form>
