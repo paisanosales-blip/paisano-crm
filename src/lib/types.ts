@@ -15,7 +15,7 @@ export type Client = {
   createdAt: string;
 };
 
-export type OpportunityStage = 'Prospecto' | 'Calificación' | 'Propuesta' | 'Negociación' | 'Ganada' | 'Perdida';
+export type OpportunityStage = 'Primer contacto' | 'Envió de Información' | 'Envió de Cotización' | 'Negociación' | 'Cierre de venta';
 
 export type Opportunity = {
   id: string;

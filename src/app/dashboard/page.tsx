@@ -6,9 +6,9 @@ import { opportunities, activities, clients } from '@/lib/data';
 import { DashboardCharts } from '@/components/dashboard-charts';
 
 export default function DashboardPage() {
-    const totalRevenue = opportunities.filter(o => o.stage === 'Ganada').reduce((sum, o) => sum + o.value, 0);
-    const activeOpportunities = opportunities.filter(o => !['Ganada', 'Perdida'].includes(o.stage)).length;
-    const conversionRate = (opportunities.filter(o => o.stage === 'Ganada').length / opportunities.length * 100).toFixed(0);
+    const totalRevenue = opportunities.filter(o => o.stage === 'Cierre de venta').reduce((sum, o) => sum + o.value, 0);
+    const activeOpportunities = opportunities.filter(o => o.stage !== 'Cierre de venta').length;
+    const conversionRate = (opportunities.filter(o => o.stage === 'Cierre de venta').length / opportunities.length * 100).toFixed(0);
 
     return (
         <div className="grid gap-6">

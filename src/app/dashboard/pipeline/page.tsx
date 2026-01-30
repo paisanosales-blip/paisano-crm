@@ -1,17 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, MoreVertical } from 'lucide-react';
 
 import { opportunities as initialOpportunities, clients as initialClients, users } from '@/lib/data';
 import type { Opportunity, OpportunityStage, Client, User } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -38,8 +38,26 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
-const stages: OpportunityStage[] = ['Prospecto', 'Calificación', 'Propuesta', 'Negociación', 'Ganada', 'Perdida'];
+
+// New stages
+const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
+type ClientClassification = 'Prospecto' | 'Cliente potencial' | 'CLIENTE';
 
 const prospectoSchema = z.object({
     clientName: z.string().min(1, 'El nombre del cliente es requerido.'),
@@ -56,12 +74,26 @@ const prospectoSchema = z.object({
     return !!data.website || !!data.phone || !!data.email;
 }, {
     message: 'Debe proporcionar al menos una de las siguientes opciones: Página web, teléfono o email.',
-    path: ['website'] // Attach error to a specific field for display
+    path: ['website']
 });
-
 
 const sellerUsers = users.filter(u => u.role === 'seller');
 const contactMethods = ['REDES SOCIALES', 'PUBLICIDAD', 'BUSQUEDA EN GOOGLE', 'BUSQUEDA EN MAPS'];
+
+// Helper function to get classification
+const getClassification = (stage: OpportunityStage): ClientClassification => {
+    if (stage === 'Primer contacto' || stage === 'Envió de Información') {
+        return 'Prospecto';
+    }
+    if (stage === 'Envió de Cotización' || stage === 'Negociación') {
+        return 'Cliente potencial';
+    }
+    if (stage === 'Cierre de venta') {
+        return 'CLIENTE';
+    }
+    return 'Prospecto'; // Default
+};
+
 
 export default function PipelinePage() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>(initialOpportunities);
@@ -104,7 +136,7 @@ export default function PipelinePage() {
       name: `Oportunidad para ${values.companyName}`,
       clientId: newClient.id,
       sellerId: values.sellerId,
-      stage: 'Prospecto',
+      stage: 'Primer contacto', // Set to the first new stage
       value: 0,
       currency: 'USD',
       closeDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
@@ -116,6 +148,15 @@ export default function PipelinePage() {
     setIsDialogOpen(false);
     form.reset();
   }
+  
+  // Combine client and their opportunity for easy rendering
+  const clientProspects = clients.map(client => {
+      const opportunity = opportunities.find(op => op.clientId === client.id);
+      return {
+          ...client,
+          opportunity
+      }
+  }).filter(item => item.opportunity); // Only show clients with opportunities
 
   return (
     <div className="flex flex-col h-full">
@@ -136,7 +177,7 @@ export default function PipelinePage() {
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-6">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -305,7 +346,7 @@ export default function PipelinePage() {
                     </div>
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className='pt-4'>
                   <DialogClose asChild>
                      <Button type="button" variant="secondary">Cancelar</Button>
                   </DialogClose>
@@ -316,41 +357,75 @@ export default function PipelinePage() {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 items-start overflow-x-auto">
-        {stages.map(stage => (
-          <div key={stage} className="bg-muted/50 rounded-lg h-full min-w-[280px]">
-            <h2 className="p-4 text-lg font-semibold font-headline sticky top-0 bg-muted/80 backdrop-blur-sm z-10 rounded-t-lg">{stage}</h2>
-            <div className="p-2 flex flex-col gap-4">
-              {opportunities
-                .filter(op => op.stage === stage)
-                .map(op => {
-                  const client = clients.find(c => c.id === op.clientId);
-                  return (
-                    <Card key={op.id} className="shadow-md hover:shadow-lg transition-shadow">
-                      <CardHeader className="p-4">
-                        <CardTitle className="text-base">{op.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="p-4 pt-0 text-sm space-y-2">
-                        <p className="text-muted-foreground">{client?.nombreDelCliente}</p>
-                        <p className="font-semibold">
-                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: op.currency }).format(op.value)}
-                        </p>
-                        <Select value={op.stage} onValueChange={(newStage: OpportunityStage) => handleStageChange(op.id, newStage)}>
-                          <SelectTrigger className="mt-2 h-8 text-xs">
-                            <SelectValue placeholder="Cambiar etapa" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {stages.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-            </div>
-          </div>
-        ))}
-      </div>
+        <Card>
+            <CardHeader>
+                <CardTitle>Seguimiento de Prospectos</CardTitle>
+                <CardDescription>
+                Administra el ciclo de vida de tus clientes, desde el primer contacto hasta el cierre.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Nombre del Cliente</TableHead>
+                            <TableHead>Clasificación</TableHead>
+                            <TableHead>Etapa Actual</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {clientProspects.map(prospect => (
+                            <TableRow key={prospect.id}>
+                                <TableCell className="font-medium">{prospect.nombreDelCliente}</TableCell>
+                                <TableCell>
+                                    <Badge variant="outline">{getClassification(prospect.opportunity!.stage)}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex items-center gap-2">
+                                        {stages.map((stage, index) => {
+                                            const currentIndex = stages.indexOf(prospect.opportunity!.stage);
+                                            const isCompleted = index < currentIndex;
+                                            const isCurrent = index === currentIndex;
+                                            return (
+                                                <React.Fragment key={stage}>
+                                                    <div className='flex flex-col items-center gap-1'>
+                                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isCompleted || isCurrent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                                                            {index + 1}
+                                                        </div>
+                                                        <span className={`text-xs text-center ${isCurrent ? 'font-bold text-primary' : 'text-muted-foreground'}`}>{stage}</span>
+                                                    </div>
+                                                    {index < stages.length - 1 && <div className="flex-1 h-px bg-border mt-[-1.25rem]" />}
+                                                </React.Fragment>
+                                            )
+                                        })}
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                        <Button size="icon" variant="ghost">
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                        {stages.map(stage => (
+                                            <DropdownMenuItem
+                                                key={stage}
+                                                onSelect={() => handleStageChange(prospect.opportunity!.id, stage)}
+                                            >
+                                                Mover a: {stage}
+                                            </DropdownMenuItem>
+                                        ))}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
     </div>
   );
 }

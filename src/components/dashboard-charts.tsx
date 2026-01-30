@@ -21,7 +21,7 @@ const salesByRegionConfig = {
 
 const pipelineData = Object.entries(
     opportunities.reduce((acc, opp) => {
-        if (!['Ganada', 'Perdida'].includes(opp.stage)) {
+        if (opp.stage !== 'Cierre de venta') {
             acc[opp.stage] = (acc[opp.stage] || 0) + 1;
         }
         return acc;
@@ -31,10 +31,10 @@ const pipelineData = Object.entries(
 
 const pipelineConfig = {
     count: { label: 'Oportunidades' },
-    Prospecto: { label: 'Prospecto', color: 'hsl(var(--chart-1))' },
-    Calificación: { label: 'Calificación', color: 'hsl(var(--chart-2))' },
-    Propuesta: { label: 'Propuesta', color: 'hsl(var(--chart-3))' },
-    Negociación: { label: 'Negociación', color: 'hsl(var(--chart-4))' },
+    'Primer contacto': { label: 'Primer contacto', color: 'hsl(var(--chart-1))' },
+    'Envió de Información': { label: 'Envió de Información', color: 'hsl(var(--chart-2))' },
+    'Envió de Cotización': { label: 'Envió de Cotización', color: 'hsl(var(--chart-3))' },
+    'Negociación': { label: 'Negociación', color: 'hsl(var(--chart-4))' },
 } satisfies ChartConfig;
 
 

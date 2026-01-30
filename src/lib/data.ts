@@ -15,12 +15,12 @@ export const clients: Client[] = [
 ];
 
 export const opportunities: Opportunity[] = [
-  { id: '1', name: 'Project Alpha', clientId: '1', sellerId: '3', stage: 'Propuesta', value: 50000, currency: 'USD', closeDate: '2024-08-30' },
-  { id: '2', name: 'Project Beta', clientId: '2', sellerId: '3', stage: 'Calificación', value: 75000, currency: 'USD', closeDate: '2024-09-15' },
+  { id: '1', name: 'Project Alpha', clientId: '1', sellerId: '3', stage: 'Envió de Cotización', value: 50000, currency: 'USD', closeDate: '2024-08-30' },
+  { id: '2', name: 'Project Beta', clientId: '2', sellerId: '3', stage: 'Envió de Información', value: 75000, currency: 'USD', closeDate: '2024-09-15' },
   { id: '3', name: 'Project Gamma', clientId: '3', sellerId: '4', stage: 'Negociación', value: 120000, currency: 'MXN', closeDate: '2024-07-25' },
-  { id: '4', name: 'Project Delta', clientId: '4', sellerId: '4', stage: 'Ganada', value: 90000, currency: 'USD', closeDate: '2024-06-01' },
-  { id: '5', name: 'Project Epsilon', clientId: '1', sellerId: '3', stage: 'Prospecto', value: 25000, currency: 'MXN', closeDate: '2024-10-10' },
-  { id: '6', name: 'Project Zeta', clientId: '2', sellerId: '4', stage: 'Perdida', value: 60000, currency: 'USD', closeDate: '2024-05-20' },
+  { id: '4', name: 'Project Delta', clientId: '4', sellerId: '4', stage: 'Cierre de venta', value: 90000, currency: 'USD', closeDate: '2024-06-01' },
+  { id: '5', name: 'Project Epsilon', clientId: '1', sellerId: '3', stage: 'Primer contacto', value: 25000, currency: 'MXN', closeDate: '2024-10-10' },
+  { id: '6', name: 'Project Zeta', clientId: '2', sellerId: '4', stage: 'Primer contacto', value: 60000, currency: 'USD', closeDate: '2024-05-20' },
 ];
 
 export const quotations: Quotation[] = [
