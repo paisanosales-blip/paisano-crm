@@ -72,13 +72,9 @@ export default function NewQuotationPage() {
     return products.reduce((acc, product) => acc + product.quantity * product.price, 0);
   }, [products]);
 
-  const tax = useMemo(() => {
-    return subtotal * 0.16; // 16% IVA
-  }, [subtotal]);
-
   const total = useMemo(() => {
-    return subtotal + tax + freight;
-  }, [subtotal, tax, freight]);
+    return subtotal + freight;
+  }, [subtotal, freight]);
   
   const generatePdf = () => {
     if (!selectedClient) {
@@ -151,16 +147,14 @@ export default function NewQuotationPage() {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Subtotal:', docWidth - 60, finalY + 10);
-    doc.text('IVA (16%):', docWidth - 60, finalY + 17);
-    doc.text('Flete:', docWidth - 60, finalY + 24);
-    doc.text('Total:', docWidth - 60, finalY + 31);
+    doc.text('Flete:', docWidth - 60, finalY + 17);
+    doc.text('Total:', docWidth - 60, finalY + 24);
     
     doc.setFont('helvetica', 'normal');
     doc.text(`$${subtotal.toFixed(2)}`, docWidth - 15, finalY + 10, { align: 'right' });
-    doc.text(`$${tax.toFixed(2)}`, docWidth - 15, finalY + 17, { align: 'right' });
-    doc.text(`$${freight.toFixed(2)}`, docWidth - 15, finalY + 24, { align: 'right' });
+    doc.text(`$${freight.toFixed(2)}`, docWidth - 15, finalY + 17, { align: 'right' });
     doc.setFont('helvetica', 'bold');
-    doc.text(`$${total.toFixed(2)}`, docWidth - 15, finalY + 31, { align: 'right' });
+    doc.text(`$${total.toFixed(2)}`, docWidth - 15, finalY + 24, { align: 'right' });
 
 
     // Footer
@@ -279,10 +273,6 @@ export default function NewQuotationPage() {
                      <div className="flex justify-between items-center font-medium">
                         <p>Subtotal:</p>
                         <p>${subtotal.toFixed(2)}</p>
-                    </div>
-                     <div className="flex justify-between items-center font-medium">
-                        <p>IVA (16%):</p>
-                        <p>${tax.toFixed(2)}</p>
                     </div>
                      <div className="flex justify-between items-center text-lg font-bold">
                         <p>Total:</p>
