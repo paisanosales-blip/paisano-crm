@@ -67,6 +67,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
+const filterButtonLabels: Record<OpportunityStage | 'Todos', string> = {
+    'Todos': 'Todos',
+    'Primer contacto': 'CONTACTO',
+    'Envió de Información': 'INFORMACIÓN',
+    'Envió de Cotización': 'COTIZACIÓN',
+    'Negociación': 'NEGOCIACIÓN',
+    'Cierre de venta': 'CIERRE',
+};
 
 // Helper function to get classification
 const getClassification = (stage: OpportunityStage): ClientClassification => {
@@ -596,7 +604,16 @@ export default function PipelinePage() {
         <CardHeader><CardTitle>Seguimiento de Prospectos</CardTitle><CardDescription>Administra el ciclo de vida de tus clientes, desde el primer contacto hasta el cierre.</CardDescription></CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2 mb-4">
-            {allStagesForFilter.map((stage) => ( <Button key={stage} variant={filterStage === stage ? 'default' : 'outline'} onClick={() => setFilterStage(stage)} className="text-xs h-8">{stage}</Button>))}
+            {allStagesForFilter.map((stage) => ( 
+                <Button 
+                    key={stage} 
+                    variant={filterStage === stage ? 'default' : 'outline'} 
+                    onClick={() => setFilterStage(stage)} 
+                    className="text-xs h-8"
+                >
+                    {filterButtonLabels[stage]}
+                </Button>
+            ))}
           </div>
           <Table>
             <TableHeader><TableRow><TableHead>Prospecto</TableHead><TableHead>Clasificación</TableHead><TableHead>Etapa Actual</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
@@ -617,15 +634,18 @@ export default function PipelinePage() {
               )) : filteredProspects.length > 0 ? filteredProspects.map(prospect => {
                 if (!prospect.opportunity) return null;
                 const classification = getClassification(prospect.opportunity.stage);
+                const currentIndex = stages.indexOf(prospect.opportunity.stage);
                 
-                const availableSummaries = [
-                  prospect.opportunity.sentPrices !== undefined ? 'info' : null,
-                  prospect.quotation ? 'quot' : null,
-                  prospect.opportunity.acceptedPrice !== undefined ? 'neg' : null,
-                  prospect.opportunity.clientMadeDownPayment !== undefined ? 'close' : null,
-                ].filter(Boolean) as string[];
+                const summaryTabsConfig = [
+                  { key: 'info', name: 'Info. Enviada', stageIndex: 1 },
+                  { key: 'quot', name: 'Cotización', stageIndex: 2 },
+                  { key: 'neg', name: 'Negociación', stageIndex: 3 },
+                  { key: 'close', name: 'Cierre', stageIndex: 4 },
+                ];
 
-                const defaultTab = availableSummaries.length > 0 ? availableSummaries[availableSummaries.length - 1] : undefined;
+                const availableSummaries = summaryTabsConfig.filter(tab => currentIndex >= tab.stageIndex);
+                
+                const defaultTab = availableSummaries.length > 0 ? availableSummaries[availableSummaries.length - 1].key : undefined;
 
                 return (
                   <TableRow key={prospect.id}>
@@ -807,10 +827,9 @@ export default function PipelinePage() {
                         {availableSummaries.length > 0 && (
                           <Tabs defaultValue={defaultTab} className="w-full">
                             <TabsList className="grid w-full" style={{gridTemplateColumns: `repeat(${availableSummaries.length}, minmax(0, 1fr))`}}>
-                                {availableSummaries.includes('info') && <TabsTrigger value="info" className="text-xs">Info. Enviada</TabsTrigger>}
-                                {availableSummaries.includes('quot') && <TabsTrigger value="quot" className="text-xs">Cotización</TabsTrigger>}
-                                {availableSummaries.includes('neg') && <TabsTrigger value="neg" className="text-xs">Negociación</TabsTrigger>}
-                                {availableSummaries.includes('close') && <TabsTrigger value="close" className="text-xs">Cierre</TabsTrigger>}
+                                {availableSummaries.map((tab) => (
+                                    <TabsTrigger key={tab.key} value={tab.key} className="text-xs">{tab.name}</TabsTrigger>
+                                ))}
                             </TabsList>
                             <TabsContent value="info">
                                 {prospect.opportunity.sentPrices !== undefined && (
