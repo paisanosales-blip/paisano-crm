@@ -42,17 +42,29 @@ export default function DashboardPage() {
 
     const opportunitiesQuery = useMemoFirebase(() => {
         if (!activeUserId) return null;
-        return query(collection(firestore, 'opportunities'), where('sellerId', '==', activeUserId));
+        const baseCollection = collection(firestore, 'opportunities');
+        if (activeUserId === 'all') {
+            return query(baseCollection);
+        }
+        return query(baseCollection, where('sellerId', '==', activeUserId));
     }, [firestore, activeUserId]);
 
     const leadsQuery = useMemoFirebase(() => {
         if (!activeUserId) return null;
-        return query(collection(firestore, 'leads'), where('sellerId', '==', activeUserId));
+        const baseCollection = collection(firestore, 'leads');
+        if (activeUserId === 'all') {
+            return query(baseCollection);
+        }
+        return query(baseCollection, where('sellerId', '==', activeUserId));
     }, [firestore, activeUserId]);
     
     const quotationsQuery = useMemoFirebase(() => {
         if (!activeUserId) return null;
-        return query(collection(firestore, 'quotations'), where('sellerId', '==', activeUserId));
+        const baseCollection = collection(firestore, 'quotations');
+        if (activeUserId === 'all') {
+            return query(baseCollection);
+        }
+        return query(baseCollection, where('sellerId', '==', activeUserId));
     }, [firestore, activeUserId]);
 
     const { data: allOpportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
@@ -146,6 +158,7 @@ export default function DashboardPage() {
                             <SelectValue placeholder="Seleccionar usuario..." />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="all">Todas las Estadísticas</SelectItem>
                             {allUsers?.map((u: any) => (
                                 <SelectItem key={u.id} value={u.id}>
                                     {u.id === user?.uid ? 'Mis Estadísticas' : `${u.firstName} ${u.lastName}`}
