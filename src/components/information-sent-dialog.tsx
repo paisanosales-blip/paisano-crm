@@ -125,53 +125,64 @@ export function InformationSentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent
+        className="sm:max-w-lg"
+        onInteractOutside={e => {
+          const target = e.target as HTMLElement;
+          // Prevent closing dialog when clicking on the calendar
+          if (target.closest('.rdp')) {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Confirmar'} Envío de Información</DialogTitle>
           <DialogDescription>
              Para {isEditing ? 'actualizar la información de' : 'mover a'} "{opportunity.name}" a la siguiente etapa, por favor confirme qué información se ha enviado y registre el seguimiento.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-6 py-4">
-          <div className="space-y-4 rounded-lg border p-4">
-            <h4 className="font-medium text-sm text-foreground">CHECKLIST DE ENVÍO</h4>
-            {checklistItems.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between"
-              >
-                <Label htmlFor={item.id} className="text-sm">
-                  {item.label}
-                </Label>
-                <Switch
-                  id={item.id}
-                  checked={checklist[item.id as keyof ChecklistState]}
-                  onCheckedChange={(checked) =>
-                    handleSwitchChange(item.id as keyof ChecklistState, checked)
-                  }
-                />
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-3 rounded-lg border p-4">
-             <Label className="font-medium text-sm text-foreground">VÍA DE CONTACTO</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-              {contactChannelItems.map((channel) => (
-                <div key={channel} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={channel}
-                    checked={contactChannels[channel]}
-                    onCheckedChange={(checked) => handleChannelChange(channel, !!checked)}
-                  />
-                  <Label htmlFor={channel} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    {channel}
+        <div className="grid gap-6 py-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="space-y-4 rounded-lg border p-4">
+              <h4 className="font-medium text-sm text-foreground">CHECKLIST DE ENVÍO</h4>
+              {checklistItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between"
+                >
+                  <Label htmlFor={item.id} className="text-sm">
+                    {item.label}
                   </Label>
+                  <Switch
+                    id={item.id}
+                    checked={checklist[item.id as keyof ChecklistState]}
+                    onCheckedChange={(checked) =>
+                      handleSwitchChange(item.id as keyof ChecklistState, checked)
+                    }
+                  />
                 </div>
               ))}
             </div>
-          </div>
 
+            <div className="space-y-3 rounded-lg border p-4">
+               <Label className="font-medium text-sm text-foreground">VÍA DE CONTACTO</Label>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3">
+                {contactChannelItems.map((channel) => (
+                  <div key={channel} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={channel}
+                      checked={contactChannels[channel]}
+                      onCheckedChange={(checked) => handleChannelChange(channel, !!checked)}
+                    />
+                    <Label htmlFor={channel} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      {channel}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
           <div className="space-y-2">
             <Label htmlFor="observations" className="font-medium text-sm text-foreground">OBSERVACIONES</Label>
             <Textarea
