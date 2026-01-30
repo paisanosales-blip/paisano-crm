@@ -29,17 +29,28 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isAdminOrManager());
+      // Allow admins to get any user profile
+      // Allow users to get their own profile
+      allow get: if isSignedIn() && (isAdminOrManager() || request.auth.uid == userId);
+      
+      // Allow admins to list all users
+      // Allow authenticated users to list users (e.g., for selection dropdowns)
       allow list: if isSignedIn();
+      
+      // Allow a user to be created if the user is authenticated and the userId matches their own uid.
       allow create: if isSignedIn() && request.auth.uid == userId;
-      // Any signed-in user can update any other user's profile, including their role.
+
+      // Allow any signed-in user to update any other user's profile, including their role.
+      // This is a permissive rule, you might want to restrict it further.
       allow update: if isSignedIn();
+      
+      // Only admins can delete users, and they cannot delete themselves.
       allow delete: if isAdmin() && request.auth.uid != userId;
     }
 
     match /leads/{leadId} {
       allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn();
+      allow list: if isSignedIn(); // Broad list, relies on client-side queries for security
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
@@ -47,7 +58,7 @@ service cloud.firestore {
     
     match /opportunities/{opportunityId} {
       allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn();
+      allow list: if isSignedIn(); // Broad list, relies on client-side queries for security
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
@@ -55,7 +66,7 @@ service cloud.firestore {
 
     match /quotations/{quotationId} {
       allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn();
+      allow list: if isSignedIn(); // Broad list, relies on client-side queries for security
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
@@ -63,10 +74,12 @@ service cloud.firestore {
 
     match /activities/{activityId} {
       allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn();
+      allow list: if isSignedIn(); // Broad list, relies on client-side queries for security
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
     }
   }
 }
+
+    

@@ -34,38 +34,47 @@ export default function DashboardPage() {
     }, [firestore, userProfile]);
     const { data: users, isLoading: areUsersLoading } = useCollection(usersQuery);
 
-    const buildFilteredQuery = (collectionName: string) => {
+    const buildFilteredQuery = (collectionName: string, shouldQueryAll: boolean = false) => {
       return useMemoFirebase(() => {
         if (!user || !userProfile) return null;
 
         const baseQuery = collection(firestore, collectionName);
-        let querySellerId = user.uid; // Default to current user for safety
+        
+        if ((userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') && shouldQueryAll) {
+            return baseQuery;
+        }
 
+        let querySellerId = user.uid; // Default to current user for safety
         if (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') {
-            // If a specific user is selected, use their ID.
             if (selectedUserId !== 'all') {
                 querySellerId = selectedUserId;
             }
-            // If 'all' is selected, we fall back to the current user's ID to prevent an unconstrained query crash.
         }
         
         return query(baseQuery, where('sellerId', '==', querySellerId));
       }, [firestore, user, userProfile, selectedUserId]);
     };
     
+    // When an admin selects 'all', we want a global view.
+    const queryAllData = userProfile && (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') && selectedUserId === 'all';
+
     // Fetch data based on filter
-    const opportunitiesQuery = buildFilteredQuery('opportunities');
+    const opportunitiesQuery = buildFilteredQuery('opportunities', queryAllData);
     const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
     
-    const leadsQuery = buildFilteredQuery('leads');
+    const leadsQuery = buildFilteredQuery('leads', queryAllData);
     const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
     
-    const quotationsQuery = buildFilteredQuery('quotations');
+    const quotationsQuery = buildFilteredQuery('quotations', queryAllData);
     const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
     const activitiesQuery = useMemoFirebase(() => {
         if (!user || !userProfile) return null;
         const baseQuery = collection(firestore, 'activities');
+        
+        if (queryAllData) {
+            return query(baseQuery, orderBy('createdDate', 'desc'), limit(5));
+        }
         
         let querySellerId = user.uid; // Default to current user
         if (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') {
@@ -74,23 +83,20 @@ export default function DashboardPage() {
             }
         }
         
-        const finalQuery = query(baseQuery, where('sellerId', '==', querySellerId), orderBy('createdDate', 'desc'), limit(5));
-        
-        return finalQuery;
-    }, [firestore, user, userProfile, selectedUserId]);
+        return query(baseQuery, where('sellerId', '==', querySellerId), orderBy('createdDate', 'desc'), limit(5));
+    }, [firestore, user, userProfile, selectedUserId, queryAllData]);
     const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
 
-    // This query is for the recent activity log to map leadId to clientName. It needs to see all leads if the user is an admin viewing all activity.
+    // This query is for the recent activity log to map leadId to clientName.
     const allLeadsForActivityQuery = useMemoFirebase(() => {
       if (!user) return null;
-      // This query needs to be constrained as well.
-      if (userProfile && (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager')) {
-        // For admins, we can't do an unconstrained query. We will fetch leads for the selected user.
-        // Or fetch all leads if we solve the security rule. For now, let's keep it simple.
-        return collection(firestore, 'leads');
+      // We need all leads if we're showing all activities
+      if (queryAllData) {
+          return collection(firestore, 'leads');
       }
-      return query(collection(firestore, 'leads'), where('sellerId', '==', user.uid));
-    }, [firestore, user, userProfile]);
+      // Otherwise, just get the leads for the selected seller
+      return buildFilteredQuery('leads')();
+    }, [firestore, user, queryAllData, buildFilteredQuery]);
 
     const { data: allLeads, isLoading: areAllLeadsLoading } = useCollection(allLeadsForActivityQuery);
 
@@ -290,3 +296,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
