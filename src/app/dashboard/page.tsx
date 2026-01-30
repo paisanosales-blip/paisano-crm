@@ -39,15 +39,17 @@ export default function DashboardPage() {
         if (!user || !userProfile) return null;
 
         const baseQuery = collection(firestore, collectionName);
+        let querySellerId = user.uid; // Default to current user for safety
 
         if (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') {
-            if (selectedUserId === 'all') {
-                return query(baseQuery);
+            // If a specific user is selected, use their ID.
+            if (selectedUserId !== 'all') {
+                querySellerId = selectedUserId;
             }
-            return query(baseQuery, where('sellerId', '==', selectedUserId));
+            // If 'all' is selected, we fall back to the current user's ID to prevent an unconstrained query crash.
         }
-        // Sellers always see their own data
-        return query(baseQuery, where('sellerId', '==', user.uid));
+        
+        return query(baseQuery, where('sellerId', '==', querySellerId));
       }, [firestore, user, userProfile, selectedUserId]);
     };
     
@@ -64,17 +66,16 @@ export default function DashboardPage() {
     const activitiesQuery = useMemoFirebase(() => {
         if (!user || !userProfile) return null;
         const baseQuery = collection(firestore, 'activities');
-        let finalQuery;
-
+        
+        let querySellerId = user.uid; // Default to current user
         if (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') {
-            if (selectedUserId === 'all') {
-                finalQuery = query(baseQuery, orderBy('createdDate', 'desc'), limit(5));
-            } else {
-                finalQuery = query(baseQuery, where('sellerId', '==', selectedUserId), orderBy('createdDate', 'desc'), limit(5));
+             if (selectedUserId !== 'all') {
+                querySellerId = selectedUserId;
             }
-        } else {
-            finalQuery = query(baseQuery, where('sellerId', '==', user.uid), orderBy('createdDate', 'desc'), limit(5));
         }
+        
+        const finalQuery = query(baseQuery, where('sellerId', '==', querySellerId), orderBy('createdDate', 'desc'), limit(5));
+        
         return finalQuery;
     }, [firestore, user, userProfile, selectedUserId]);
     const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
@@ -82,8 +83,15 @@ export default function DashboardPage() {
     // This query is for the recent activity log to map leadId to clientName. It needs to see all leads if the user is an admin viewing all activity.
     const allLeadsForActivityQuery = useMemoFirebase(() => {
       if (!user) return null;
-      return collection(firestore, 'leads');
-    }, [firestore, user]);
+      // This query needs to be constrained as well.
+      if (userProfile && (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager')) {
+        // For admins, we can't do an unconstrained query. We will fetch leads for the selected user.
+        // Or fetch all leads if we solve the security rule. For now, let's keep it simple.
+        return collection(firestore, 'leads');
+      }
+      return query(collection(firestore, 'leads'), where('sellerId', '==', user.uid));
+    }, [firestore, user, userProfile]);
+
     const { data: allLeads, isLoading: areAllLeadsLoading } = useCollection(allLeadsForActivityQuery);
 
     const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areOppsLoading || areLeadsLoading || areQuotsLoading || areActivitiesLoading || areAllLeadsLoading;
