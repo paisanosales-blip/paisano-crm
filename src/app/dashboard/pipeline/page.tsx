@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil } from 'lucide-react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import {
   useUser,
   useFirestore,
@@ -104,6 +106,12 @@ export default function PipelinePage() {
   }, [firestore, user]);
   const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
+  const activitiesQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, 'activities'), where('sellerId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
+
 
   const handleStageChange = async (opportunityId: string, newStage: OpportunityStage) => {
     if (!firestore) return;
@@ -124,6 +132,16 @@ export default function PipelinePage() {
 
   const requestStageChange = async (prospect: any, newStage: OpportunityStage) => {
     setCurrentProspect(prospect);
+    const currentIndex = stages.indexOf(prospect.opportunity.stage);
+    const newIndex = stages.indexOf(newStage);
+
+    if (newIndex < currentIndex) {
+      // Moving backwards
+      await handleStageChange(prospect.opportunity.id, newStage);
+      return;
+    }
+
+
     if (prospect.opportunity.stage === 'Primer contacto' && newStage === 'Envió de Información') {
         setInfoSentDialogOpen(true);
     } else if (prospect.opportunity.stage === 'Envió de Información' && newStage === 'Envió de Cotización') {
@@ -132,7 +150,8 @@ export default function PipelinePage() {
         setNegotiationDialogOpen(true);
     } else if (prospect.opportunity.stage === 'Negociación' && newStage === 'Cierre de venta') {
         setClosingDialogOpen(true);
-    } else {
+    } else if (newIndex > currentIndex) {
+        // Allow jumping forward only if editing an already passed stage
         await handleStageChange(prospect.opportunity.id, newStage);
     }
   };
@@ -415,20 +434,23 @@ export default function PipelinePage() {
     setIsEditDialogOpen(true);
   };
 
-  const isLoading = isUserAuthLoading || isProfileLoading || areLeadsLoading || areOppsLoading || areQuotsLoading;
+  const isLoading = isUserAuthLoading || isProfileLoading || areLeadsLoading || areOppsLoading || areQuotsLoading || areActivitiesLoading;
 
   const clientProspects = React.useMemo(() => {
-    if (!leads || !opportunities || !quotations) return [];
+    if (!leads || !opportunities || !quotations || !activities) return [];
     return (leads as any[]).map(lead => {
       const opportunity = (opportunities as any[]).find(op => op.leadId === lead.id);
       const opportunityQuotations = (quotations as any[])
         .filter(q => q.opportunityId === opportunity?.id)
         .sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
       const quotation = opportunityQuotations[0] || null;
+      const relatedActivities = (activities as any[])
+        .filter(act => act.leadId === lead.id)
+        .sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
       
-      return { ...lead, opportunity, quotation };
+      return { ...lead, opportunity, quotation, activities: relatedActivities };
     }).filter(item => item.opportunity);
-  }, [leads, opportunities, quotations]);
+  }, [leads, opportunities, quotations, activities]);
 
   const filteredProspects = clientProspects.filter(prospect => {
     if (filterStage === 'Todos') return true;
@@ -486,6 +508,8 @@ export default function PipelinePage() {
                 ].filter(Boolean) as string[];
 
                 const defaultTab = availableSummaries.length > 0 ? availableSummaries[availableSummaries.length - 1] : undefined;
+
+                const followUpActivity = prospect.activities?.find((act: any) => !act.completed);
 
 
                 return (
@@ -564,10 +588,10 @@ export default function PipelinePage() {
                           return (
                             <React.Fragment key={stage}>
                               <div
-                                onClick={() => canMoveTo && requestStageChange(prospect, stage)}
+                                onClick={() => requestStageChange(prospect, stage)}
                                 className={cn(
                                     'flex flex-col items-center gap-1 text-center transition-opacity w-28',
-                                    canMoveTo ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
+                                    (isNext || isCompleted) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
                                     !isCompleted && !isCurrent && !isNext && 'opacity-50'
                                 )}
                                 title={canMoveTo ? `Mover a: ${stage}` : stage}
@@ -615,6 +639,34 @@ export default function PipelinePage() {
                                             <li>Info. Empresa: <span className="font-semibold">{prospect.opportunity.sentCompanyInfo ? '✓ Sí' : '✗ No'}</span></li>
                                             <li>Fotos/Videos: <span className="font-semibold">{prospect.opportunity.sentMedia ? '✓ Sí' : '✗ No'}</span></li>
                                         </ul>
+                                         {followUpActivity && (
+                                            <>
+                                                <div className="my-2 border-t border-dashed" />
+                                                <div className="space-y-1.5">
+                                                    <p className="font-bold text-foreground">SEGUIMIENTO AGENDADO</p>
+                                                    <div>
+                                                        <p>Próximo Contacto: <span className="font-semibold">{format(new Date(followUpActivity.dueDate), "PP 'a las' p", { locale: es })}</span></p>
+                                                        <p>Tipo: <span className="font-semibold">{followUpActivity.type}</span></p>
+                                                    </div>
+                                                    {followUpActivity.contactChannels && followUpActivity.contactChannels.length > 0 && (
+                                                        <div>
+                                                            <p>Vías de Contacto:</p>
+                                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                                {followUpActivity.contactChannels.map((channel: string) => (
+                                                                    <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {followUpActivity.description && (
+                                                        <div>
+                                                            <p>Observaciones:</p>
+                                                            <p className="font-semibold italic">"{followUpActivity.description}"</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </TabsContent>
