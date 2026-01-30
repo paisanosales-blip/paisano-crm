@@ -284,9 +284,26 @@ export default function PipelinePage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Ciudad</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ej: Ciudad de México" {...field} />
-                      </FormControl>
+                      {watchedCountry === 'EUA' && watchedState && citiesByState[watchedState] && citiesByState[watchedState].length > 0 ? (
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione una ciudad" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {citiesByState[watchedState].map((city) => (
+                              <SelectItem key={city} value={city}>
+                                {city}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <FormControl>
+                          <Input placeholder="Ej: Ciudad de México" {...field} />
+                        </FormControl>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
