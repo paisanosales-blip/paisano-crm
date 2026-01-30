@@ -1,0 +1,71 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ------------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Fetches the user's profile data from Firestore to check their role.
+     */
+    function getUserData() {
+      return get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+
+    /**
+     * @description Checks if the authenticated user has the 'Admin' role.
+     */
+    function isAdmin() {
+      return isSignedIn() && getUserData().role == 'Admin';
+    }
+
+    /**
+     * @description Checks if the authenticated user has the 'Manager' role.
+     */
+    function isManager() {
+      return isSignedIn() && getUserData().role == 'Manager';
+    }
+
+    /**
+     * @description Checks if the user is either an Admin or a Manager.
+     */
+    function isAdminOrManager() {
+      return isAdmin() || isManager();
+    }
+
+    /**
+     * @description Checks if the user attempting the action is the seller assigned
+     * to the opportunity linked by 'opportunityId'. This is done by fetching the
+     * corresponding opportunity document from Firestore.
+     * @param opportunityId The ID of the opportunity document to check.
+     */
+    function isOpportunityOwner(opportunityId) {
+      // Use exists() to prevent errors if the document doesn't exist yet.
+      return exists(/databases/(default)/documents/opportunities/$(opportunityId)) &&
+             get(/databases/(default)/documents/opportunities/$(opportunityId)).data.sellerId == request.auth.uid;
+    }
+
+    // ------------------------------------------------------------------------
+    // Path Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Rules for quotation files. Files are stored in a path structured
+     * as /quotations/{opportunityId}/{fileName}.
+     * @path /quotations/{opportunityId}/{allPaths=**}
+     * @allow (read, write) If the user is authenticated AND (they are an Admin/Manager OR they are the seller assigned to the opportunity).
+     * @principle Enforces ownership for file operations based on related data in Firestore.
+     */
+    match /quotations/{opportunityId}/{allPaths=**} {
+      allow read, write: if isSignedIn() && (isAdminOrManager() || isOpportunityOwner(opportunityId));
+    }
+  }
+}
