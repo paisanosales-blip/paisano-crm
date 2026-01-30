@@ -132,6 +132,8 @@ export default function NewQuotationPage() {
     doc.setTextColor(100);
     doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, 32, { align: 'right' });
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, 36, { align: 'right' });
+    doc.text('RFC: SPA150217AM3', docWidth - margin, 40, { align: 'right' });
+
 
     // Decorative Separator
     doc.setDrawColor(RED);
