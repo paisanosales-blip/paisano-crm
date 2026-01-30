@@ -1,177 +1,70 @@
-/**
- * Core Philosophy:
- * This ruleset implements a Role-Based Access Control (RBAC) model for a sales CRM.
- * Access is primarily determined by a user's role ('Admin', 'Manager', 'Seller')
- * which is stored on their user profile. Sellers have ownership-based access to
- * the leads and associated data they manage, while Admins and Managers have
- * privileged access across all data. The default security posture is to deny all
- * access unless explicitly granted by a rule.
- *
- * Data Structure:
- * - /users/{userId}: Stores individual user profile documents, including their role.
- * - /leads/{leadId}: A top-level collection for all sales leads.
- * - /opportunities/{opportunityId}: Top-level collection for sales opportunities.
- * - /quotations/{quotationId}: Top-level collection for quotations.
- * - /activities/{activityId}: Top-level collection for sales activities.
- *
- * Key Security Decisions:
- * - Role-Based Access: A user's role is fetched from their profile document at
- *   `/users/$(request.auth.uid)` to make authorization decisions throughout the rules.
- * - Disallow User Listing: Listing the entire `/users` collection is explicitly
- *   forbidden to protect user privacy.
- * - Ownership for Sellers: Sellers can only read or write leads/opportunities that
- *   are assigned to them via the `sellerId` field.
- * - Privileged Access: Admins and Managers are granted read and write access to
- *   all leads, opportunities, quotations, and activities.
- *
- * Denormalization for Authorization:
- * To ensure performant and secure access control, a `sellerId` field MUST be
- * denormalized (copied) onto every document in the `/leads`, `/opportunities`,
- * `/quotations`, and `/activities` collections. This avoids slow and costly `get`
- * calls in the rules. The application logic is responsible for ensuring this
- * `sellerId` is present and correct upon document creation.
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ------------------------------------------------------------------------
-    // Helper Functions
-    // ------------------------------------------------------------------------
-
-    /**
-     * Authenticated state checks
-     */
+    // Helper functions
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Ownership checks
-     * @param userId The UID to check against the authenticated user's UID.
-     */
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
-    /**
-     * Role-based access checks. Fetches the user's role from their profile.
-     */
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      // It's safer to check for existence before accessing data
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data
+        : null;
     }
+
     function isAdmin() {
-      return isSignedIn() && getUserData().role == 'Admin';
+      let userData = getUserData();
+      return isSignedIn() && userData != null && userData.role == 'Admin';
     }
+
     function isManager() {
-      return isSignedIn() && getUserData().role == 'Manager';
+      let userData = getUserData();
+      return isSignedIn() && userData != null && userData.role == 'Manager';
     }
+
     function isAdminOrManager() {
       return isAdmin() || isManager();
     }
 
-    /**
-     * Data validation functions
-     */
-    function isCreatingOwnProfile(userId) {
-      // On create, the user must be the owner and set their own UID correctly.
-      return isOwner(userId) && request.resource.data.firebaseUid == userId;
-    }
-    function isProfileDataImmutable() {
-      // On update, core identifying fields must not be changed.
-      return request.resource.data.firebaseUid == resource.data.firebaseUid;
-    }
-    function isAssignedToSelfOnCreate() {
-      // On create, a seller must assign the new document to themselves.
-      return request.resource.data.sellerId == request.auth.uid;
-    }
-    function isSellerIdImmutable() {
-      // On update, the sellerId cannot be changed to prevent unauthorized re-assignment.
-      return request.resource.data.sellerId == resource.data.sellerId;
-    }
-
-
-    // ------------------------------------------------------------------------
-    // Collection Rules
-    // ------------------------------------------------------------------------
-
-    /**
-     * @description Manages user profiles. A user can create, read, and update their own profile, but cannot see other users' profiles.
-     * @path /users/{userId}
-     * @allow (create) An authenticated user creating their own profile document where `userId` matches their UID.
-     * @deny (get) A user trying to read another user's profile document.
-     * @principle Restricts access to a user's own data tree and forbids user enumeration.
-     */
     match /users/{userId} {
-      // This rule is essential. It allows users to read their own profile,
-      // which is required on almost every page for the app to function correctly.
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isCreatingOwnProfile(userId);
-      allow update: if isOwner(userId) && resource != null && isProfileDataImmutable();
-      allow delete: if isOwner(userId) && resource != null;
+      allow read: if isSignedIn() && (isOwner(userId) || isAdminOrManager());
+      allow create: if isSignedIn() && isOwner(userId);
+      // Allow users to update their own profile, but not change their role.
+      allow update: if isSignedIn() && isOwner(userId) && request.resource.data.role == resource.data.role;
+      allow delete: if isAdmin() && request.auth.uid != userId; // Admins can delete other users, but not themselves.
     }
 
-    /**
-     * @description Manages sales leads. Sellers can manage leads assigned to them. Admins and Managers can manage any lead.
-     * @path /leads/{leadId}
-     * @allow (update) The seller assigned to the lead (via `sellerId`) updates the lead status.
-     * @deny (update) A seller trying to update a lead assigned to another seller.
-     * @principle Enforces document ownership for writes and provides privileged role-based access.
-     */
     match /leads/{leadId} {
-      allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn();
-      allow create: if isSignedIn() && isAssignedToSelfOnCreate();
-      allow update: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid) && isSellerIdImmutable();
+      allow read: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
+      allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
     }
-
-    /**
-     * @description Manages sales opportunities. Access is inherited from the lead's assigned seller.
-     * @path /opportunities/{opportunityId}
-     * @allow (get) An Admin reading any opportunity document.
-     * @deny (get) A Seller trying to read an opportunity not assigned to them.
-     * @principle Relies on denormalized ownership data (`sellerId`) to secure related documents.
-     * @note CRITICAL: For these rules to be secure, a `sellerId` field MUST be denormalized from the parent Lead onto every Opportunity document.
-     */
+    
     match /opportunities/{opportunityId} {
-      allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn();
-      allow create: if isSignedIn() && isAssignedToSelfOnCreate();
-      allow update: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid) && isSellerIdImmutable();
+      allow read: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
+      allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
     }
 
-    /**
-     * @description Manages quotations for opportunities. Access is inherited from the lead's assigned seller.
-     * @path /quotations/{quotationId}
-     * @allow (create) A Seller creating a new quotation for one of their opportunities.
-     * @deny (delete) A Seller trying to delete a quotation belonging to another seller.
-     * @principle Relies on denormalized ownership data (`sellerId`) to secure related documents.
-     * @note CRITICAL: For these rules to be secure, a `sellerId` field MUST be denormalized from the parent Lead/Opportunity onto every Quotation document.
-     */
     match /quotations/{quotationId} {
-      allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn();
-      allow create: if isSignedIn() && isAssignedToSelfOnCreate();
-      allow update: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid) && isSellerIdImmutable();
+      allow read: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
+      allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
     }
 
-    /**
-     * @description Manages activities related to leads. Access is inherited from the lead's assigned seller.
-     * @path /activities/{activityId}
-     * @allow (get) A Manager reading an activity for a lead belonging to one of their team members.
-     * @deny (update) A Seller trying to modify an activity for a lead they do not own.
-     * @principle Relies on denormalized ownership data (`sellerId`) to secure related documents.
-     * @note CRITICAL: For these rules to be secure, a `sellerId` field MUST be denormalized from the parent Lead onto every Activity document.
-     */
     match /activities/{activityId} {
-      allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn();
-      allow create: if isSignedIn() && isAssignedToSelfOnCreate();
-      allow update: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid) && isSellerIdImmutable();
+      allow read: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
+      allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
     }
   }
