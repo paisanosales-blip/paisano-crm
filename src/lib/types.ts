@@ -23,11 +23,16 @@ export type Opportunity = {
   id: string;
   name: string;
   clientId: string;
+  leadId?: string;
   sellerId: string;
   stage: OpportunityStage;
   value: number;
   currency: 'USD' | 'MXN';
   closeDate: string;
+  sentPrices?: boolean;
+  sentTechnicalInfo?: boolean;
+  sentCompanyInfo?: boolean;
+  sentMedia?: boolean;
 };
 
 export type Quotation = {

@@ -172,6 +172,22 @@
           "type": "string",
           "description": "The expected date to close the opportunity.",
           "format": "date-time"
+        },
+        "sentPrices": {
+          "type": "boolean",
+          "description": "Indicates if prices were sent as part of moving to the 'Information Sent' stage."
+        },
+        "sentTechnicalInfo": {
+          "type": "boolean",
+          "description": "Indicates if technical information was sent as part of moving to the 'Information Sent' stage."
+        },
+        "sentCompanyInfo": {
+          "type": "boolean",
+          "description": "Indicates if company information was sent as part of moving to the 'Information Sent' stage."
+        },
+        "sentMedia": {
+          "type": "boolean",
+          "description": "Indicates if photos or videos were sent as part of moving to the 'Information Sent' stage."
         }
       },
       "required": [

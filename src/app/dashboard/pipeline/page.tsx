@@ -40,6 +40,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { NewProspectDialog } from '@/components/new-prospect-dialog';
+import { InformationSentDialog, type ChecklistState } from '@/components/information-sent-dialog';
+
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
 
@@ -53,6 +55,9 @@ const getClassification = (stage: OpportunityStage): ClientClassification => {
 
 export default function PipelinePage() {
   const [filterStage, setFilterStage] = useState<OpportunityStage | 'Todos'>('Todos');
+  const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
+  const [currentOpportunity, setCurrentOpportunity] = useState<{ id: string; name: string; stage: OpportunityStage } | null>(null);
+
   const { toast } = useToast();
 
   const { user, isUserLoading: isUserAuthLoading } = useUser();
@@ -77,12 +82,39 @@ export default function PipelinePage() {
   const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
 
 
-  const handleStageChange = (opportunityId: string, newStage: OpportunityStage) => {
+  const handleStageChange = (opportunityId: string, newStage: OpportunityStage, checklistData?: ChecklistState) => {
     if (!firestore) return;
     const opportunityRef = doc(firestore, 'opportunities', opportunityId);
-    updateDocumentNonBlocking(opportunityRef, { stage: newStage });
+    
+    const updateData: any = { stage: newStage };
+    if (checklistData) {
+        updateData.sentPrices = checklistData.sentPrices;
+        updateData.sentTechnicalInfo = checklistData.sentTechnicalInfo;
+        updateData.sentCompanyInfo = checklistData.sentCompanyInfo;
+        updateData.sentMedia = checklistData.sentMedia;
+    }
+
+    updateDocumentNonBlocking(opportunityRef, updateData);
     toast({ title: 'Éxito', description: `Prospecto movido a: ${newStage}` });
   };
+
+  const requestStageChange = (opportunity: { id: string; name: string; stage: OpportunityStage }, newStage: OpportunityStage) => {
+    if (opportunity.stage === 'Primer contacto' && newStage === 'Envió de Información') {
+        setCurrentOpportunity(opportunity);
+        setInfoSentDialogOpen(true);
+    } else {
+        handleStageChange(opportunity.id, newStage);
+    }
+  };
+
+  const handleInfoSentConfirm = (checklist: ChecklistState) => {
+    if (currentOpportunity) {
+        handleStageChange(currentOpportunity.id, 'Envió de Información', checklist);
+    }
+    setInfoSentDialogOpen(false);
+    setCurrentOpportunity(null);
+  };
+
 
   const isLoading = isUserAuthLoading || isProfileLoading || areLeadsLoading || areOppsLoading;
 
@@ -176,7 +208,18 @@ export default function PipelinePage() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button size="icon" variant="ghost"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent>
-                          {stages.map(stage => ( <DropdownMenuItem key={stage} onSelect={() => handleStageChange(prospect.opportunity!.id, stage)}>Mover a: {stage}</DropdownMenuItem> ))}
+                          {stages.map(stage => ( 
+                            <DropdownMenuItem 
+                              key={stage} 
+                              onSelect={() => requestStageChange(
+                                {id: prospect.opportunity!.id, name: prospect.clientName, stage: prospect.opportunity!.stage },
+                                stage
+                              )}
+                              disabled={prospect.opportunity?.stage === stage}
+                            >
+                              Mover a: {stage}
+                            </DropdownMenuItem> 
+                          ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -191,6 +234,14 @@ export default function PipelinePage() {
           </Table>
         </CardContent>
       </Card>
+      {currentOpportunity && (
+        <InformationSentDialog
+            open={infoSentDialogOpen}
+            onOpenChange={setInfoSentDialogOpen}
+            onConfirm={handleInfoSentConfirm}
+            opportunityName={currentOpportunity.name}
+        />
+      )}
     </div>
   );
 }
