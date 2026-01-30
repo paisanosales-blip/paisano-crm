@@ -241,6 +241,16 @@
           "type": "string",
           "description": "The version number of the quotation."
         },
+        "status": {
+          "type": "string",
+          "description": "The status of the quotation.",
+          "enum": [
+            "Borrador",
+            "Enviada",
+            "Aceptada",
+            "Rechazada"
+          ]
+        },
         "createdDate": {
           "type": "string",
           "description": "Date the quotation was created.",
@@ -256,6 +266,7 @@
         "value",
         "currency",
         "version",
+        "status",
         "createdDate"
       ]
     },

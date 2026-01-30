@@ -41,6 +41,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { NewProspectDialog } from '@/components/new-prospect-dialog';
 import { InformationSentDialog, type ChecklistState } from '@/components/information-sent-dialog';
+import { QuotationUploadDialog } from '@/components/quotation-upload-dialog';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -56,6 +57,7 @@ const getClassification = (stage: OpportunityStage): ClientClassification => {
 export default function PipelinePage() {
   const [filterStage, setFilterStage] = useState<OpportunityStage | 'Todos'>('Todos');
   const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
+  const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
   const [currentOpportunity, setCurrentOpportunity] = useState<{ id: string; name: string; stage: OpportunityStage } | null>(null);
 
   const { toast } = useToast();
@@ -102,6 +104,9 @@ export default function PipelinePage() {
     if (opportunity.stage === 'Primer contacto' && newStage === 'Envió de Información') {
         setCurrentOpportunity(opportunity);
         setInfoSentDialogOpen(true);
+    } else if (opportunity.stage === 'Envió de Información' && newStage === 'Envió de Cotización') {
+        setCurrentOpportunity(opportunity);
+        setQuotationUploadOpen(true);
     } else {
         handleStageChange(opportunity.id, newStage);
     }
@@ -112,6 +117,11 @@ export default function PipelinePage() {
         handleStageChange(currentOpportunity.id, 'Envió de Información', checklist);
     }
     setInfoSentDialogOpen(false);
+    setCurrentOpportunity(null);
+  };
+  
+  const handleQuotationUploadConfirm = () => {
+    setQuotationUploadOpen(false);
     setCurrentOpportunity(null);
   };
 
@@ -241,6 +251,15 @@ export default function PipelinePage() {
             onOpenChange={setInfoSentDialogOpen}
             onConfirm={handleInfoSentConfirm}
             opportunityName={currentOpportunity.name}
+        />
+      )}
+       {currentOpportunity && (
+        <QuotationUploadDialog
+            open={quotationUploadOpen}
+            onOpenChange={setQuotationUploadOpen}
+            onConfirm={handleQuotationUploadConfirm}
+            opportunityName={currentOpportunity.name}
+            opportunityId={currentOpportunity.id}
         />
       )}
     </div>
