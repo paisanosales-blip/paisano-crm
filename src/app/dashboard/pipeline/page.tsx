@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { PlusCircle, MoreVertical } from 'lucide-react';
 
 import { opportunities as initialOpportunities, clients as initialClients, users } from '@/lib/data';
-import type { Opportunity, OpportunityStage, Client, User } from '@/lib/types';
+import type { Opportunity, OpportunityStage, Client, User, ClientClassification } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -121,7 +121,6 @@ const citiesByState: { [key: string]: string[] } = {
 
 // New stages
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
-type ClientClassification = 'Prospecto' | 'Cliente potencial' | 'CLIENTE';
 
 const prospectoSchema = z.object({
     clientName: z.string().min(1, 'El nombre del cliente es requerido.'),
@@ -156,15 +155,15 @@ const contactMethods = ['REDES SOCIALES', 'PUBLICIDAD', 'BUSQUEDA EN GOOGLE', 'B
 // Helper function to get classification
 const getClassification = (stage: OpportunityStage): ClientClassification => {
     if (stage === 'Primer contacto' || stage === 'Envió de Información') {
-        return 'Prospecto';
+        return 'PROSPECTO';
     }
     if (stage === 'Envió de Cotización' || stage === 'Negociación') {
-        return 'Cliente potencial';
+        return 'CLIENTE POTENCIAL';
     }
     if (stage === 'Cierre de venta') {
         return 'CLIENTE';
     }
-    return 'Prospecto'; // Default
+    return 'PROSPECTO'; // Default
 };
 
 
@@ -172,6 +171,7 @@ export default function PipelinePage() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>(initialOpportunities);
   const [clients, setClients] = useState<Client[]>(initialClients);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [filterStage, setFilterStage] = useState<OpportunityStage | 'Todos'>('Todos');
 
   const form = useForm<z.infer<typeof prospectoSchema>>({
     resolver: zodResolver(prospectoSchema),
@@ -249,6 +249,27 @@ export default function PipelinePage() {
           opportunity
       }
   }).filter(item => item.opportunity); // Only show clients with opportunities
+  
+  const filteredProspects = clientProspects.filter(prospect => {
+    if (filterStage === 'Todos') return true;
+    return prospect.opportunity?.stage === filterStage;
+  });
+  
+  const allStagesForFilter: Array<OpportunityStage | 'Todos'> = ['Todos', ...stages];
+
+  const getBadgeClass = (classification: ClientClassification) => {
+    switch (classification) {
+        case 'PROSPECTO':
+            return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700';
+        case 'CLIENTE POTENCIAL':
+            return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/80 dark:text-blue-200 dark:border-blue-800';
+        case 'CLIENTE':
+            return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/80 dark:text-green-200 dark:border-green-800';
+        default:
+            return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700';
+    }
+  };
+
 
   return (
     <div className="flex flex-col h-full">
@@ -522,6 +543,18 @@ export default function PipelinePage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
+                <div className="flex flex-wrap gap-2 mb-4">
+                    {allStagesForFilter.map((stage) => (
+                        <Button
+                            key={stage}
+                            variant={filterStage === stage ? 'default' : 'outline'}
+                            onClick={() => setFilterStage(stage)}
+                            className="text-xs h-8"
+                        >
+                            {stage}
+                        </Button>
+                    ))}
+                </div>
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -532,11 +565,15 @@ export default function PipelinePage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {clientProspects.map(prospect => (
+                        {filteredProspects.map(prospect => {
+                            const classification = getClassification(prospect.opportunity!.stage);
+                            return (
                             <TableRow key={prospect.id}>
                                 <TableCell className="font-medium">{prospect.nombreDelCliente}</TableCell>
                                 <TableCell>
-                                    <Badge variant="outline">{getClassification(prospect.opportunity!.stage)}</Badge>
+                                    <Badge variant="outline" className={`uppercase font-bold ${getBadgeClass(classification)}`}>
+                                        {classification}
+                                    </Badge>
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-2">
@@ -578,7 +615,7 @@ export default function PipelinePage() {
                                     </DropdownMenu>
                                 </TableCell>
                             </TableRow>
-                        ))}
+                        )})}
                     </TableBody>
                 </Table>
             </CardContent>

@@ -17,6 +17,8 @@ export type Client = {
 
 export type OpportunityStage = 'Primer contacto' | 'Envió de Información' | 'Envió de Cotización' | 'Negociación' | 'Cierre de venta';
 
+export type ClientClassification = 'PROSPECTO' | 'CLIENTE POTENCIAL' | 'CLIENTE';
+
 export type Opportunity = {
   id: string;
   name: string;
