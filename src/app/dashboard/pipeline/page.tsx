@@ -675,7 +675,7 @@ export default function PipelinePage() {
                             </div>
                         </div>
 
-                         <Collapsible className="mt-2">
+                         <Collapsible className="mt-2" defaultOpen>
                             <CollapsibleTrigger asChild>
                                 <Button variant="ghost" className="w-full justify-start text-xs h-8 -ml-2">
                                     <History className="h-4 w-4 mr-2" />

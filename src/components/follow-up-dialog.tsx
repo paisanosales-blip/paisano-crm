@@ -127,15 +127,7 @@ export function FollowUpDialog({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="sm:max-w-xl"
-        onPointerDownOutside={(e) => {
-            const target = e.originalEvent.target as HTMLElement;
-            if (target.closest('[data-radix-popper-content-wrapper]') || target.closest('.rdp')) {
-                e.preventDefault();
-            }
-        }}
-      >
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Nuevo'} Seguimiento para {prospectName}</DialogTitle>
           <DialogDescription>
@@ -174,7 +166,7 @@ export function FollowUpDialog({
             <div className="space-y-3">
                 <Label className="font-medium text-sm text-foreground">AGENDAR PRÓXIMO CONTACTO (OPCIONAL)</Label>
                 <div className="grid grid-cols-2 gap-4">
-                <Popover>
+                <Popover modal={true}>
                     <PopoverTrigger asChild>
                     <Button
                         variant={'outline'}
