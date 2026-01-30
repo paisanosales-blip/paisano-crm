@@ -141,6 +141,9 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
         description: `${values.clientName} ha sido actualizado correctamente.`,
       });
       onOpenChange(false);
+      setTimeout(() => {
+          window.location.reload();
+      }, 500);
     } catch (error) {
       console.error('Error updating prospect:', error);
       toast({

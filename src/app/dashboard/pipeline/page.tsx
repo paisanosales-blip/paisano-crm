@@ -96,7 +96,7 @@ export default function PipelinePage() {
   const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
 
-  const handleStageChange = (opportunityId: string, newStage: OpportunityStage, checklistData?: ChecklistState) => {
+  const handleStageChange = (opportunityId: string, newStage: OpportunityStage, checklistData?: ChecklistState, reload: boolean = false) => {
     if (!firestore) return;
     const opportunityRef = doc(firestore, 'opportunities', opportunityId);
     
@@ -110,6 +110,11 @@ export default function PipelinePage() {
 
     updateDocumentNonBlocking(opportunityRef, updateData);
     toast({ title: 'Éxito', description: `Prospecto movido a: ${newStage}` });
+    if (reload) {
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
+    }
   };
 
   const requestStageChange = (opportunity: { id: string; name: string; stage: OpportunityStage; leadId: string; }, newStage: OpportunityStage) => {
@@ -119,7 +124,7 @@ export default function PipelinePage() {
     } else if (opportunity.stage === 'Envió de Información' && newStage === 'Envió de Cotización') {
         setQuotationUploadOpen(true);
     } else {
-        handleStageChange(opportunity.id, newStage);
+        handleStageChange(opportunity.id, newStage, undefined, true);
     }
   };
 
@@ -159,6 +164,9 @@ export default function PipelinePage() {
 
     setInfoSentDialogOpen(false);
     setCurrentOpportunity(null);
+    setTimeout(() => {
+        window.location.reload();
+    }, 500);
   };
   
   const handleQuotationUpload = async (values: QuotationFormValues) => {
@@ -205,6 +213,14 @@ export default function PipelinePage() {
         title: '¡Cotización Enviada!',
         description: `La cotización para ${currentOpportunity.name} ha sido cargada y el prospecto movido.`,
       });
+      
+      setQuotationUploadOpen(false);
+      setCurrentOpportunity(null);
+      setIsUploadingQuotation(false);
+
+      setTimeout(() => {
+          window.location.reload();
+      }, 500);
 
     } catch (error) {
       console.error('Error uploading quotation:', error);
@@ -213,11 +229,7 @@ export default function PipelinePage() {
         title: 'Error al cargar cotización',
         description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
       });
-    } finally {
-      // 4. Close dialog and reset state
       setIsUploadingQuotation(false);
-      setQuotationUploadOpen(false);
-      setCurrentOpportunity(null);
     }
   };
 
