@@ -104,7 +104,7 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {userProfile?.role === 'Admin' && (
+            {(userProfile?.role === 'Admin' || user?.uid === '8X2GffQW6cTIth9i0kZCMFE9mQR2') && (
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Usuarios">
                   <Link href="/dashboard/users">
