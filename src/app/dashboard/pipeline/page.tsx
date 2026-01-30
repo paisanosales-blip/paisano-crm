@@ -5,11 +5,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { CalendarIcon, PlusCircle } from 'lucide-react';
+import { PlusCircle } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
-import { opportunities as initialOpportunities, clients, users } from '@/lib/data';
+import { opportunities as initialOpportunities, clients as initialClients, users } from '@/lib/data';
 import type { Opportunity, OpportunityStage, Client, User } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
@@ -40,38 +38,48 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 
 const stages: OpportunityStage[] = ['Prospecto', 'Calificación', 'Propuesta', 'Negociación', 'Ganada', 'Perdida'];
 
-const opportunitySchema = z.object({
-  name: z.string().min(1, { message: 'El nombre es requerido.' }),
-  clientId: z.string().min(1, { message: 'Por favor seleccione un cliente.' }),
-  sellerId: z.string().min(1, { message: 'Por favor seleccione un vendedor.' }),
-  value: z.coerce.number().positive({ message: 'El valor debe ser un número positivo.' }),
-  currency: z.enum(['USD', 'MXN']),
-  closeDate: z.date({ required_error: 'La fecha de cierre es requerida.' }),
+const prospectoSchema = z.object({
+    clientName: z.string().min(1, 'El nombre del cliente es requerido.'),
+    country: z.string().min(1, 'El país es requerido.'),
+    city: z.string().min(1, 'La ciudad es requerida.'),
+    companyName: z.string().min(1, 'El nombre de la empresa es requerido.'),
+    contactMethod: z.enum(['REDES SOCIALES', 'PUBLICIDAD', 'BUSQUEDA EN GOOGLE', 'BUSQUEDA EN MAPS'], { required_error: "Debe seleccionar una forma de contacto."}),
+    website: z.string().url({ message: "URL de página web inválida." }).optional().or(z.literal('')),
+    phone: z.string().optional(),
+    email: z.string().email('Email inválido.').optional().or(z.literal('')),
+    language: z.string().min(1, 'El idioma es requerido.'),
+    sellerId: z.string().min(1, { message: 'Por favor seleccione un vendedor.' }),
+}).refine(data => {
+    return !!data.website || !!data.phone || !!data.email;
+}, {
+    message: 'Debe proporcionar al menos una de las siguientes opciones: Página web, teléfono o email.',
+    path: ['website'] // Attach error to a specific field for display
 });
 
+
 const sellerUsers = users.filter(u => u.role === 'seller');
+const contactMethods = ['REDES SOCIALES', 'PUBLICIDAD', 'BUSQUEDA EN GOOGLE', 'BUSQUEDA EN MAPS'];
 
 export default function PipelinePage() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>(initialOpportunities);
+  const [clients, setClients] = useState<Client[]>(initialClients);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const form = useForm<z.infer<typeof opportunitySchema>>({
-    resolver: zodResolver(opportunitySchema),
+  const form = useForm<z.infer<typeof prospectoSchema>>({
+    resolver: zodResolver(prospectoSchema),
     defaultValues: {
-      name: '',
-      clientId: '',
+      clientName: '',
+      country: '',
+      city: '',
+      companyName: '',
+      website: '',
+      phone: '',
+      email: '',
+      language: '',
       sellerId: '',
-      value: 0,
-      currency: 'USD',
     },
   });
 
@@ -81,14 +89,30 @@ export default function PipelinePage() {
     );
   };
 
-  function onSubmit(values: z.infer<typeof opportunitySchema>) {
+  function onSubmit(values: z.infer<typeof prospectoSchema>) {
+    const newClient: Client = {
+        id: `c-${Date.now()}`,
+        numeroDeCliente: `C${String(Date.now()).slice(-4)}`,
+        nombreDelCliente: values.companyName,
+        region: `${values.city}, ${values.country}`,
+        sellerId: values.sellerId,
+        createdAt: format(new Date(), 'yyyy-MM-dd'),
+    };
+
     const newOpportunity: Opportunity = {
       id: `op-${Date.now()}`,
+      name: `Oportunidad para ${values.companyName}`,
+      clientId: newClient.id,
+      sellerId: values.sellerId,
       stage: 'Prospecto',
-      ...values,
-      closeDate: format(values.closeDate, 'yyyy-MM-dd'),
+      value: 0,
+      currency: 'USD',
+      closeDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
     };
+    
+    setClients(prev => [newClient, ...prev]);
     setOpportunities(prev => [newOpportunity, ...prev]);
+
     setIsDialogOpen(false);
     form.reset();
   }
@@ -104,52 +128,73 @@ export default function PipelinePage() {
               Nuevo Prospecto
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Crear Nuevo Prospecto</DialogTitle>
               <DialogDescription>
-                Complete los detalles de la nueva oportunidad de venta.
+                Complete los detalles para crear un nuevo prospecto.
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nombre de la Oportunidad</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Ej: Proyecto Omega" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="clientId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cliente</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="companyName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre de Empresa</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Seleccione un cliente" />
-                          </SelectTrigger>
+                          <Input placeholder="Ej: Acme Inc." {...field} />
                         </FormControl>
-                        <SelectContent>
-                          {clients.map((client: Client) => (
-                            <SelectItem key={client.id} value={client.id}>
-                              {client.nombreDelCliente}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="clientName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre del Cliente</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ej: Juan Pérez" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="country"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>País</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ej: México" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ciudad</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ej: Ciudad de México" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
                  <FormField
                   control={form.control}
                   name="sellerId"
@@ -174,83 +219,92 @@ export default function PipelinePage() {
                     </FormItem>
                   )}
                 />
+
                 <div className="grid grid-cols-2 gap-4">
-                   <FormField
+                  <FormField
                     control={form.control}
-                    name="value"
+                    name="contactMethod"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Valor</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="50000" {...field} />
-                        </FormControl>
+                        <FormLabel>Forma de Contacto</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione un método" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {contactMethods.map((method) => (
+                              <SelectItem key={method} value={method}>
+                                {method}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                   <FormField
                     control={form.control}
-                    name="currency"
+                    name="language"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Moneda</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Seleccione una moneda" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="USD">USD</SelectItem>
-                              <SelectItem value="MXN">MXN</SelectItem>
-                            </SelectContent>
-                          </Select>
+                        <FormLabel>Idioma</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ej: Español" {...field} />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-                 <FormField
-                  control={form.control}
-                  name="closeDate"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <FormLabel>Fecha de Cierre Estimada</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant={"outline"}
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP", { locale: es })
-                              ) : (
-                                <span>Elige una fecha</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date < new Date(new Date().setHours(0,0,0,0))
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+
+                <div>
+                    <p className="text-xs text-muted-foreground mb-2">Proporcione al menos un método de contacto:</p>
+                    <div className="grid gap-4">
+                         <FormField
+                            control={form.control}
+                            name="website"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Página Web</FormLabel>
+                                <FormControl>
+                                <Input placeholder="https://ejemplo.com" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="phone"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Teléfono</FormLabel>
+                                <FormControl>
+                                <Input placeholder="+52 55 1234 5678" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl>
+                                <Input type="email" placeholder="contacto@ejemplo.com" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    </div>
+                </div>
+
                 <DialogFooter>
                   <DialogClose asChild>
                      <Button type="button" variant="secondary">Cancelar</Button>
