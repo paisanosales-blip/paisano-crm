@@ -38,7 +38,7 @@ export function getSdks(firebaseApp: FirebaseApp) {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
-    storage: getStorage(firebaseApp, 'gs://studio-9697733496-6a367.appspot.com')
+    storage: getStorage(firebaseApp)
   };
 }
 
