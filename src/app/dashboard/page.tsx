@@ -1,61 +1,131 @@
+'use client';
+
+import {
+  useUser,
+  useFirestore,
+  useCollection,
+  useMemoFirebase,
+} from '@/firebase';
+import { collection, query, where, orderBy, limit } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Activity, DollarSign, Users, TrendingUp } from 'lucide-react';
-import { opportunities, activities, clients } from '@/lib/data';
+import { Users, TrendingUp, UserCheck, Target } from 'lucide-react';
 import { DashboardCharts } from '@/components/dashboard-charts';
+import { Skeleton } from '@/components/ui/skeleton';
+import React from 'react';
 
 export default function DashboardPage() {
-    const totalRevenue = opportunities.filter(o => o.stage === 'Cierre de venta').reduce((sum, o) => sum + o.value, 0);
-    const activeOpportunities = opportunities.filter(o => o.stage !== 'Cierre de venta').length;
-    const conversionRate = (opportunities.filter(o => o.stage === 'Cierre de venta').length / opportunities.length * 100).toFixed(0);
+    const { user, isUserLoading: isUserAuthLoading } = useUser();
+    const firestore = useFirestore();
+    
+    // Fetch opportunities
+    const opportunitiesQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, 'opportunities'), where('sellerId', '==', user.uid));
+    }, [firestore, user]);
+    const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
+    
+    // Fetch recent activities
+    const activitiesQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, 'activities'), where('sellerId', '==', user.uid), orderBy('createdDate', 'desc'), limit(5));
+    }, [firestore, user]);
+    const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
+
+    // Fetch all leads to map activities to client names
+    const leadsQuery = useMemoFirebase(() => {
+        if (!user) return null;
+        return query(collection(firestore, 'leads'), where('sellerId', '==', user.uid));
+    }, [firestore, user]);
+    const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
+
+    const isLoading = isUserAuthLoading || areOppsLoading || areActivitiesLoading || areLeadsLoading;
+
+    const leadsMap = React.useMemo(() => {
+        if (!leads) return new Map();
+        return new Map((leads as any[]).map(lead => [lead.id, lead]));
+    }, [leads]);
+
+    const dashboardStats = React.useMemo(() => {
+        if (!opportunities) {
+            return {
+                totalOpportunities: 0,
+                activeProspects: 0,
+                potentialClients: 0,
+                closingRate: 0,
+            };
+        }
+        
+        const totalOpportunities = opportunities.length;
+        const closedWon = opportunities.filter(o => o.stage === 'Cierre de venta').length;
+        const activeProspects = opportunities.filter(o => o.stage === 'Primer contacto' || o.stage === 'Envió de Información').length;
+        const potentialClients = opportunities.filter(o => o.stage === 'Envió de Cotización' || o.stage === 'Negociación').length;
+        const closingRate = totalOpportunities > 0 ? (closedWon / totalOpportunities) * 100 : 0;
+
+        return {
+            totalOpportunities,
+            activeProspects,
+            potentialClients,
+            closingRate: parseFloat(closingRate.toFixed(1)),
+        };
+    }, [opportunities]);
 
     return (
         <div className="grid gap-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">+20.1% desde el mes pasado</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Oportunidades Activas</CardTitle>
-                        <Activity className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{activeOpportunities}</div>
-                        <p className="text-xs text-muted-foreground">{opportunities.length} en total</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Nuevos Clientes</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">+{clients.length}</div>
-                        <p className="text-xs text-muted-foreground">Este trimestre</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Tasa de Conversión</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{conversionRate}%</div>
-                        <p className="text-xs text-muted-foreground">+5% desde el mes pasado</p>
-                    </CardContent>
-                </Card>
-            </div>
+            {isLoading ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    <Skeleton className="h-28 w-full" />
+                    <Skeleton className="h-28 w-full" />
+                    <Skeleton className="h-28 w-full" />
+                    <Skeleton className="h-28 w-full" />
+                </div>
+            ) : (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Oportunidades Totales</CardTitle>
+                            <Target className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{dashboardStats.totalOpportunities}</div>
+                            <p className="text-xs text-muted-foreground">En tu flujo de ventas</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Prospectos Activos</CardTitle>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{dashboardStats.activeProspects}</div>
+                            <p className="text-xs text-muted-foreground">En contacto e información</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Clientes Potenciales</CardTitle>
+                            <UserCheck className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{dashboardStats.potentialClients}</div>
+                            <p className="text-xs text-muted-foreground">En cotización y negociación</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Tasa de Cierre</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{dashboardStats.closingRate}%</div>
+                            <p className="text-xs text-muted-foreground">De todas las oportunidades</p>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
-            <DashboardCharts />
+            <DashboardCharts opportunities={opportunities as any[]} leads={leads as any[]} isLoading={isLoading}/>
 
             <Card>
                 <CardHeader>
@@ -73,19 +143,31 @@ export default function DashboardPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {activities.slice(0, 4).map((activity) => {
-                                const client = clients.find(c => c.id === activity.entityId);
-                                return (
-                                    <TableRow key={activity.id}>
-                                        <TableCell className="font-medium">{client?.nombreDelCliente || 'No disponible'}</TableCell>
-                                        <TableCell>
-                                            <Badge variant="outline">{activity.type}</Badge>
-                                        </TableCell>
-                                        <TableCell className="max-w-xs truncate">{activity.notes}</TableCell>
-                                        <TableCell className="text-right">{activity.date}</TableCell>
+                            {isLoading ? (
+                                Array.from({ length: 4 }).map((_, i) => (
+                                    <TableRow key={i}>
+                                        <TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell>
                                     </TableRow>
-                                );
-                            })}
+                                ))
+                            ) : activities && activities.length > 0 ? (
+                                (activities as any[]).map((activity) => {
+                                    const client = leadsMap.get(activity.leadId);
+                                    return (
+                                        <TableRow key={activity.id}>
+                                            <TableCell className="font-medium">{client?.clientName || 'No disponible'}</TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline">{activity.type}</Badge>
+                                            </TableCell>
+                                            <TableCell className="max-w-xs truncate">{activity.description}</TableCell>
+                                            <TableCell className="text-right">{new Date(activity.createdDate).toLocaleDateString()}</TableCell>
+                                        </TableRow>
+                                    );
+                                })
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={4} className="h-24 text-center">No hay actividad reciente.</TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
