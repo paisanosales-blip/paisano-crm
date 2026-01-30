@@ -88,7 +88,6 @@ export default function UsersPage() {
                       <Select
                         value={user.role}
                         onValueChange={(newRole) => handleRoleChange(user.id, newRole)}
-                        disabled={currentUser?.uid === user.id}
                       >
                         <SelectTrigger className="w-[180px]">
                           <SelectValue placeholder="Seleccionar rol" />
