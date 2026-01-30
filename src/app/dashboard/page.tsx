@@ -3,10 +3,11 @@
 import {
   useUser,
   useFirestore,
+  useDoc,
   useCollection,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -18,29 +19,44 @@ import React from 'react';
 export default function DashboardPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
     const firestore = useFirestore();
+
+    const userProfileRef = useMemoFirebase(() => {
+        if (!user) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [firestore, user]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
     
     // Fetch opportunities
     const opportunitiesQuery = useMemoFirebase(() => {
-        if (!user) return null;
+        if (!user || !userProfile) return null;
+        if (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') {
+            return query(collection(firestore, 'opportunities'));
+        }
         return query(collection(firestore, 'opportunities'), where('sellerId', '==', user.uid));
-    }, [firestore, user]);
+    }, [firestore, user, userProfile]);
     const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
     
     // Fetch recent activities
     const activitiesQuery = useMemoFirebase(() => {
-        if (!user) return null;
+        if (!user || !userProfile) return null;
+        if (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') {
+            return query(collection(firestore, 'activities'), orderBy('createdDate', 'desc'), limit(5));
+        }
         return query(collection(firestore, 'activities'), where('sellerId', '==', user.uid), orderBy('createdDate', 'desc'), limit(5));
-    }, [firestore, user]);
+    }, [firestore, user, userProfile]);
     const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
 
     // Fetch all leads to map activities to client names
     const leadsQuery = useMemoFirebase(() => {
-        if (!user) return null;
+        if (!user || !userProfile) return null;
+        if (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') {
+            return query(collection(firestore, 'leads'));
+        }
         return query(collection(firestore, 'leads'), where('sellerId', '==', user.uid));
-    }, [firestore, user]);
+    }, [firestore, user, userProfile]);
     const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
 
-    const isLoading = isUserAuthLoading || areOppsLoading || areActivitiesLoading || areLeadsLoading;
+    const isLoading = isUserAuthLoading || isProfileLoading || areOppsLoading || areActivitiesLoading || areLeadsLoading;
 
     const leadsMap = React.useMemo(() => {
         if (!leads) return new Map();
@@ -137,6 +153,7 @@ export default function DashboardPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Cliente</TableHead>
+                                <TableHead>Vendedor</TableHead>
                                 <TableHead>Tipo</TableHead>
                                 <TableHead>Notas</TableHead>
                                 <TableHead className="text-right">Fecha</TableHead>
@@ -146,7 +163,7 @@ export default function DashboardPage() {
                             {isLoading ? (
                                 Array.from({ length: 4 }).map((_, i) => (
                                     <TableRow key={i}>
-                                        <TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell>
+                                        <TableCell colSpan={5}><Skeleton className="h-8 w-full" /></TableCell>
                                     </TableRow>
                                 ))
                             ) : activities && activities.length > 0 ? (
@@ -155,6 +172,7 @@ export default function DashboardPage() {
                                     return (
                                         <TableRow key={activity.id}>
                                             <TableCell className="font-medium">{client?.clientName || 'No disponible'}</TableCell>
+                                            <TableCell>{activity.sellerName}</TableCell>
                                             <TableCell>
                                                 <Badge variant="outline">{activity.type}</Badge>
                                             </TableCell>
@@ -165,7 +183,7 @@ export default function DashboardPage() {
                                 })
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center">No hay actividad reciente.</TableCell>
+                                    <TableCell colSpan={5} className="h-24 text-center">No hay actividad reciente.</TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
