@@ -25,7 +25,7 @@ export default function UsersPage() {
   const { data: currentUserProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !currentUserProfile || currentUserProfile.role !== 'Admin') return null;
+    if (!firestore || !currentUserProfile || currentUserProfile.role?.toLowerCase() !== 'admin') return null;
     return query(collection(firestore, 'users'));
   }, [firestore, currentUserProfile]);
   
@@ -48,7 +48,7 @@ export default function UsersPage() {
     return `${firstName.charAt(0)}${lastName ? lastName.charAt(0) : ''}`.toUpperCase();
   };
 
-  if (!isLoading && currentUserProfile?.role !== 'Admin') {
+  if (!isLoading && currentUserProfile?.role?.toLowerCase() !== 'admin') {
     return (
       <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed bg-card p-12 text-center">
         <ShieldAlert className="mx-auto h-12 w-12 text-destructive" />
