@@ -234,11 +234,11 @@ export default function PipelinePage() {
               setUploadProgress(progress);
             },
             (error) => {
-              // This will be caught by the outer catch block
               reject(error);
             },
             async () => {
               try {
+                setUploadProgress(100);
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                 resolve(downloadURL);
               } catch (error) {
@@ -292,12 +292,12 @@ export default function PipelinePage() {
       setQuotationUploadOpen(false);
       setCurrentProspect(null);
 
-    } catch (error) {
-      console.error('Error uploading quotation:', error);
+    } catch (error: any) {
+      console.error('Error al procesar cotización:', error);
       toast({ 
         variant: 'destructive', 
-        title: 'Error al cargar cotización', 
-        description: 'No se pudo subir el archivo. Verifique los permisos de Storage (CORS) e inténtelo de nuevo.'
+        title: 'Error al Guardar', 
+        description: `El PDF se subió, pero falló el guardado en la base de datos. Razón: ${error.message}`
       });
     } finally {
         setIsSubmitting(false);
