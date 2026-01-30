@@ -7,12 +7,12 @@ import {
   useCollection,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, query, where, orderBy, limit, doc, Query } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, FileText, DollarSign, UserX, Clock, Target, Users } from 'lucide-react';
+import { TrendingUp, FileText, DollarSign, UserX, Clock, Target } from 'lucide-react';
 import { DashboardCharts } from '@/components/dashboard-charts';
 import { Skeleton } from '@/components/ui/skeleton';
 import React from 'react';
@@ -20,6 +20,7 @@ import React from 'react';
 export default function DashboardPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
     const firestore = useFirestore();
+    // Default the filter to 'all', which we'll treat as the manager's own view.
     const [selectedUserId, setSelectedUserId] = React.useState('all');
 
     const userProfileRef = useMemoFirebase(() => {
@@ -28,78 +29,59 @@ export default function DashboardPage() {
     }, [firestore, user]);
     const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
-    const usersQuery = useMemoFirebase(() => {
-      if (!userProfile || userProfile.role?.toLowerCase() === 'seller') return null;
-      return query(collection(firestore, 'users'));
-    }, [firestore, userProfile]);
-    const { data: users, isLoading: areUsersLoading } = useCollection(usersQuery);
-
     const isManagerView = userProfile && userProfile.role?.toLowerCase() === 'manager';
 
-    const opportunitiesQuery = useMemoFirebase(() => {
-        if (!user || !userProfile) return null;
-        const baseQuery = collection(firestore, 'opportunities');
+    const usersQuery = useMemoFirebase(() => {
+      if (!isManagerView) return null;
+      return query(collection(firestore, 'users'));
+    }, [firestore, isManagerView]);
+    const { data: users, isLoading: areUsersLoading } = useCollection(usersQuery);
+
+    // This is the single, safe user ID we will use for all queries.
+    // - For sellers, it's always their own user ID.
+    // - For managers, it's the ID of the seller they select from the dropdown.
+    // - If a manager selects "All Sellers", we use the manager's own user ID as a safe default to prevent permission errors.
+    const activeUserId = React.useMemo(() => {
+        if (!user) return null;
         if (isManagerView) {
-            if (selectedUserId === 'all') return baseQuery;
-            return query(baseQuery, where('sellerId', '==', selectedUserId));
+            return selectedUserId === 'all' ? user.uid : selectedUserId;
         }
-        return query(baseQuery, where('sellerId', '==', user.uid));
-    }, [firestore, user, userProfile, selectedUserId, isManagerView]);
+        return user.uid;
+    }, [user, isManagerView, selectedUserId]);
+
+
+    const opportunitiesQuery = useMemoFirebase(() => {
+        if (!activeUserId) return null;
+        return query(collection(firestore, 'opportunities'), where('sellerId', '==', activeUserId));
+    }, [firestore, activeUserId]);
     const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
 
     const leadsQuery = useMemoFirebase(() => {
-        if (!user || !userProfile) return null;
-        const baseQuery = collection(firestore, 'leads');
-        if (isManagerView) {
-            if (selectedUserId === 'all') return baseQuery;
-            return query(baseQuery, where('sellerId', '==', selectedUserId));
-        }
-        return query(baseQuery, where('sellerId', '==', user.uid));
-    }, [firestore, user, userProfile, selectedUserId, isManagerView]);
+        if (!activeUserId) return null;
+        return query(collection(firestore, 'leads'), where('sellerId', '==', activeUserId));
+    }, [firestore, activeUserId]);
     const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
 
     const quotationsQuery = useMemoFirebase(() => {
-        if (!user || !userProfile) return null;
-        const baseQuery = collection(firestore, 'quotations');
-        if (isManagerView) {
-            if (selectedUserId === 'all') return baseQuery;
-            return query(baseQuery, where('sellerId', '==', selectedUserId));
-        }
-        return query(baseQuery, where('sellerId', '==', user.uid));
-    }, [firestore, user, userProfile, selectedUserId, isManagerView]);
+        if (!activeUserId) return null;
+        return query(collection(firestore, 'quotations'), where('sellerId', '==', activeUserId));
+    }, [firestore, activeUserId]);
     const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
     const activitiesQuery = useMemoFirebase(() => {
-        if (!user || !userProfile) return null;
-        const baseQuery = collection(firestore, 'activities');
-        const baseOrderedQuery = query(baseQuery, orderBy('createdDate', 'desc'), limit(5));
-
-        if (isManagerView) {
-            if (selectedUserId === 'all') return baseOrderedQuery;
-            return query(baseQuery, where('sellerId', '==', selectedUserId), orderBy('createdDate', 'desc'), limit(5));
-        }
-        return query(baseQuery, where('sellerId', '==', user.uid), orderBy('createdDate', 'desc'), limit(5));
-    }, [firestore, user, userProfile, selectedUserId, isManagerView]);
+        if (!activeUserId) return null;
+        return query(collection(firestore, 'activities'), where('sellerId', '==', activeUserId), orderBy('createdDate', 'desc'), limit(5));
+    }, [firestore, activeUserId]);
     const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
-
-    // This query is for the recent activity log to map leadId to clientName.
-    const allLeadsForActivityQuery = useMemoFirebase(() => {
-        if (!user || !userProfile) return null;
-        const baseQuery = collection(firestore, 'leads');
-        if (isManagerView) {
-             if (selectedUserId === 'all') return baseQuery;
-             return query(baseQuery, where('sellerId', '==', selectedUserId));
-        }
-        return query(baseQuery, where('sellerId', '==', user.uid));
-    }, [firestore, user, userProfile, selectedUserId, isManagerView]);
-    const { data: allLeads, isLoading: areAllLeadsLoading } = useCollection(allLeadsForActivityQuery);
-
-    const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areOppsLoading || areLeadsLoading || areQuotsLoading || areActivitiesLoading || areAllLeadsLoading;
-
+    
+    // This map is derived from the `leads` query which is already safely filtered.
+    // This avoids making a separate, potentially unsafe query for lead details.
     const leadsMap = React.useMemo(() => {
-        if (!allLeads) return new Map();
-        return new Map((allLeads as any[]).map(lead => [lead.id, lead]));
-    }, [allLeads]);
+        if (!leads) return new Map();
+        return new Map((leads as any[]).map(lead => [lead.id, lead]));
+    }, [leads]);
+
+    const isLoading = isUserAuthLoading || isProfileLoading || (isManagerView && areUsersLoading) || areOppsLoading || areLeadsLoading || areQuotsLoading || areActivitiesLoading;
 
     const dashboardStats = React.useMemo(() => {
         if (!opportunities || !quotations || !leads || !activities) {
@@ -114,17 +96,17 @@ export default function DashboardPage() {
         }
         
         const totalOpportunities = opportunities.length;
-        const closedWon = opportunities.filter(o => o.stage === 'Cierre de venta').length;
+        const closedWon = (opportunities as any[]).filter(o => o.stage === 'Cierre de venta').length;
         const closingRate = totalOpportunities > 0 ? (closedWon / totalOpportunities) * 100 : 0;
         
         const generatedQuotations = quotations.length;
-        const totalQuotedValue = quotations.reduce((sum, q) => sum + q.value, 0);
+        const totalQuotedValue = (quotations as any[]).reduce((sum, q) => sum + q.value, 0);
 
-        const followedUpLeadIds = new Set(activities.map(a => a.leadId));
-        const leadsWithoutFollowUp = leads.filter(l => !followedUpLeadIds.has(l.id)).length;
+        const followedUpLeadIds = new Set((activities as any[]).map(a => a.leadId));
+        const leadsWithoutFollowUp = (leads as any[]).filter(l => !followedUpLeadIds.has(l.id)).length;
 
-        const opportunitiesMap = new Map(opportunities.map(o => [o.id, o]));
-        const responseTimes = quotations.map(q => {
+        const opportunitiesMap = new Map((opportunities as any[]).map(o => [o.id, o]));
+        const responseTimes = (quotations as any[]).map(q => {
             const opp = opportunitiesMap.get(q.opportunityId);
             if (opp && opp.infoSentDate && q.createdDate) {
                 const quoteDate = new Date(q.createdDate).getTime();
@@ -161,10 +143,11 @@ export default function DashboardPage() {
                       <SelectValue placeholder="Filtrar por usuario..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos los Vendedores</SelectItem>
-                      {users?.map((u: any) => (
-                        <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>
-                      ))}
+                      <SelectItem value="all">Mis Estadísticas</SelectItem>
+                      {users?.map((u: any) => {
+                        if (u.id === user?.uid) return null; // Don't show manager in the list again
+                        return <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>
+                      })}
                     </SelectContent>
                   </Select>
                 )}
