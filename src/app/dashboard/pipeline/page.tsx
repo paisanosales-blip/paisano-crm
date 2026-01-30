@@ -54,6 +54,70 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+// Data for selects
+const countries = ['MEXICO', 'EUA'];
+const languages = ['ESPAÑOL', 'INGLES'];
+const usStates = [
+    'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia',
+    'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland',
+    'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey',
+    'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina',
+    'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'
+];
+
+const citiesByState: { [key: string]: string[] } = {
+    'Alabama': ['Birmingham', 'Montgomery', 'Mobile', 'Huntsville'],
+    'Alaska': ['Anchorage', 'Fairbanks', 'Juneau'],
+    'Arizona': ['Phoenix', 'Tucson', 'Mesa', 'Chandler'],
+    'Arkansas': ['Little Rock', 'Fort Smith', 'Fayetteville'],
+    'California': ['Los Angeles', 'San Diego', 'San Jose', 'San Francisco', 'Fresno', 'Sacramento'],
+    'Colorado': ['Denver', 'Colorado Springs', 'Aurora', 'Fort Collins'],
+    'Connecticut': ['Bridgeport', 'New Haven', 'Stamford', 'Hartford'],
+    'Delaware': ['Wilmington', 'Dover'],
+    'Florida': ['Jacksonville', 'Miami', 'Tampa', 'Orlando', 'St. Petersburg'],
+    'Georgia': ['Atlanta', 'Augusta', 'Columbus', 'Macon', 'Savannah'],
+    'Hawaii': ['Honolulu'],
+    'Idaho': ['Boise'],
+    'Illinois': ['Chicago', 'Aurora', 'Joliet', 'Naperville'],
+    'Indiana': ['Indianapolis', 'Fort Wayne', 'Evansville'],
+    'Iowa': ['Des Moines', 'Cedar Rapids'],
+    'Kansas': ['Wichita', 'Overland Park'],
+    'Kentucky': ['Louisville', 'Lexington'],
+    'Louisiana': ['New Orleans', 'Baton Rouge', 'Shreveport'],
+    'Maine': ['Portland'],
+    'Maryland': ['Baltimore', 'Columbia'],
+    'Massachusetts': ['Boston', 'Worcester', 'Springfield'],
+    'Michigan': ['Detroit', 'Grand Rapids', 'Warren'],
+    'Minnesota': ['Minneapolis', 'Saint Paul'],
+    'Mississippi': ['Jackson'],
+    'Missouri': ['Kansas City', 'Saint Louis'],
+    'Montana': ['Billings'],
+    'Nebraska': ['Omaha', 'Lincoln'],
+    'Nevada': ['Las Vegas', 'Henderson', 'Reno'],
+    'New Hampshire': ['Manchester'],
+    'New Jersey': ['Newark', 'Jersey City'],
+    'New Mexico': ['Albuquerque'],
+    'New York': ['New York City', 'Buffalo', 'Rochester', 'Yonkers'],
+    'North Carolina': ['Charlotte', 'Raleigh', 'Greensboro'],
+    'North Dakota': ['Fargo'],
+    'Ohio': ['Columbus', 'Cleveland', 'Cincinnati'],
+    'Oklahoma': ['Oklahoma City', 'Tulsa'],
+    'Oregon': ['Portland', 'Salem'],
+    'Pennsylvania': ['Philadelphia', 'Pittsburgh', 'Allentown'],
+    'Rhode Island': ['Providence'],
+    'South Carolina': ['Charleston', 'Columbia'],
+    'South Dakota': ['Sioux Falls'],
+    'Tennessee': ['Nashville', 'Memphis', 'Knoxville'],
+    'Texas': ['Houston', 'San Antonio', 'Dallas', 'Austin', 'Fort Worth'],
+    'Utah': ['Salt Lake City'],
+    'Vermont': ['Burlington'],
+    'Virginia': ['Virginia Beach', 'Norfolk', 'Chesapeake'],
+    'Washington': ['Seattle', 'Spokane', 'Tacoma'],
+    'West Virginia': ['Charleston'],
+    'Wisconsin': ['Milwaukee', 'Madison'],
+    'Wyoming': ['Cheyenne'],
+};
+
 
 // New stages
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -61,15 +125,24 @@ type ClientClassification = 'Prospecto' | 'Cliente potencial' | 'CLIENTE';
 
 const prospectoSchema = z.object({
     clientName: z.string().min(1, 'El nombre del cliente es requerido.'),
-    country: z.string().min(1, 'El país es requerido.'),
+    country: z.enum(['MEXICO', 'EUA'], { required_error: "Debe seleccionar un país."}),
+    state: z.string().optional(),
     city: z.string().min(1, 'La ciudad es requerida.'),
     companyName: z.string().min(1, 'El nombre de la empresa es requerido.'),
     contactMethod: z.enum(['REDES SOCIALES', 'PUBLICIDAD', 'BUSQUEDA EN GOOGLE', 'BUSQUEDA EN MAPS'], { required_error: "Debe seleccionar una forma de contacto."}),
     website: z.string().url({ message: "URL de página web inválida." }).optional().or(z.literal('')),
     phone: z.string().optional(),
     email: z.string().email('Email inválido.').optional().or(z.literal('')),
-    language: z.string().min(1, 'El idioma es requerido.'),
+    language: z.enum(['ESPAÑOL', 'INGLES'], { required_error: "Debe seleccionar un idioma."}),
     sellerId: z.string().min(1, { message: 'Por favor seleccione un vendedor.' }),
+}).refine(data => {
+    if (data.country === 'EUA') {
+        return data.state && data.state.length > 0;
+    }
+    return true;
+}, {
+    message: 'El estado es requerido para EUA.',
+    path: ['state'],
 }).refine(data => {
     return !!data.website || !!data.phone || !!data.email;
 }, {
@@ -104,16 +177,31 @@ export default function PipelinePage() {
     resolver: zodResolver(prospectoSchema),
     defaultValues: {
       clientName: '',
-      country: '',
+      country: undefined,
+      state: '',
       city: '',
       companyName: '',
       website: '',
       phone: '',
       email: '',
-      language: '',
+      language: undefined,
       sellerId: '',
     },
   });
+
+  const watchedCountry = form.watch('country');
+  const watchedState = form.watch('state');
+
+  React.useEffect(() => {
+    if (watchedCountry === 'MEXICO') {
+        form.setValue('state', '');
+    }
+    form.setValue('city', '');
+  }, [watchedCountry, form]);
+
+  React.useEffect(() => {
+    form.setValue('city', '');
+  }, [watchedState, form]);
 
   const handleStageChange = (opportunityId: string, newStage: OpportunityStage) => {
     setOpportunities(prev =>
@@ -122,11 +210,15 @@ export default function PipelinePage() {
   };
 
   function onSubmit(values: z.infer<typeof prospectoSchema>) {
+    const region = values.country === 'EUA' && values.state
+    ? `${values.city}, ${values.state}`
+    : values.city;
+
     const newClient: Client = {
         id: `c-${Date.now()}`,
         numeroDeCliente: `C${String(Date.now()).slice(-4)}`,
         nombreDelCliente: values.companyName,
-        region: `${values.city}, ${values.country}`,
+        region: region,
         sellerId: values.sellerId,
         createdAt: format(new Date(), 'yyyy-MM-dd'),
     };
@@ -207,34 +299,88 @@ export default function PipelinePage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>País</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccione un país" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {countries.map((country) => (
+                            <SelectItem key={country} value={country}>
+                              {country}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {watchedCountry === 'EUA' && (
                   <FormField
                     control={form.control}
-                    name="country"
+                    name="state"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>País</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ej: México" {...field} />
-                        </FormControl>
+                        <FormLabel>Estado</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione un estado" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {usStates.map((state) => (
+                              <SelectItem key={state} value={state}>
+                                {state}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ciudad</FormLabel>
+                )}
+
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ciudad</FormLabel>
+                      {watchedCountry === 'EUA' && watchedState ? (
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione una ciudad" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {(citiesByState[watchedState] || []).map((city) => (
+                              <SelectItem key={city} value={city}>
+                                {city}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
                         <FormControl>
                           <Input placeholder="Ej: Ciudad de México" {...field} />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 
                  <FormField
                   control={form.control}
@@ -292,9 +438,20 @@ export default function PipelinePage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Idioma</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Ej: Español" {...field} />
-                        </FormControl>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccione un idioma" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {languages.map((lang) => (
+                              <SelectItem key={lang} value={lang}>
+                                {lang}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
