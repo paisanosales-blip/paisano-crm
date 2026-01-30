@@ -35,14 +35,17 @@ export type Opportunity = {
   sentMedia?: boolean;
   infoSentContactChannels?: string[];
   infoSentNotes?: string;
+  infoSentDate?: string;
   acceptedPrice?: boolean;
   quotedFreight?: boolean;
   requestsDiscount?: boolean;
   negotiationNotes?: string;
+  negotiationDate?: string;
   agreedDeliveryTime?: number;
   clientMadeDownPayment?: boolean;
   deliveryTimeConfirmed?: boolean;
   closingNotes?: string;
+  closingDate?: string;
 };
 
 export type Quotation = {

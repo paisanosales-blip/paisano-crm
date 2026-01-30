@@ -210,6 +210,11 @@
           "type": "string",
           "description": "Observations from the information sent stage."
         },
+        "infoSentDate": {
+          "type": "string",
+          "description": "Date when information was sent.",
+          "format": "date-time"
+        },
         "acceptedPrice": {
           "type": "boolean",
           "description": "Indicates if the client accepted the quoted price."
@@ -226,6 +231,11 @@
           "type": "string",
           "description": "Observations from the negotiation stage."
         },
+        "negotiationDate": {
+          "type": "string",
+          "description": "Date when the negotiation stage started.",
+          "format": "date-time"
+        },
         "agreedDeliveryTime": {
           "type": "number",
           "description": "The agreed delivery time in weeks, set during negotiation."
@@ -241,6 +251,11 @@
         "closingNotes": {
           "type": "string",
           "description": "Optional observations recorded at the closing stage."
+        },
+        "closingDate": {
+          "type": "string",
+          "description": "Date when the sale was closed.",
+          "format": "date-time"
         }
       },
       "required": [

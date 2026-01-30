@@ -259,6 +259,7 @@ export default function PipelinePage() {
     const isStageChange = currentProspect.opportunity.stage === 'Primer contacto';
     if (isStageChange) {
       updateData.stage = 'Envió de Información';
+      updateData.infoSentDate = new Date().toISOString();
     }
 
     updateDocumentNonBlocking(opportunityRef, updateData);
@@ -410,6 +411,7 @@ export default function PipelinePage() {
     const isStageChange = currentProspect.opportunity.stage === 'Envió de Cotización';
     if (isStageChange) {
       updateData.stage = 'Negociación';
+      updateData.negotiationDate = new Date().toISOString();
     }
 
     updateDocumentNonBlocking(opportunityRef, updateData);
@@ -438,6 +440,7 @@ export default function PipelinePage() {
     const isStageChange = currentProspect.opportunity.stage === 'Negociación';
     if (isStageChange) {
       updateData.stage = 'Cierre de venta';
+      updateData.closingDate = new Date().toISOString();
     }
 
     updateDocumentNonBlocking(opportunityRef, updateData);
@@ -691,21 +694,20 @@ export default function PipelinePage() {
                                     <Accordion type="single" collapsible className="w-full" defaultValue={prospect.activities[0]?.id}>
                                       {prospect.activities.map((act: any) => (
                                         <AccordionItem value={act.id} key={act.id} className="border-b-0">
-                                          <AccordionPrimitive.Header className="flex w-full items-center p-2 text-xs rounded-md data-[state=open]:bg-muted/50 hover:bg-muted/50">
+                                          <div className="flex w-full items-center p-2 text-xs rounded-md data-[state=open]:bg-muted/50 hover:bg-muted/50">
                                             <Checkbox
                                                 id={`activity-check-${act.id}`}
                                                 checked={act.completed}
                                                 onCheckedChange={(checked) => handleToggleActivityComplete(act.id, !!checked)}
                                                 className="mr-3"
                                             />
-                                            <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between text-left">
-                                                <div className={cn("grid gap-0.5", act.completed && "line-through text-muted-foreground")}>
+                                            <AccordionTrigger className="p-0 flex-1 justify-between">
+                                                <div className={cn("grid gap-0.5 text-left", act.completed && "line-through text-muted-foreground")}>
                                                     <span className="font-bold text-foreground">{act.type} {act.dueDate ? `- ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
                                                     <span className="text-xs text-muted-foreground">Creado: {format(new Date(act.createdDate), "dd/MM/yy")}</span>
                                                 </div>
-                                                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 data-[state=open]:rotate-180" />
-                                            </AccordionPrimitive.Trigger>
-                                          </AccordionPrimitive.Header>
+                                            </AccordionTrigger>
+                                          </div>
                                           <AccordionContent className="pb-2 pt-0 pl-4 pr-2">
                                             <div className="pl-10 border-l-2 ml-4 py-2">
                                               {act.description && <p className="italic mb-2 text-muted-foreground">"{act.description}"</p>}
@@ -800,7 +802,14 @@ export default function PipelinePage() {
                                 {currentIndex >= 1 && prospect.opportunity.sentPrices !== undefined && (
                                     <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
                                         <div className="flex items-center justify-between mb-1">
-                                            <p className="font-bold text-foreground">RESUMEN: ENVIÓ DE INFORMACIÓN</p>
+                                            <div>
+                                                <p className="font-bold text-foreground">RESUMEN: ENVIÓ DE INFORMACIÓN</p>
+                                                {prospect.opportunity.infoSentDate && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Registrado el: {format(new Date(prospect.opportunity.infoSentDate), "dd 'de' MMMM, yyyy", { locale: es })}
+                                                </p>
+                                                )}
+                                            </div>
                                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditInfoSent(prospect)}>
                                                 <Pencil className="h-3 w-3 text-muted-foreground" />
                                                 <span className="sr-only">Editar información enviada</span>
@@ -834,7 +843,12 @@ export default function PipelinePage() {
                                 {currentIndex >= 2 && prospect.quotation && (
                                     <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
                                         <div className="flex items-center justify-between">
-                                            <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
+                                            <div>
+                                                <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Registrado el: {format(new Date(prospect.quotation.createdDate), "dd 'de' MMMM, yyyy", { locale: es })}
+                                                </p>
+                                            </div>
                                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditQuotation(prospect)}>
                                                 <Pencil className="h-3 w-3 text-muted-foreground" />
                                                 <span className="sr-only">Editar cotización</span>
@@ -872,7 +886,14 @@ export default function PipelinePage() {
                                 {currentIndex >= 3 && prospect.opportunity.acceptedPrice !== undefined && (
                                     <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
                                         <div className="flex items-center justify-between mb-1">
-                                            <p className="font-bold text-foreground">RESUMEN: NEGOCIACIÓN</p>
+                                            <div>
+                                                <p className="font-bold text-foreground">RESUMEN: NEGOCIACIÓN</p>
+                                                {prospect.opportunity.negotiationDate && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Registrado el: {format(new Date(prospect.opportunity.negotiationDate), "dd 'de' MMMM, yyyy", { locale: es })}
+                                                </p>
+                                                )}
+                                            </div>
                                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditNegotiation(prospect)}>
                                                 <Pencil className="h-3 w-3 text-muted-foreground" />
                                                 <span className="sr-only">Editar negociación</span>
@@ -896,7 +917,14 @@ export default function PipelinePage() {
                                 {currentIndex >= 4 && prospect.opportunity.clientMadeDownPayment !== undefined && (
                                     <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
                                         <div className="flex items-center justify-between mb-1">
-                                            <p className="font-bold text-foreground">RESUMEN: CIERRE DE VENTA</p>
+                                            <div>
+                                                <p className="font-bold text-foreground">RESUMEN: CIERRE DE VENTA</p>
+                                                {prospect.opportunity.closingDate && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Registrado el: {format(new Date(prospect.opportunity.closingDate), "dd 'de' MMMM, yyyy", { locale: es })}
+                                                </p>
+                                                )}
+                                            </div>
                                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditClosing(prospect)}>
                                                 <Pencil className="h-3 w-3 text-muted-foreground" />
                                                 <span className="sr-only">Editar cierre de venta</span>
