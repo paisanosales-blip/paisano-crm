@@ -19,20 +19,12 @@ import {
   isPast,
   isFuture,
   isThisWeek,
-  startOfDay,
   formatDistanceToNow,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,6 +49,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { FollowUpDialog, type FollowUpSubmitPayload } from '@/components/follow-up-dialog';
+
+const groupStyleKeys = {
+    destructive: {
+        title: "text-destructive",
+        badge: "destructive",
+        icon: "bg-destructive/10 text-destructive",
+        date: "text-destructive font-semibold",
+    },
+    primary: {
+        title: "text-primary",
+        badge: "default",
+        icon: "bg-primary/10 text-primary",
+        date: "text-primary font-semibold",
+    },
+    secondary: {
+        title: "text-foreground",
+        badge: "secondary",
+        icon: "bg-muted text-muted-foreground",
+        date: "text-muted-foreground",
+    },
+    muted: {
+        title: "text-muted-foreground",
+        badge: "outline",
+        icon: "bg-muted text-muted-foreground",
+        date: "text-muted-foreground",
+    }
+} as const;
+
 
 export default function FollowUpsPage() {
   const { user, isUserLoading: isUserAuthLoading } = useUser();
@@ -154,14 +174,15 @@ export default function FollowUpsPage() {
     });
 
     const sortByDate = (a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-    
+    const sortByCreated = (a: any, b: any) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime();
+
     return [
-      { title: 'Atrasados', activities: overdue.sort(sortByDate), variant: 'destructive' },
-      { title: 'Hoy', activities: today.sort(sortByDate), variant: 'default' },
-      { title: 'Mañana', activities: tomorrow.sort(sortByDate), variant: 'default' },
-      { title: 'Esta Semana', activities: thisWeek.sort(sortByDate), variant: 'default' },
-      { title: 'Próximamente', activities: upcoming.sort(sortByDate), variant: 'default' },
-      { title: 'Sin Fecha', activities: noDate, variant: 'default' },
+      { title: 'Atrasados', activities: overdue.sort(sortByDate), styleKey: 'destructive' },
+      { title: 'Hoy', activities: today.sort(sortByDate), styleKey: 'primary' },
+      { title: 'Mañana', activities: tomorrow.sort(sortByDate), styleKey: 'secondary' },
+      { title: 'Esta Semana', activities: thisWeek.sort(sortByDate), styleKey: 'secondary' },
+      { title: 'Próximamente', activities: upcoming.sort(sortByDate), styleKey: 'muted' },
+      { title: 'Sin Fecha', activities: noDate.sort(sortByCreated), styleKey: 'muted' },
     ].filter(group => group.activities.length > 0);
 
   }, [activities, leadsMap, showCompleted]);
@@ -231,11 +252,11 @@ export default function FollowUpsPage() {
   };
 
   const activityIcons: { [key: string]: React.ReactNode } = {
-    'Llamada': <Phone className="h-4 w-4" />,
-    'Correo': <Mail className="h-4 w-4" />,
-    'Mensaje': <MessageSquare className="h-4 w-4" />,
-    'Nota': <StickyNote className="h-4 w-4" />,
-    'Reunión': <Users className="h-4 w-4" />,
+    'Llamada': <Phone className="h-5 w-5" />,
+    'Correo': <Mail className="h-5 w-5" />,
+    'Mensaje': <MessageSquare className="h-5 w-5" />,
+    'Nota': <StickyNote className="h-5 w-5" />,
+    'Reunión': <Users className="h-5 w-5" />,
   };
 
 
@@ -243,7 +264,7 @@ export default function FollowUpsPage() {
     <>
       <div className="grid gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-headline font-bold">Seguimientos</h1>
+          <h1 className="text-2xl font-headline font-bold">Centro de Seguimiento</h1>
           <div className="flex items-center gap-4">
             {userProfile?.role === 'manager' && (
               <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
@@ -275,81 +296,85 @@ export default function FollowUpsPage() {
                 <Skeleton className="h-32 w-full" />
             </div>
         ) : activityGroups.length > 0 ? (
-          <Accordion type="multiple" defaultValue={activityGroups.map(g => g.title)} className="w-full space-y-4">
+          <div className="space-y-8">
             {activityGroups.map((group) => (
-              <Card key={group.title}>
-                <AccordionItem value={group.title} className="border-b-0">
-                  <AccordionTrigger className="p-6 text-lg font-semibold hover:no-underline">
-                    <div className="flex items-center gap-3">
-                       <span className={cn(group.variant === 'destructive' && "text-destructive")}>{group.title}</span>
-                       <Badge variant={group.variant === 'destructive' ? 'destructive' : 'secondary'}>{group.activities.length}</Badge>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-6 pb-4">
-                    <div className="flex flex-col gap-3">
-                      {group.activities.map((activity) => {
-                         const dueDate = activity.dueDate ? new Date(activity.dueDate) : null;
+              <section key={group.title}>
+                 <div className="flex items-center gap-3 mb-4">
+                    <h2 className={cn("text-xl font-semibold", groupStyleKeys[group.styleKey].title)}>
+                    {group.title}
+                    </h2>
+                    <Badge variant={groupStyleKeys[group.styleKey].badge}>{group.activities.length}</Badge>
+                </div>
+                <div className="space-y-3">
+                  {group.activities.map((activity) => {
+                      const dueDate = activity.dueDate ? new Date(activity.dueDate) : null;
 
-                        return (
-                          <div key={activity.id} className={cn("flex items-start gap-4 rounded-lg border p-3 transition-colors", activity.completed ? "bg-muted/50" : "bg-card")}>
-                             <Checkbox
-                                id={`activity-${activity.id}`}
-                                checked={activity.completed}
-                                onCheckedChange={(checked) => handleToggleActivityComplete(activity.id, !!checked)}
-                                className="mt-1"
-                              />
+                      return (
+                        <div key={activity.id} className={cn(
+                            "flex items-start gap-4 rounded-lg border p-4 transition-all",
+                            activity.completed ? "bg-muted/50" : "bg-card hover:bg-muted/60",
+                        )}>
+                            <span className={cn("flex h-10 w-10 items-center justify-center rounded-full mt-1 shrink-0", groupStyleKeys[group.styleKey].icon)}>
+                                {activityIcons[activity.type] || <Calendar className="h-5 w-5" />}
+                            </span>
+
                             <div className={cn("flex-grow grid gap-1", activity.completed && "line-through text-muted-foreground")}>
-                              <div className="flex items-center gap-2 text-sm">
-                                {activityIcons[activity.type] || <Calendar className="h-4 w-4" />}
-                                <span className="font-semibold">{activity.type}</span>
-                                <span>con</span>
-                                <span className="font-medium text-foreground">{activity.clientName}</span>
-                              </div>
-                              {activity.description && <p className="text-sm text-muted-foreground">{activity.description}</p>}
-                               {dueDate && (
-                                <div className={cn("flex items-center gap-1.5 text-xs font-medium", "text-destructive")}>
-                                  <Calendar className="mr-1 h-3 w-3" />
-                                  <span className="capitalize">
-                                    {format(dueDate, "eeee dd 'de' MMMM", { locale: es })}
-                                  </span>
-                                  <span className="font-normal">
-                                    ({formatDistanceToNow(dueDate, { locale: es, addSuffix: true })})
-                                  </span>
-                                </div>
-                              )}
+                                <p className="font-semibold text-foreground">
+                                    {activity.type}
+                                    <span className="font-normal text-muted-foreground"> con </span> 
+                                    <span className="font-medium">{activity.clientName}</span>
+                                </p>
+                                <p className="text-sm text-muted-foreground">{activity.description || 'Sin descripción.'}</p>
+                                {dueDate && (
+                                    <div className={cn("flex items-center gap-2 text-sm", groupStyleKeys[group.styleKey].date)}>
+                                        <Calendar className="h-4 w-4" />
+                                        <span className="font-medium capitalize">
+                                            {format(dueDate, "eeee, dd MMMM", { locale: es })}
+                                        </span>
+                                        <span className="font-normal text-xs">
+                                            ({formatDistanceToNow(dueDate, { locale: es, addSuffix: true })})
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
-                                        <MoreVertical className="h-4 w-4" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onSelect={() => handleEditActivityClick(activity)}>
-                                        <Pencil className="mr-2 h-4 w-4" />
-                                        Editar
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem onSelect={() => handleDeleteActivityClick(activity)} className="text-destructive">
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        Eliminar
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Card>
+                            
+                            <div className="flex items-center gap-1 sm:gap-2">
+                                <Checkbox
+                                    id={`activity-${activity.id}`}
+                                    checked={activity.completed}
+                                    onCheckedChange={(checked) => handleToggleActivityComplete(activity.id, !!checked)}
+                                    className="h-5 w-5"
+                                />
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onSelect={() => handleEditActivityClick(activity)}>
+                                            <Pencil className="mr-2 h-4 w-4" />
+                                            Editar
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onSelect={() => handleDeleteActivityClick(activity)} className="text-destructive">
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Eliminar
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+              </section>
             ))}
-          </Accordion>
+          </div>
         ) : (
-          <Card>
-            <CardContent className="h-48 flex items-center justify-center">
-              <p className="text-muted-foreground">No se encontraron seguimientos pendientes.</p>
-            </CardContent>
-          </Card>
+          <div className="h-48 flex flex-col items-center justify-center rounded-lg border-2 border-dashed bg-muted/50">
+            <h3 className="text-lg font-semibold">¡Todo al día!</h3>
+            <p className="text-muted-foreground mt-1">No se encontraron seguimientos pendientes.</p>
+          </div>
         )}
       </div>
 
