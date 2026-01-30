@@ -11,7 +11,7 @@ import {
   useStorage,
 } from '@/firebase';
 import { collection, doc, query, where, addDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { cn } from '@/lib/utils';
 
 import type { OpportunityStage, ClientClassification, Opportunity } from '@/lib/types';
@@ -223,30 +223,12 @@ export default function PipelinePage() {
       if (values.pdf) {
         const pdfFile = values.pdf;
         const storageRef = ref(storage, `quotations/${currentProspect.opportunity.id}/${pdfFile.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, pdfFile);
 
-        // Wrap upload in a promise to await its completion
-        pdfUrl = await new Promise<string>((resolve, reject) => {
-          uploadTask.on(
-            'state_changed',
-            (snapshot) => {
-              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              setUploadProgress(progress);
-            },
-            (error) => {
-              reject(error);
-            },
-            async () => {
-              try {
-                setUploadProgress(100);
-                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve(downloadURL);
-              } catch (error) {
-                reject(error);
-              }
-            }
-          );
-        });
+        setUploadProgress(10);
+        const uploadResult = await uploadBytes(storageRef, pdfFile);
+        
+        setUploadProgress(90);
+        pdfUrl = await getDownloadURL(uploadResult.ref);
       }
 
       if (!pdfUrl) {
@@ -284,6 +266,8 @@ export default function PipelinePage() {
         await updateDoc(opportunityRef, { stage: 'Envió de Cotización' });
       }
       
+      setUploadProgress(100);
+
       toast({
         title: `¡Cotización ${isEditing ? 'Actualizada' : 'Enviada'}!`,
         description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
@@ -297,7 +281,7 @@ export default function PipelinePage() {
       toast({ 
         variant: 'destructive', 
         title: 'Error al Guardar', 
-        description: `El PDF se subió, pero falló el guardado en la base de datos. Razón: ${error.message}`
+        description: `Ocurrió un error durante la subida o el guardado: ${error.message}`
       });
     } finally {
         setIsSubmitting(false);
