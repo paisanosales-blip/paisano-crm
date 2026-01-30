@@ -56,9 +56,9 @@ export default function NewQuotationPage() {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [quotationDetails, setQuotationDetails] = useState<QuotationDetails>({
     number: `QT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
-    validity: '30 días',
-    terms: 'Condiciones de pago: 50% de anticipo, 50% contra entrega.\nLos precios no incluyen IVA.\nTiempo de entrega sujeto a cambios sin previo aviso.',
-    notes: 'Gracias por su preferencia.',
+    validity: '30 days',
+    terms: 'Payment Terms: 50% down payment, 50% upon delivery.\nPrices do not include VAT.\nDelivery times are subject to change without prior notice.',
+    notes: 'Thank you for your preference.',
   });
 
   const selectedClient = useMemo(() => {
@@ -95,7 +95,7 @@ export default function NewQuotationPage() {
   
   const generatePdf = () => {
     if (!selectedClient) {
-      alert('Por favor seleccione un cliente.');
+      alert('Please select a client.');
       return;
     }
 
@@ -133,14 +133,14 @@ export default function NewQuotationPage() {
     doc.setFontSize(22);
     doc.setTextColor(0, 0, 0); // Black
     doc.setFont('helvetica', 'bold');
-    doc.text('COTIZACIÓN', 15, 50);
+    doc.text('QUOTATION', 15, 50);
 
     // Info sections
     const infoStartY = 60;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('VENDIDO A:', 15, infoStartY);
-    doc.text('VENDEDOR:', docWidth / 2, infoStartY);
+    doc.text('SOLD TO:', 15, infoStartY);
+    doc.text('SALESPERSON:', docWidth / 2, infoStartY);
 
     doc.setLineWidth(0.2);
     doc.line(15, infoStartY + 2, docWidth - 15, infoStartY + 2);
@@ -161,13 +161,13 @@ export default function NewQuotationPage() {
     }
     
     // Quotation Details
-    doc.text(`COTIZACIÓN #: ${quotationDetails.number}`, docWidth - 15, infoStartY + 8, { align: 'right' });
-    doc.text(`FECHA: ${new Date().toLocaleDateString('es-MX')}`, docWidth - 15, infoStartY + 13, { align: 'right' });
-    doc.text(`VALIDEZ: ${quotationDetails.validity}`, docWidth - 15, infoStartY + 18, { align: 'right' });
+    doc.text(`QUOTATION #: ${quotationDetails.number}`, docWidth - 15, infoStartY + 8, { align: 'right' });
+    doc.text(`DATE: ${new Date().toLocaleDateString('en-US')}`, docWidth - 15, infoStartY + 13, { align: 'right' });
+    doc.text(`VALIDITY: ${quotationDetails.validity}`, docWidth - 15, infoStartY + 18, { align: 'right' });
 
 
     // Products Table
-    const tableColumn = ["Descripción", "Cant.", "Precio Unitario", "Total"];
+    const tableColumn = ["Description", "Qty.", "Unit Price", "Total"];
     const tableRows: (string | number)[][] = [];
 
     products.forEach(prod => {
@@ -197,7 +197,7 @@ export default function NewQuotationPage() {
     doc.text('Subtotal:', docWidth - 60, finalY + 10);
     doc.text(`$${subtotal.toFixed(2)}`, docWidth - 15, finalY + 10, { align: 'right' });
 
-    doc.text('Flete:', docWidth - 60, finalY + 17);
+    doc.text('Freight:', docWidth - 60, finalY + 17);
     doc.text(`$${freight.toFixed(2)}`, docWidth - 15, finalY + 17, { align: 'right' });
     
     doc.setFont('helvetica', 'bold');
@@ -211,7 +211,7 @@ export default function NewQuotationPage() {
     // Signature
     doc.line(15, currentY, docWidth / 2 - 15, currentY);
     doc.setFontSize(8);
-    doc.text('Firma de Aprobación', 15, currentY + 5);
+    doc.text('Approval Signature', 15, currentY + 5);
     currentY += 15;
 
     // Terms and Notes
@@ -222,7 +222,7 @@ export default function NewQuotationPage() {
       }
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
-      doc.text('Términos y Condiciones', 15, currentY);
+      doc.text('Terms and Conditions', 15, currentY);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       const termsLines = doc.splitTextToSize(quotationDetails.terms, docWidth - 30);
@@ -237,7 +237,7 @@ export default function NewQuotationPage() {
       }
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
-      doc.text('Notas Adicionales', 15, currentY);
+      doc.text('Additional Notes', 15, currentY);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       const notesLines = doc.splitTextToSize(quotationDetails.notes, docWidth - 30);
@@ -252,46 +252,46 @@ export default function NewQuotationPage() {
         doc.rect(0, pageHeight - 15, docWidth, 15, 'F');
         doc.setFontSize(8);
         doc.setTextColor(255, 255, 255);
-        doc.text(`Página ${i} de ${pageCount}`, docWidth / 2, pageHeight - 7, { align: 'center' });
+        doc.text(`Page ${i} of ${pageCount}`, docWidth / 2, pageHeight - 7, { align: 'center' });
     }
 
-    doc.save(`Cotizacion-${selectedClient.clientName.replace(/\s/g, '_')}-${quotationDetails.number}.pdf`);
+    doc.save(`Quotation-${selectedClient.clientName.replace(/\s/g, '_')}-${quotationDetails.number}.pdf`);
   };
 
   return (
     <>
       <div className="grid gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-headline font-bold">Nueva Cotización</h1>
+          <h1 className="text-2xl font-headline font-bold">New Quotation</h1>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setIsDetailsDialogOpen(true)}>
                 <Settings className="mr-2 h-4 w-4" />
-                Datos de la Cotización
+                Quotation Details
             </Button>
             <Button onClick={generatePdf} disabled={!selectedClientId}>
                 <FileDown className="mr-2 h-4 w-4" />
-                Generar PDF
+                Generate PDF
             </Button>
           </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Detalles de la Cotización</CardTitle>
+            <CardTitle>Quotation Details</CardTitle>
             <CardDescription>
-              Seleccione un cliente y agregue los productos para generar el documento de cotización.
+              Select a client and add products to generate the quotation document.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
               <div className="max-w-sm">
-                  <Label htmlFor="client-select">Seleccionar Cliente</Label>
+                  <Label htmlFor="client-select">Select Client</Label>
                   <Select onValueChange={setSelectedClientId} value={selectedClientId} disabled={areLeadsLoading}>
                       <SelectTrigger id="client-select">
-                          <SelectValue placeholder="Elija un cliente..." />
+                          <SelectValue placeholder="Choose a client..." />
                       </SelectTrigger>
                       <SelectContent>
                           {areLeadsLoading ? (
-                              <SelectItem value="loading" disabled>Cargando clientes...</SelectItem>
+                              <SelectItem value="loading" disabled>Loading clients...</SelectItem>
                           ) : (
                               leads?.map((lead: any) => (
                                   <SelectItem key={lead.id} value={lead.id}>
@@ -304,13 +304,13 @@ export default function NewQuotationPage() {
               </div>
 
               <div>
-                  <Label>Productos / Servicios</Label>
+                  <Label>Products / Services</Label>
                   <Table>
                       <TableHeader>
                           <TableRow>
-                              <TableHead className="w-[60%]">Descripción</TableHead>
-                              <TableHead>Cantidad</TableHead>
-                              <TableHead>Precio Unitario</TableHead>
+                              <TableHead className="w-[60%]">Description</TableHead>
+                              <TableHead>Quantity</TableHead>
+                              <TableHead>Unit Price</TableHead>
                               <TableHead>Total</TableHead>
                               <TableHead className="w-[50px]"><span className="sr-only">Actions</span></TableHead>
                           </TableRow>
@@ -321,7 +321,7 @@ export default function NewQuotationPage() {
                                   <TableCell>
                                       <Input
                                           type="text"
-                                          placeholder="Descripción del producto..."
+                                          placeholder="Product description..."
                                           value={product.description}
                                           onChange={(e) => handleProductChange(index, 'description', e.target.value)}
                                       />
@@ -356,14 +356,14 @@ export default function NewQuotationPage() {
                   </Table>
                   <Button variant="outline" size="sm" onClick={addProduct} className="mt-4">
                       <PlusCircle className="mr-2 h-4 w-4" />
-                      Agregar Producto
+                      Add Product
                   </Button>
               </div>
 
               <div className="flex justify-end">
                   <div className="w-full max-w-sm space-y-4">
                       <div className="flex justify-between items-center">
-                          <Label>Flete</Label>
+                          <Label>Freight</Label>
                           <Input type="number" value={freight} onChange={(e) => setFreight(Number(e.target.value))} className="w-32" />
                       </div>
                       <div className="flex justify-between items-center font-medium">

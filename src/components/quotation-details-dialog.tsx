@@ -51,15 +51,15 @@ export function QuotationDetailsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Datos de la Cotización</DialogTitle>
+          <DialogTitle>Quotation Data</DialogTitle>
           <DialogDescription>
-            Personalice los detalles que aparecerán en el documento PDF de la cotización.
+            Customize the details that will appear on the quotation PDF document.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="quotation-number">Número de Cotización</Label>
+              <Label htmlFor="quotation-number">Quotation Number</Label>
               <Input
                 id="quotation-number"
                 value={details.number}
@@ -67,30 +67,30 @@ export function QuotationDetailsDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="quotation-validity">Validez</Label>
+              <Label htmlFor="quotation-validity">Validity</Label>
               <Input
                 id="quotation-validity"
                 value={details.validity}
-                placeholder="Ej: 30 días"
+                placeholder="e.g. 30 days"
                 onChange={(e) => setDetails({ ...details, validity: e.target.value })}
               />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="quotation-terms">Términos y Condiciones</Label>
+            <Label htmlFor="quotation-terms">Terms and Conditions</Label>
             <Textarea
               id="quotation-terms"
-              placeholder="Escriba los términos y condiciones aquí..."
+              placeholder="Write the terms and conditions here..."
               value={details.terms}
               onChange={(e) => setDetails({ ...details, terms: e.target.value })}
               className="h-24"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="quotation-notes">Notas Adicionales</Label>
+            <Label htmlFor="quotation-notes">Additional Notes</Label>
             <Textarea
               id="quotation-notes"
-              placeholder="Información adicional, agradecimientos, etc."
+              placeholder="Additional information, thank you notes, etc."
               value={details.notes}
               onChange={(e) => setDetails({ ...details, notes: e.target.value })}
               className="h-20"
@@ -99,9 +99,9 @@ export function QuotationDetailsDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+            Cancel
           </Button>
-          <Button onClick={handleSave}>Guardar Datos</Button>
+          <Button onClick={handleSave}>Save Data</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
