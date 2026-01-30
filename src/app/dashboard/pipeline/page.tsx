@@ -278,7 +278,19 @@ export default function PipelinePage() {
                 </div>
                 <FormField control={form.control} name="country" render={({ field }) => ( <FormItem> <FormLabel>País</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Seleccione un país" /> </SelectTrigger> </FormControl> <SelectContent> {countries.map((country) => ( <SelectItem key={country} value={country}>{country}</SelectItem> ))} </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
                 {watchedCountry === 'EUA' && ( <FormField control={form.control} name="state" render={({ field }) => ( <FormItem> <FormLabel>Estado</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Seleccione un estado" /> </SelectTrigger> </FormControl> <SelectContent> {usStates.map((state) => ( <SelectItem key={state} value={state}>{state}</SelectItem> ))} </SelectContent> </Select> <FormMessage /> </FormItem> )}/> )}
-                <FormField control={form.control} name="city" render={({ field }) => ( <FormItem> <FormLabel>Ciudad</FormLabel> {watchedCountry === 'EUA' && watchedState ? ( <Select onValueChange={field.onChange} value={field.value || ''}> <FormControl> <SelectTrigger> <SelectValue placeholder="Seleccione una ciudad" /> </SelectTrigger> </FormControl> <SelectContent> {(citiesByState[watchedState] || []).map((city) => ( <SelectItem key={city} value={city}>{city}</SelectItem> ))} </SelectContent> </Select> ) : ( <FormControl> <Input placeholder="Ej: Ciudad de México" {...field} /> </FormControl> )} <FormMessage /> </FormItem> )}/>
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ciudad</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ej: Ciudad de México" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <div className="grid grid-cols-2 gap-4">
                   <FormField control={form.control} name="contactMethod" render={({ field }) => ( <FormItem> <FormLabel>Forma de Contacto</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Seleccione un método" /> </SelectTrigger> </FormControl> <SelectContent> {contactMethods.map((method) => ( <SelectItem key={method} value={method}>{method}</SelectItem> ))} </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
                   <FormField control={form.control} name="language" render={({ field }) => ( <FormItem> <FormLabel>Idioma</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Seleccione un idioma" /> </SelectTrigger> </FormControl> <SelectContent> {languages.map((lang) => ( <SelectItem key={lang} value={lang}>{lang}</SelectItem> ))} </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
