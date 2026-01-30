@@ -1,0 +1,319 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user profile within the Paisano Sales Hub application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user profile."
+        },
+        "firebaseUid": {
+          "type": "string",
+          "description": "The Firebase Authentication UID associated with the user."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The user's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The user's last name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "The user's phone number."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role (Admin, Seller, Manager)."
+        }
+      },
+      "required": [
+        "id",
+        "firebaseUid",
+        "firstName",
+        "lastName",
+        "email",
+        "role"
+      ]
+    },
+    "Lead": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lead",
+      "type": "object",
+      "description": "Represents a lead or prospect in the sales process.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the lead."
+        },
+        "sellerId": {
+          "type": "string",
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N Lead) The ID of the seller assigned to the lead."
+        },
+        "clienteNumber": {
+          "type": "string",
+          "description": "Customer number."
+        },
+        "clientName": {
+          "type": "string",
+          "description": "Name of the client."
+        },
+        "region": {
+          "type": "string",
+          "description": "Region of the client."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the lead (e.g., New, Contacted, Qualified)."
+        },
+        "createdDate": {
+          "type": "string",
+          "description": "Date the lead was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "sellerId",
+        "clientName",
+        "region",
+        "status",
+        "createdDate"
+      ]
+    },
+    "Opportunity": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Opportunity",
+      "type": "object",
+      "description": "Represents a sales opportunity.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the opportunity."
+        },
+        "leadId": {
+          "type": "string",
+          "description": "Reference to Lead. (Relationship: Lead 1:N Opportunity) The ID of the associated lead."
+        },
+        "stage": {
+          "type": "string",
+          "description": "The current stage of the opportunity in the sales pipeline."
+        },
+        "value": {
+          "type": "number",
+          "description": "The monetary value of the opportunity."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the opportunity value."
+        },
+        "probability": {
+          "type": "number",
+          "description": "The probability of closing the opportunity (0-100)."
+        },
+        "expectedCloseDate": {
+          "type": "string",
+          "description": "The expected date to close the opportunity.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "leadId",
+        "stage",
+        "value",
+        "currency",
+        "probability",
+        "expectedCloseDate"
+      ]
+    },
+    "Quotation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Quotation",
+      "type": "object",
+      "description": "Represents a quotation for a sales opportunity.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the quotation."
+        },
+        "opportunityId": {
+          "type": "string",
+          "description": "Reference to Opportunity. (Relationship: Opportunity 1:N Quotation) The ID of the associated opportunity."
+        },
+        "pdfUrl": {
+          "type": "string",
+          "description": "URL of the quotation PDF stored in Firebase Storage.",
+          "format": "uri"
+        },
+        "value": {
+          "type": "number",
+          "description": "The total value of the quotation."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the quotation value."
+        },
+        "version": {
+          "type": "string",
+          "description": "The version number of the quotation."
+        },
+        "createdDate": {
+          "type": "string",
+          "description": "Date the quotation was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "opportunityId",
+        "pdfUrl",
+        "value",
+        "currency",
+        "version",
+        "createdDate"
+      ]
+    },
+    "Activity": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Activity",
+      "type": "object",
+      "description": "Represents an activity related to a lead or opportunity.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the activity."
+        },
+        "leadId": {
+          "type": "string",
+          "description": "Reference to Lead. (Relationship: Lead 1:N Activity) The ID of the associated lead."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of activity (e.g., Call, Email, Meeting)."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the activity."
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "Date the activity is due.",
+          "format": "date-time"
+        },
+        "completed": {
+          "type": "boolean",
+          "description": "Indicates if the activity is completed."
+        }
+      },
+      "required": [
+        "id",
+        "leadId",
+        "type",
+        "description",
+        "dueDate",
+        "completed"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/profile",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile information. The userId parameter matches the Firebase Auth UID. Profile information contains the user's role, enabling role-based access control. Includes denormalized user role information.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Auth UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/leads/{leadId}",
+        "definition": {
+          "entityName": "Lead",
+          "schema": {
+            "$ref": "#/backend/entities/Lead"
+          },
+          "description": "Stores lead information. Includes the denormalized 'sellerId' to enable efficient querying of leads owned by a specific seller. Admins/managers can access all leads.",
+          "params": [
+            {
+              "name": "leadId",
+              "description": "The unique identifier of the lead."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/opportunities/{opportunityId}",
+        "definition": {
+          "entityName": "Opportunity",
+          "schema": {
+            "$ref": "#/backend/entities/Opportunity"
+          },
+          "description": "Stores sales opportunity information. References the associated lead via 'leadId'.",
+          "params": [
+            {
+              "name": "opportunityId",
+              "description": "The unique identifier of the opportunity."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/quotations/{quotationId}",
+        "definition": {
+          "entityName": "Quotation",
+          "schema": {
+            "$ref": "#/backend/entities/Quotation"
+          },
+          "description": "Stores quotation information. References the associated opportunity via 'opportunityId'.",
+          "params": [
+            {
+              "name": "quotationId",
+              "description": "The unique identifier of the quotation."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/activities/{activityId}",
+        "definition": {
+          "entityName": "Activity",
+          "schema": {
+            "$ref": "#/backend/entities/Activity"
+          },
+          "description": "Stores activity information related to leads. References the associated lead via 'leadId'.",
+          "params": [
+            {
+              "name": "activityId",
+              "description": "The unique identifier of the activity."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to facilitate a secure and scalable Paisano Sales Hub application, adhering to the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It leverages Structural Segregation, Access Modeling, and Data Clarity to ensure maintainability and security.\n\n**Authorization Independence:** Denormalization is heavily used to ensure authorization rules do not rely on `get()` calls. For example, the `UserProfile`'s role is not determined by looking up another document, but instead stored directly within the `UserProfile` document. Similarly, for leads, the `sellerId` is denormalized, which is crucial for read operations and avoids complex rule evaluations.\n\n**Structural Segregation:**  The structure separates user profiles from other data, storing them in `/users/{userId}/profile`. Leads are stored in the `/leads/{leadId}` collection and include the denormalized `sellerId`, enabling efficient querying of leads owned by a specific seller and simplifying security rules.\n\n**Access Modeling:** Path-based ownership is implemented for user profiles (`/users/{userId}/profile`). Leads and other collaborative data leverage denormalized fields (`sellerId` for leads) to simplify access control.\n\n**QAPs Support:** The structure enables secure `list` operations. Because the `sellerId` is denormalized into the `Lead` document, rules can efficiently filter and authorize reads based on the requesting user's ID without performing costly `get()` operations. Similarly, admins/managers can list all leads due to their roles.\n\n**Invariants:** The structure supports the integrity of data relationships through explicit field references (`leadId` in `Opportunity`, `opportunityId` in `Quotation`). Timestamps (`createdDate`) are included to enable ordering and audit trails."
+  }
+}
