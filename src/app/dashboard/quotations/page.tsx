@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   useUser,
   useFirestore,
@@ -131,9 +132,11 @@ export default function QuotationsPage() {
                             </SelectContent>
                         </Select>
                     )}
-                    <Button disabled>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Nueva Cotización
+                    <Button asChild>
+                        <Link href="/dashboard/quotations/new">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Nueva Cotización
+                        </Link>
                     </Button>
                 </div>
             </div>
@@ -223,4 +226,3 @@ export default function QuotationsPage() {
             </Card>
         </div>
     )
-}
