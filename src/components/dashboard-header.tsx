@@ -61,17 +61,27 @@ export function DashboardHeader() {
           </form>
         </div>
         {isLoading ? (
-          <Skeleton className="h-8 w-8 rounded-full" />
+           <div className="flex items-center gap-2">
+            <div className="text-right hidden md:block">
+                <Skeleton className="h-4 w-20 mb-1" />
+                <Skeleton className="h-3 w-12" />
+            </div>
+            <Skeleton className="h-9 w-9 rounded-full" />
+          </div>
         ) : (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="icon" className="rounded-full">
-                 <Avatar className="h-8 w-8">
-                    <AvatarImage src={userProfile?.avatarUrl} alt={displayName || ''} />
-                    <AvatarFallback>{getInitials(userProfile?.firstName, userProfile?.lastName)}</AvatarFallback>
-                </Avatar>
-                <span className="sr-only">Menú de usuario</span>
-              </Button>
+                <Button variant="ghost" className="relative flex items-center gap-3 h-auto p-1 pr-2 rounded-full">
+                    <div className="text-right hidden md:block">
+                        <div className="text-sm font-semibold">{displayName}</div>
+                        <div className="text-xs text-muted-foreground capitalize">{userProfile?.role}</div>
+                    </div>
+                    <Avatar className="h-9 w-9">
+                        <AvatarImage src={userProfile?.avatarUrl} alt={displayName || ''} />
+                        <AvatarFallback>{getInitials(userProfile?.firstName, userProfile?.lastName)}</AvatarFallback>
+                    </Avatar>
+                    <span className="sr-only">Menú de usuario</span>
+                </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>{displayName}</DropdownMenuLabel>

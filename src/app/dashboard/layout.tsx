@@ -104,8 +104,7 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            {userProfile?.role?.toLowerCase() === 'manager' && (
-              <SidebarMenuItem>
+             <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip="Usuarios">
                   <Link href="/dashboard/users">
                     <Shield />
@@ -113,7 +112,6 @@ export default function DashboardLayout({
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            )}
           </SidebarMenu>
         </SidebarContent>
       </Sidebar>
