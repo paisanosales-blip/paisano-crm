@@ -211,11 +211,13 @@ export default function FollowUpsPage() {
 
   const handleDeleteActivityConfirm = () => {
     if (!activityToDelete || !firestore) return;
+    setIsSubmitting(true);
     const activityRef = doc(firestore, 'activities', activityToDelete.id);
     deleteDocumentNonBlocking(activityRef);
     toast({ title: 'Seguimiento eliminado' });
     setIsDeleteDialogOpen(false);
     setActivityToDelete(null);
+    setIsSubmitting(false);
   };
   
   const handleFollowUpSubmit = (payload: FollowUpSubmitPayload) => {
@@ -413,3 +415,5 @@ export default function FollowUpsPage() {
     </>
   );
 }
+
+    

@@ -4,9 +4,9 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { useUser, useFirestore, useStorage, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useStorage, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -111,18 +111,14 @@ export function ProfileSettingsDialog({
       () => {
         getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
             const userDocRef = doc(firestore, 'users', user.uid);
-            updateDoc(userDocRef, { avatarUrl: downloadURL }).then(() => {
-                toast({
-                    title: '¡Foto de Perfil Actualizada!',
-                    description: 'Tu nueva foto de perfil se ha guardado.',
-                });
-                onOpenChange(false);
-            }).catch(error => {
-                toast({ variant: 'destructive', title: 'Error al guardar', description: 'No se pudo actualizar su perfil.' });
-            }).finally(() => {
-                setIsSubmitting(false);
-                setUploadProgress(0);
+            updateDocumentNonBlocking(userDocRef, { avatarUrl: downloadURL });
+            toast({
+                title: '¡Foto de Perfil Actualizada!',
+                description: 'Tu nueva foto de perfil se ha guardado.',
             });
+            onOpenChange(false);
+            setIsSubmitting(false);
+            setUploadProgress(0);
         }).catch((urlError) => {
             toast({ variant: 'destructive', title: 'Error al obtener URL', description: 'La imagen se subió, pero falló el guardado en la base de datos.' });
             setIsSubmitting(false);
@@ -208,3 +204,5 @@ export function ProfileSettingsDialog({
     </Dialog>
   );
 }
+
+    

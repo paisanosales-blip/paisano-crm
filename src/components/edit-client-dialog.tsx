@@ -4,12 +4,11 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 
 import {
   useFirestore,
-  errorEmitter,
-  FirestorePermissionError,
+  updateDocumentNonBlocking,
 } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { countries, states, cities } from '@/lib/geography';
@@ -137,30 +136,14 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     
     const leadRef = doc(firestore, 'leads', client.id);
 
-    updateDoc(leadRef, values)
-      .then(() => {
-        toast({
-          title: '¡Cliente Actualizado!',
-          description: `${values.clientName} ha sido actualizado correctamente.`,
-        });
-        onOpenChange(false);
-      })
-      .catch((error) => {
-        const permissionError = new FirestorePermissionError({
-          path: leadRef.path,
-          operation: 'update',
-          requestResourceData: values,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        toast({
-          variant: 'destructive',
-          title: 'Error al actualizar',
-          description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
-        });
-      })
-      .finally(() => {
-        form.reset(); // Also reset form on submit end
-      });
+    updateDocumentNonBlocking(leadRef, values);
+    
+    toast({
+      title: '¡Cliente Actualizado!',
+      description: `${values.clientName} ha sido actualizado correctamente.`,
+    });
+    onOpenChange(false);
+    form.reset();
   }
   
   const handleClose = (isOpen: boolean) => {
@@ -418,3 +401,5 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     </Dialog>
   );
 }
+
+    
