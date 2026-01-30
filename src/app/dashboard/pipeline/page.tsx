@@ -47,6 +47,7 @@ import { InformationSentDialog, type InfoSentConfirmPayload } from '@/components
 import { QuotationUploadDialog, type QuotationFormValues } from '@/components/quotation-upload-dialog';
 import { EditClientDialog } from '@/components/edit-client-dialog';
 import { NegotiationDialog, type NegotiationConfirmPayload } from '@/components/negotiation-dialog';
+import { ClosingDialog, type ClosingConfirmPayload } from '@/components/closing-dialog';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -64,6 +65,7 @@ export default function PipelinePage() {
   const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
   const [negotiationDialogOpen, setNegotiationDialogOpen] = useState(false);
+  const [closingDialogOpen, setClosingDialogOpen] = useState(false);
   const [currentProspect, setCurrentProspect] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -127,6 +129,8 @@ export default function PipelinePage() {
         setQuotationUploadOpen(true);
     } else if (prospect.opportunity.stage === 'Envió de Cotización' && newStage === 'Negociación') {
         setNegotiationDialogOpen(true);
+    } else if (prospect.opportunity.stage === 'Negociación' && newStage === 'Cierre de venta') {
+        setClosingDialogOpen(true);
     } else {
         await handleStageChange(prospect.opportunity.id, newStage);
     }
@@ -145,6 +149,11 @@ export default function PipelinePage() {
   const handleEditNegotiation = (prospect: any) => {
       setCurrentProspect(prospect);
       setNegotiationDialogOpen(true);
+  };
+
+  const handleEditClosing = (prospect: any) => {
+      setCurrentProspect(prospect);
+      setClosingDialogOpen(true);
   };
 
   const handleInfoSentConfirm = async (payload: InfoSentConfirmPayload) => {
@@ -220,25 +229,27 @@ export default function PipelinePage() {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo conectar con Firebase.' });
       return;
     }
-
+  
     setIsSubmitting(true);
     setUploadProgress(0);
-
+  
     try {
       const isEditing = !!currentProspect.quotation;
       let pdfUrl = isEditing ? currentProspect.quotation.pdfUrl : '';
-
+  
       if (values.pdf) {
         const pdfFile = values.pdf;
         const storageRef = ref(storage, `quotations/${currentProspect.opportunity.id}/${pdfFile.name}`);
         const uploadTask = uploadBytesResumable(storageRef, pdfFile);
-
+  
         pdfUrl = await new Promise<string>((resolve, reject) => {
-          uploadTask.on(
-            'state_changed',
+          uploadTask.on('state_changed',
             (snapshot) => {
               const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
               setUploadProgress(progress);
+              if (progress === 100) {
+                 setTimeout(() => toast({ title: 'Carga completa', description: 'Guardando datos...' }), 200);
+              }
             },
             (error) => {
               console.error("Error en la subida del archivo:", error);
@@ -253,18 +264,17 @@ export default function PipelinePage() {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                 resolve(downloadURL);
               } catch (urlError) {
-                console.error("Error al obtener URL de descarga:", urlError);
-                reject(new Error('El archivo se subió, pero no se pudo obtener la URL.'));
+                reject(new Error('El PDF se subió, pero falló el guardado en la base de datos.'));
               }
             }
           );
         });
       }
-
+  
       if (!pdfUrl) {
           throw new Error('Se requiere un archivo PDF y no se pudo obtener la URL.');
       }
-      
+  
       if (isEditing) {
          const quotationRef = doc(firestore, 'quotations', currentProspect.quotation.id);
          await updateDoc(quotationRef, {
@@ -288,29 +298,28 @@ export default function PipelinePage() {
             createdDate: new Date().toISOString(),
         };
         const newQuotationRef = await addDoc(collection(firestore, 'quotations'), quotationData);
-        // Add id to local data for immediate UI update if needed
         currentProspect.quotation = { id: newQuotationRef.id, ...quotationData };
       }
-
+  
       const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
       if (currentProspect.opportunity.stage === 'Envió de Información') {
         await updateDoc(opportunityRef, { stage: 'Envió de Cotización' });
       }
-
+  
       toast({
         title: `¡Cotización ${isEditing ? 'Actualizada' : 'Enviada'}!`,
         description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
       });
-      
+  
       setQuotationUploadOpen(false);
       setCurrentProspect(null);
-
+  
     } catch (error: any) {
       console.error('Error al procesar cotización:', error);
-      toast({ 
-        variant: 'destructive', 
-        title: 'Error al Guardar', 
-        description: error.message || 'Ocurrió un problema durante la subida o el guardado.'
+      toast({
+        variant: 'destructive',
+        title: 'Error al Guardar',
+        description: error.message || 'Ocurrió un problema durante la subida o el guardado.',
       });
     } finally {
         setIsSubmitting(false);
@@ -353,6 +362,47 @@ export default function PipelinePage() {
         variant: 'destructive',
         title: 'Error',
         description: 'Ocurrió un problema al guardar los datos de negociación. Por favor, inténtelo de nuevo.',
+      });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  const handleClosingConfirm = async (payload: ClosingConfirmPayload) => {
+    if (!currentProspect || !firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
+        return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
+      
+      const updateData: any = { ...payload };
+
+      const isStageChange = currentProspect.opportunity.stage === 'Negociación';
+      if (isStageChange) {
+        updateData.stage = 'Cierre de venta';
+      }
+
+      await updateDoc(opportunityRef, updateData);
+      
+      toast({ 
+        title: 'Éxito', 
+        description: isStageChange 
+          ? `Prospecto movido a: Cierre de venta` 
+          : 'Resumen de cierre actualizado.'
+      });
+
+      setClosingDialogOpen(false);
+      setCurrentProspect(null);
+    } catch (error) {
+      console.error('Error in handleClosingConfirm:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Ocurrió un problema al guardar los datos de cierre. Por favor, inténtelo de nuevo.',
       });
     } finally {
         setIsSubmitting(false);
@@ -578,8 +628,29 @@ export default function PipelinePage() {
                                         <li>Precio Aceptado: <span className="font-semibold">{prospect.opportunity.acceptedPrice ? '✓ Sí' : '✗ No'}</span></li>
                                         <li>Flete Cotizado: <span className="font-semibold">{prospect.opportunity.quotedFreight ? '✓ Sí' : '✗ No'}</span></li>
                                         <li>Solicita Descuento: <span className="font-semibold">{prospect.opportunity.requestsDiscount ? '✓ Sí' : '✗ No'}</span></li>
+                                        {prospect.opportunity.agreedDeliveryTime && (
+                                            <li>Tiempo Entrega: <span className="font-semibold">{prospect.opportunity.agreedDeliveryTime} {prospect.opportunity.agreedDeliveryTime === 1 ? 'semana' : 'semanas'}</span></li>
+                                        )}
                                         {prospect.opportunity.negotiationNotes && (
                                             <li>Notas: <span className="font-semibold italic">{prospect.opportunity.negotiationNotes}</span></li>
+                                        )}
+                                    </ul>
+                                </div>
+                            )}
+                            {prospect.opportunity.clientMadeDownPayment !== undefined && (
+                                <div className="p-2 mt-2 border rounded-md bg-background/50">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <p className="font-bold text-foreground">RESUMEN: CIERRE DE VENTA</p>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditClosing(prospect)}>
+                                            <Pencil className="h-3 w-3 text-muted-foreground" />
+                                            <span className="sr-only">Editar cierre de venta</span>
+                                        </Button>
+                                    </div>
+                                    <ul className="mt-1 space-y-1">
+                                        <li>Anticipo Realizado: <span className="font-semibold">{prospect.opportunity.clientMadeDownPayment ? '✓ Sí' : '✗ No'}</span></li>
+                                        <li>Tiempo Entrega Confirmado: <span className="font-semibold">{prospect.opportunity.deliveryTimeConfirmed ? '✓ Sí' : '✗ No'}</span></li>
+                                        {prospect.opportunity.closingNotes && (
+                                            <li>Notas: <span className="font-semibold italic">{prospect.opportunity.closingNotes}</span></li>
                                         )}
                                     </ul>
                                 </div>
@@ -640,6 +711,18 @@ export default function PipelinePage() {
               setNegotiationDialogOpen(isOpen);
             }}
             onConfirm={handleNegotiationConfirm}
+            opportunity={currentProspect.opportunity}
+            isSubmitting={isSubmitting}
+        />
+      )}
+      {currentProspect && (
+        <ClosingDialog
+            open={closingDialogOpen}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) setCurrentProspect(null);
+              setClosingDialogOpen(isOpen);
+            }}
+            onConfirm={handleClosingConfirm}
             opportunity={currentProspect.opportunity}
             isSubmitting={isSubmitting}
         />

@@ -204,6 +204,22 @@
         "negotiationNotes": {
           "type": "string",
           "description": "Observations from the negotiation stage."
+        },
+        "agreedDeliveryTime": {
+          "type": "number",
+          "description": "The agreed delivery time in weeks, set during negotiation."
+        },
+        "clientMadeDownPayment": {
+          "type": "boolean",
+          "description": "Indicates if the client has made the advance payment for the sale."
+        },
+        "deliveryTimeConfirmed": {
+          "type": "boolean",
+          "description": "Indicates if the delivery time has been confirmed with the client upon closing."
+        },
+        "closingNotes": {
+          "type": "string",
+          "description": "Optional observations recorded at the closing stage."
         }
       },
       "required": [

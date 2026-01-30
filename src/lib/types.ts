@@ -37,6 +37,10 @@ export type Opportunity = {
   quotedFreight?: boolean;
   requestsDiscount?: boolean;
   negotiationNotes?: string;
+  agreedDeliveryTime?: number;
+  clientMadeDownPayment?: boolean;
+  deliveryTimeConfirmed?: boolean;
+  closingNotes?: string;
 };
 
 export type Quotation = {

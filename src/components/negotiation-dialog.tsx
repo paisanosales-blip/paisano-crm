@@ -14,12 +14,20 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import type { Opportunity } from '@/lib/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export type NegotiationState = {
   acceptedPrice: boolean;
   quotedFreight: boolean;
   requestsDiscount: boolean;
   negotiationNotes: string;
+  agreedDeliveryTime?: number;
 };
 
 export interface NegotiationConfirmPayload extends NegotiationState {}
@@ -44,6 +52,7 @@ export function NegotiationDialog({
     quotedFreight: false,
     requestsDiscount: false,
     negotiationNotes: '',
+    agreedDeliveryTime: undefined,
   });
 
   const isEditing = opportunity?.stage === 'Negociación' || opportunity?.stage === 'Cierre de venta';
@@ -55,16 +64,21 @@ export function NegotiationDialog({
         quotedFreight: opportunity.quotedFreight || false,
         requestsDiscount: opportunity.requestsDiscount || false,
         negotiationNotes: opportunity.negotiationNotes || '',
+        agreedDeliveryTime: opportunity.agreedDeliveryTime || undefined,
       });
     }
   }, [open, opportunity]);
 
-  const handleSwitchChange = (id: keyof Omit<NegotiationState, 'negotiationNotes'>, checked: boolean) => {
+  const handleSwitchChange = (id: keyof Omit<NegotiationState, 'negotiationNotes' | 'agreedDeliveryTime'>, checked: boolean) => {
     setNegotiationState((prev) => ({ ...prev, [id]: checked }));
   };
 
   const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setNegotiationState((prev) => ({ ...prev, negotiationNotes: e.target.value }));
+  };
+
+  const handleSelectChange = (value: string) => {
+    setNegotiationState((prev) => ({ ...prev, agreedDeliveryTime: value ? Number(value) : undefined }));
   };
   
   const handleConfirm = () => {
@@ -94,6 +108,21 @@ export function NegotiationDialog({
                     <Label htmlFor="requestsDiscount" className="text-sm">¿SOLICITA DESCUENTO?</Label>
                     <Switch id="requestsDiscount" checked={negotiationState.requestsDiscount} onCheckedChange={(checked) => handleSwitchChange('requestsDiscount', checked)} />
                 </div>
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="agreedDeliveryTime" className="font-medium text-sm text-foreground">TIEMPO DE ENTREGA ACORDADO</Label>
+                <Select onValueChange={handleSelectChange} value={negotiationState.agreedDeliveryTime ? String(negotiationState.agreedDeliveryTime) : ''}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar semanas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="">Ninguno</SelectItem>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map(week => (
+                            <SelectItem key={week} value={String(week)}>{week} {week === 1 ? 'semana' : 'semanas'}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
             
             <div className="space-y-2">
