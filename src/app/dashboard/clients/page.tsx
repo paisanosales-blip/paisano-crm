@@ -7,7 +7,7 @@ import {
   useCollection,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc, getDocs, deleteDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -24,6 +24,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { MoreHorizontal, Mail, Phone } from 'lucide-react';
 import {
   DropdownMenu,
@@ -36,13 +46,20 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditClientDialog } from '@/components/edit-client-dialog';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 
 export default function ClientsPage() {
   const { user, isUserLoading: isUserAuthLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
+  
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
 
   const leadsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -56,6 +73,74 @@ export default function ClientsPage() {
   const handleEditClick = (client: any) => {
     setSelectedClient(client);
     setIsEditDialogOpen(true);
+  };
+  
+  const handleDeleteClick = (client: any) => {
+    setClientToDelete(client);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const handleDeleteConfirm = async () => {
+    if (!clientToDelete || !firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo encontrar el cliente a eliminar.',
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+
+    try {
+      // Find associated opportunities
+      const oppsQuery = query(collection(firestore, 'opportunities'), where('leadId', '==', clientToDelete.id));
+      const oppsSnapshot = await getDocs(oppsQuery);
+      
+      const deletionPromises: Promise<void>[] = [];
+
+      for (const oppDoc of oppsSnapshot.docs) {
+        // For each opportunity, find and delete associated quotations
+        const quotesQuery = query(collection(firestore, 'quotations'), where('opportunityId', '==', oppDoc.id));
+        const quotesSnapshot = await getDocs(quotesQuery);
+        quotesSnapshot.forEach(quoteDoc => {
+          deletionPromises.push(deleteDoc(doc(firestore, 'quotations', quoteDoc.id)));
+        });
+
+        // Add opportunity deletion to promise array
+        deletionPromises.push(deleteDoc(doc(firestore, 'opportunities', oppDoc.id)));
+      }
+
+      // Find and delete associated activities
+      const activitiesQuery = query(collection(firestore, 'activities'), where('leadId', '==', clientToDelete.id));
+      const activitiesSnapshot = await getDocs(activitiesQuery);
+      activitiesSnapshot.docs.forEach(actDoc => {
+        deletionPromises.push(deleteDoc(doc(firestore, 'activities', actDoc.id)));
+      });
+      
+      // Delete the lead itself
+      deletionPromises.push(deleteDoc(doc(firestore, 'leads', clientToDelete.id)));
+
+      // Wait for all deletions to complete
+      await Promise.all(deletionPromises);
+
+      toast({
+        title: 'Cliente Eliminado',
+        description: `${clientToDelete.clientName} y todos sus datos asociados han sido eliminados.`,
+      });
+
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error al eliminar',
+        description: 'Ocurrió un problema al eliminar el cliente. Es posible que no tenga los permisos necesarios.',
+      });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+      setClientToDelete(null);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -164,7 +249,7 @@ export default function ClientsPage() {
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                             <DropdownMenuItem onSelect={() => handleEditClick(client)}>Editar</DropdownMenuItem>
                             <DropdownMenuItem>Ver Detalles</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">
+                            <DropdownMenuItem className="text-destructive" onSelect={() => handleDeleteClick(client)}>
                               Eliminar
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -195,6 +280,22 @@ export default function ClientsPage() {
           client={selectedClient}
         />
       )}
+       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente el cliente y todos sus datos asociados (oportunidades, cotizaciones y actividades).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+              {isDeleting ? 'Eliminando...' : 'Eliminar Permanentemente'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
