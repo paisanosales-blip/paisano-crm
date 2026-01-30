@@ -279,6 +279,14 @@ export default function PipelinePage() {
                 <FormField control={form.control} name="country" render={({ field }) => ( <FormItem> <FormLabel>País</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Seleccione un país" /> </SelectTrigger> </FormControl> <SelectContent> {countries.map((country) => ( <SelectItem key={country} value={country}>{country}</SelectItem> ))} </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
                 {watchedCountry === 'EUA' && ( <FormField control={form.control} name="state" render={({ field }) => ( <FormItem> <FormLabel>Estado</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger> <SelectValue placeholder="Seleccione un estado" /> </SelectTrigger> </FormControl> <SelectContent> {usStates.map((state) => ( <SelectItem key={state} value={state}>{state}</SelectItem> ))} </SelectContent> </Select> <FormMessage /> </FormItem> )}/> )}
                 <FormField
+                  key={
+                    watchedCountry === 'EUA' &&
+                    watchedState &&
+                    citiesByState[watchedState] &&
+                    citiesByState[watchedState].length > 0
+                      ? 'city-select'
+                      : 'city-input'
+                  }
                   control={form.control}
                   name="city"
                   render={({ field }) => (
