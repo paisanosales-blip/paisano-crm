@@ -30,7 +30,7 @@ export default function DashboardPage() {
         if (user && !selectedUserId) {
             setSelectedUserId(user.uid);
         }
-    }, [user, selectedUserId]);
+    }, [user]);
 
     const usersQuery = useMemoFirebase(() => {
         if (!firestore) return null;
