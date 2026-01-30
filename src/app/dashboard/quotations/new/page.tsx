@@ -30,6 +30,9 @@ type Client = {
   contactPerson: string;
   email: string;
   phone: string;
+  country: string;
+  state: string;
+  city: string;
 };
 
 export default function NewQuotationPage() {
@@ -56,9 +59,9 @@ export default function NewQuotationPage() {
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [quotationDetails, setQuotationDetails] = useState<QuotationDetails>({
     number: `QT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
-    validity: '30 days',
-    terms: 'Payment Terms: 50% down payment, 50% upon delivery.\nPrices do not include VAT.\nDelivery times are subject to change without prior notice.',
-    notes: 'Thank you for your preference.',
+    validity: '30 DAYS',
+    terms: 'PAYMENT TERMS: 50% DOWN PAYMENT, 50% UPON DELIVERY.\nPRICES DO NOT INCLUDE VAT.\nDELIVERY TIMES ARE SUBJECT TO CHANGE WITHOUT PRIOR NOTICE.',
+    notes: 'THANK YOU FOR YOUR PREFERENCE.',
   });
 
   const selectedClient = useMemo(() => {
@@ -95,7 +98,7 @@ export default function NewQuotationPage() {
   
   const generatePdf = () => {
     if (!selectedClient) {
-      alert('Please select a client.');
+      alert('PLEASE SELECT A CLIENT.');
       return;
     }
 
@@ -106,74 +109,91 @@ export default function NewQuotationPage() {
     let finalY = 0;
 
     const logoUrl = localStorage.getItem('sidebarLogo');
+    const RED = '#8B0000';
+    const BLACK = '#000000';
 
-    // --- HEADER ---
+    // --- HEADER WITH CURVE ---
     if (logoUrl) {
         try {
             const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
-            doc.addImage(logoUrl, format.toUpperCase(), margin, 12, 50, 25);
+            doc.addImage(logoUrl, format.toUpperCase(), margin, 15, 50, 25);
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
         }
     }
     
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.text('PAISANO TRAILER MANUFACTURING', docWidth - margin, 20, { align: 'right' });
+    doc.setFontSize(22);
+    doc.setTextColor(BLACK);
+    doc.text('PAISANO TRAILER', docWidth - margin, 25, { align: 'right' });
+    
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(100);
-    doc.text('paisanosales@gmail.com', docWidth - margin, 26, { align: 'right' });
-    doc.text('915 408 7478', docWidth - margin, 30, { align: 'right' });
-    doc.text('www.paisanotrailer.com', docWidth - margin, 34, { align: 'right' });
-    
-    finalY = 45;
+    doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, 32, { align: 'right' });
+    doc.text('CHIH. MEX, CP 31978', docWidth - margin, 36, { align: 'right' });
 
-    doc.setDrawColor(220, 220, 220); // light grey
-    doc.line(margin, finalY, docWidth - margin, finalY);
+    // Decorative curve
+    doc.setDrawColor(RED);
+    doc.setLineWidth(1.5);
+    doc.line(margin, 45, docWidth - margin, 45);
+    doc.setDrawColor(BLACK);
+    doc.setLineWidth(0.5);
+    doc.line(margin, 46, docWidth - margin, 46);
+
+    finalY = 55;
 
     // --- INFO SECTION ---
-    const infoStartY = finalY + 10;
-    
+    const infoStartY = finalY;
+    const rightColX = docWidth / 2 + 10;
+
+    // Salesperson Info
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(BLACK);
+    doc.text('SALESPERSON:', margin, infoStartY);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    if (userProfile) {
+        doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin, infoStartY + 6);
+        if (userProfile.email) doc.text(userProfile.email.toUpperCase(), margin, infoStartY + 11);
+    }
+
     // Client Info
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.setTextColor(0);
-    doc.text('BILL TO:', margin, infoStartY);
+    doc.text('BILL TO:', rightColX, infoStartY);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.text(selectedClient.clientName, margin, infoStartY + 6);
-    doc.text(`Attn: ${selectedClient.contactPerson}`, margin, infoStartY + 11);
-    if(selectedClient.email) doc.text(selectedClient.email, margin, infoStartY + 16);
-    if(selectedClient.phone) doc.text(selectedClient.phone, margin, infoStartY + 21);
+    doc.setFontSize(10);
+    doc.text(selectedClient.clientName.toUpperCase(), rightColX, infoStartY + 6);
+    doc.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX, infoStartY + 11);
+    if(selectedClient.email) doc.text(selectedClient.email.toUpperCase(), rightColX, infoStartY + 16);
+    if(selectedClient.phone) doc.text(selectedClient.phone.toUpperCase(), rightColX, infoStartY + 21);
 
-    // Quotation & Seller Info
-    const rightColX = docWidth - margin;
+
+    // Quotation Details
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text('QUOTATION #:', rightColX - 45, infoStartY, { align: 'left' });
-    doc.text('DATE:', rightColX - 45, infoStartY + 6, { align: 'left' });
-    doc.text('VALIDITY:', rightColX - 45, infoStartY + 12, { align: 'left' });
-    doc.text('SALESPERSON:', rightColX - 45, infoStartY + 18, { align: 'left' });
-    
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.text(quotationDetails.number, rightColX, infoStartY, { align: 'right' });
-    doc.text(new Date().toLocaleDateString('en-US'), rightColX, infoStartY + 6, { align: 'right' });
-    doc.text(quotationDetails.validity, rightColX, infoStartY + 12, { align: 'right' });
-    if (userProfile) {
-        doc.text(`${userProfile.firstName} ${userProfile.lastName}`, rightColX, infoStartY + 18, { align: 'right' });
-    }
+    const quoteDetailsX = docWidth - margin;
+    doc.text('QUOTATION #:', quoteDetailsX - 45, infoStartY + 35, { align: 'left' });
+    doc.text('DATE:', quoteDetailsX - 45, infoStartY + 41, { align: 'left' });
+    doc.text('VALIDITY:', quoteDetailsX - 45, infoStartY + 47, { align: 'left' });
 
-    finalY = infoStartY + 30;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(quotationDetails.number.toUpperCase(), quoteDetailsX, infoStartY + 35, { align: 'right' });
+    doc.text(new Date().toLocaleDateString('en-US'), quoteDetailsX, infoStartY + 41, { align: 'right' });
+    doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, infoStartY + 47, { align: 'right' });
+
+    finalY = infoStartY + 60;
 
     // --- PRODUCTS TABLE ---
-    const tableColumn = ["Description", "Qty.", "Unit Price", "Total"];
+    const tableColumn = ["DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"];
     const tableRows: (string | number)[][] = [];
 
     products.forEach(prod => {
         const productData = [
-            prod.description,
+            prod.description.toUpperCase(),
             prod.quantity,
             `$${prod.price.toFixed(2)}`,
             `$${(prod.quantity * prod.price).toFixed(2)}`
@@ -186,8 +206,8 @@ export default function NewQuotationPage() {
         body: tableRows,
         startY: finalY,
         theme: 'striped',
-        headStyles: { fillColor: [139, 0, 0] }, // Deep Red
-        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 10, cellPadding: 3 },
         margin: { left: margin, right: margin }
     });
     
@@ -195,30 +215,29 @@ export default function NewQuotationPage() {
     
     // --- TOTALS ---
     const totalsY = finalY + 10;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Subtotal:', docWidth - 70, totalsY, { align: 'right' });
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SUBTOTAL:', docWidth - 70, totalsY, { align: 'right' });
     doc.text(`$${subtotal.toFixed(2)}`, docWidth - margin, totalsY, { align: 'right' });
 
-    doc.text('Freight:', docWidth - 70, totalsY + 7, { align: 'right' });
+    doc.text('FREIGHT:', docWidth - 70, totalsY + 7, { align: 'right' });
     doc.text(`$${freight.toFixed(2)}`, docWidth - margin, totalsY + 7, { align: 'right' });
     
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text('Total:', docWidth - 70, totalsY + 15, { align: 'right' });
+    doc.setFontSize(12);
+    doc.text('TOTAL:', docWidth - 70, totalsY + 15, { align: 'right' });
     doc.text(`$${total.toFixed(2)}`, docWidth - margin, totalsY + 15, { align: 'right' });
     
     let currentY = totalsY + 30;
 
-    // --- TERMS, NOTES, SIGNATURE ---
+    // --- TERMS, NOTES ---
     if (quotationDetails.notes) {
        if (currentY + 20 > pageHeight) { doc.addPage(); currentY = margin; }
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
-      doc.text('Additional Notes', margin, currentY);
+      doc.text('ADDITIONAL NOTES', margin, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      const notesLines = doc.splitTextToSize(quotationDetails.notes, docWidth - (margin * 2));
+      doc.setFontSize(9);
+      const notesLines = doc.splitTextToSize(quotationDetails.notes.toUpperCase(), docWidth - (margin * 2));
       doc.text(notesLines, margin, currentY + 5);
       currentY += (notesLines.length * 4) + 10;
     }
@@ -227,72 +246,81 @@ export default function NewQuotationPage() {
       if (currentY + 20 > pageHeight) { doc.addPage(); currentY = margin; }
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
-      doc.text('Terms and Conditions', margin, currentY);
+      doc.text('TERMS AND CONDITIONS', margin, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      const termsLines = doc.splitTextToSize(quotationDetails.terms, docWidth - (margin * 2));
+      doc.setFontSize(9);
+      const termsLines = doc.splitTextToSize(quotationDetails.terms.toUpperCase(), docWidth - (margin * 2));
       doc.text(termsLines, margin, currentY + 5);
       currentY += (termsLines.length * 4) + 10;
     }
     
-    // --- FOOTER ---
+    // --- FOOTER AND SIGNATURE ---
     const pageCount = doc.internal.getNumberOfPages();
     for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         const isLastPage = i === pageCount;
         
+        let footerY = pageHeight - 25;
+        
         if (isLastPage) {
-            // Add signature only on last page
-            let sigY = pageHeight - 50;
-            if (currentY > sigY) sigY = currentY + 10; // make sure it doesn't overlap
+            let sigY = footerY - 30;
+            if (currentY > sigY) sigY = currentY + 15;
             
             doc.line(margin, sigY, docWidth / 2 - margin, sigY);
-            doc.setFontSize(8);
-            doc.text('Approval Signature', margin, sigY + 5);
+            doc.setFontSize(9);
+            doc.text('APPROVAL SIGNATURE', margin, sigY + 5);
         }
-        
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text(`Page ${i} of ${pageCount}`, docWidth / 2, pageHeight - margin + 5, { align: 'center' });
+
+        // Footer line
+        doc.setDrawColor(BLACK);
+        doc.setLineWidth(0.5);
+        doc.line(margin, footerY, docWidth - margin, footerY);
+
+        // Footer text
+        doc.setFontSize(9);
+        doc.setTextColor(100);
+        const footerText = `PAISANOSALES@GMAIL.COM | 915 408 7478 | WWW.PAISANOTRAILER.COM`;
+        doc.text(footerText, docWidth / 2, footerY + 8, { align: 'center' });
+        doc.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerY + 8, { align: 'right' });
     }
 
-    doc.save(`Quotation-${selectedClient.clientName.replace(/\s/g, '_')}-${quotationDetails.number}.pdf`);
+    doc.save(`QUOTATION-${selectedClient.clientName.replace(/\s/g, '_')}-${quotationDetails.number}.pdf`);
   };
 
   return (
     <>
       <div className="grid gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-headline font-bold">New Quotation</h1>
+          <h1 className="text-2xl font-headline font-bold">NEW QUOTATION</h1>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setIsDetailsDialogOpen(true)}>
                 <Settings className="mr-2 h-4 w-4" />
-                Quotation Details
+                QUOTATION DETAILS
             </Button>
             <Button onClick={generatePdf} disabled={!selectedClientId}>
                 <FileDown className="mr-2 h-4 w-4" />
-                Generate PDF
+                GENERATE PDF
             </Button>
           </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Quotation Details</CardTitle>
+            <CardTitle>QUOTATION DETAILS</CardTitle>
             <CardDescription>
-              Select a client and add products to generate the quotation document.
+              SELECT A CLIENT AND ADD PRODUCTS TO GENERATE THE QUOTATION DOCUMENT.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
               <div className="max-w-sm">
-                  <Label htmlFor="client-select">Select Client</Label>
+                  <Label htmlFor="client-select">SELECT CLIENT</Label>
                   <Select onValueChange={setSelectedClientId} value={selectedClientId} disabled={areLeadsLoading}>
                       <SelectTrigger id="client-select">
-                          <SelectValue placeholder="Choose a client..." />
+                          <SelectValue placeholder="CHOOSE A CLIENT..." />
                       </SelectTrigger>
                       <SelectContent>
                           {areLeadsLoading ? (
-                              <SelectItem value="loading" disabled>Loading clients...</SelectItem>
+                              <SelectItem value="loading" disabled>LOADING CLIENTS...</SelectItem>
                           ) : (
                               leads?.map((lead: any) => (
                                   <SelectItem key={lead.id} value={lead.id}>
@@ -305,15 +333,15 @@ export default function NewQuotationPage() {
               </div>
 
               <div>
-                  <Label>Products / Services</Label>
+                  <Label>PRODUCTS / SERVICES</Label>
                   <Table>
                       <TableHeader>
                           <TableRow>
-                              <TableHead className="w-[60%]">Description</TableHead>
-                              <TableHead>Quantity</TableHead>
-                              <TableHead>Unit Price</TableHead>
-                              <TableHead>Total</TableHead>
-                              <TableHead className="w-[50px]"><span className="sr-only">Actions</span></TableHead>
+                              <TableHead className="w-[60%]">DESCRIPTION</TableHead>
+                              <TableHead>QUANTITY</TableHead>
+                              <TableHead>UNIT PRICE</TableHead>
+                              <TableHead>TOTAL</TableHead>
+                              <TableHead className="w-[50px]"><span className="sr-only">ACTIONS</span></TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -357,22 +385,22 @@ export default function NewQuotationPage() {
                   </Table>
                   <Button variant="outline" size="sm" onClick={addProduct} className="mt-4">
                       <PlusCircle className="mr-2 h-4 w-4" />
-                      Add Product
+                      ADD PRODUCT
                   </Button>
               </div>
 
               <div className="flex justify-end">
                   <div className="w-full max-w-sm space-y-4">
                       <div className="flex justify-between items-center">
-                          <Label>Freight</Label>
+                          <Label>FREIGHT</Label>
                           <Input type="number" value={freight} onChange={(e) => setFreight(Number(e.target.value))} className="w-32" />
                       </div>
                       <div className="flex justify-between items-center font-medium">
-                          <p>Subtotal:</p>
+                          <p>SUBTOTAL:</p>
                           <p>${subtotal.toFixed(2)}</p>
                       </div>
                       <div className="flex justify-between items-center text-lg font-bold">
-                          <p>Total:</p>
+                          <p>TOTAL:</p>
                           <p>${total.toFixed(2)}</p>
                       </div>
                   </div>
