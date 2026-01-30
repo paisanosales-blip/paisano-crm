@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, ListPlus, History } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -12,7 +12,7 @@ import {
   useMemoFirebase,
   useStorage,
 } from '@/firebase';
-import { collection, doc, query, where, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, query, where, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +34,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -74,10 +84,13 @@ export default function PipelinePage() {
   const [closingDialogOpen, setClosingDialogOpen] = useState(false);
   const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
   const [currentProspect, setCurrentProspect] = useState<any | null>(null);
+  const [currentActivity, setCurrentActivity] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [activityToDelete, setActivityToDelete] = useState<any | null>(null);
 
 
   const { toast } = useToast();
@@ -182,11 +195,44 @@ export default function PipelinePage() {
 
   const handleNewFollowUpClick = (prospect: any) => {
     setCurrentProspect(prospect);
+    setCurrentActivity(null);
     setIsFollowUpDialogOpen(true);
   };
 
+  const handleEditActivityClick = (activity: any, prospect: any) => {
+    setCurrentProspect(prospect);
+    setCurrentActivity(activity);
+    setIsFollowUpDialogOpen(true);
+  };
+
+  const handleDeleteActivityClick = (activity: any) => {
+    setActivityToDelete(activity);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteActivityConfirm = async () => {
+    if (!activityToDelete || !firestore) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el seguimiento.' });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const activityRef = doc(firestore, 'activities', activityToDelete.id);
+      await deleteDoc(activityRef);
+      toast({ title: 'Seguimiento eliminado' });
+    } catch (error) {
+      console.error('Error deleting activity:', error);
+      toast({ variant: 'destructive', title: 'Error al eliminar', description: 'Ocurrió un problema al eliminar el seguimiento.' });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setActivityToDelete(null);
+      setIsSubmitting(false);
+    }
+  };
+
+
   const handleInfoSentConfirm = async (payload: InfoSentConfirmPayload) => {
-    if (!currentProspect || !firestore) {
+    if (!currentProspect || !firestore || !user || !userProfile) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
     }
@@ -194,9 +240,10 @@ export default function PipelinePage() {
     setIsSubmitting(true);
     
     try {
+      const { checklist, notes, contactChannels } = payload;
       const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
       
-      const updateData: any = { ...payload };
+      const updateData: any = { ...checklist };
 
       const isStageChange = currentProspect.opportunity.stage === 'Primer contacto';
       if (isStageChange) {
@@ -204,6 +251,23 @@ export default function PipelinePage() {
       }
 
       await updateDoc(opportunityRef, updateData);
+
+      // Log the interaction as a completed activity if notes or channels were provided
+      const usedChannels = Object.entries(contactChannels).filter(([, value]) => value).map(([key]) => key);
+      if (notes || usedChannels.length > 0) {
+        const activityData = {
+          leadId: currentProspect.id,
+          sellerId: user.uid,
+          sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+          type: 'Información Enviada',
+          description: notes,
+          contactChannels: usedChannels,
+          dueDate: new Date().toISOString(), // Use dueDate to mark the date of interaction
+          completed: true, // This is a log of a past event
+          createdDate: new Date().toISOString(),
+        };
+        await addDoc(collection(firestore, 'activities'), activityData);
+      }
       
       toast({ 
         title: 'Éxito', 
@@ -420,7 +484,7 @@ export default function PipelinePage() {
     setIsSubmitting(true);
 
     try {
-        const { observations, nextContactDate, nextContactType, contactChannels } = payload;
+        const { id, observations, nextContactDate, nextContactType, contactChannels } = payload;
         
         const selectedChannels = contactChannels ? Object.entries(contactChannels)
           .filter(([, value]) => value)
@@ -434,15 +498,23 @@ export default function PipelinePage() {
             description: observations || '',
             contactChannels: selectedChannels,
             dueDate: nextContactDate ? nextContactDate.toISOString() : null,
-            completed: false,
-            createdDate: new Date().toISOString(),
+            completed: payload.id ? currentActivity.completed : false, // Preserve existing completed state on edit
+            createdDate: payload.id ? currentActivity.createdDate : new Date().toISOString(),
         };
 
-        await addDoc(collection(firestore, 'activities'), activityData);
-        toast({ title: 'Actividad Creada', description: `Nuevo seguimiento para ${currentProspect.clientName} agendado.` });
+        if (payload.id) {
+            const activityRef = doc(firestore, 'activities', payload.id);
+            await updateDoc(activityRef, activityData);
+            toast({ title: 'Seguimiento Actualizado', description: 'El seguimiento ha sido modificado.' });
+        } else {
+            await addDoc(collection(firestore, 'activities'), activityData);
+            toast({ title: 'Actividad Creada', description: `Nuevo seguimiento para ${currentProspect.clientName} agendado.` });
+        }
+        
 
         setIsFollowUpDialogOpen(false);
         setCurrentProspect(null);
+        setCurrentActivity(null);
     } catch (error) {
         console.error('Error in handleFollowUpSubmit:', error);
         toast({
@@ -514,6 +586,7 @@ export default function PipelinePage() {
   };
 
   return (
+    <>
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-headline font-bold">Flujo de Ventas</h1>
@@ -556,7 +629,7 @@ export default function PipelinePage() {
 
                 return (
                   <TableRow key={prospect.id}>
-                    <TableCell className="font-medium align-top w-[300px]">
+                    <TableCell className="font-medium align-top w-[350px]">
                         <div className="flex items-center gap-2 mb-1">
                           <div className="font-semibold">{prospect.clientName}</div>
                           {prospect.clientType && <Badge variant="secondary">{prospect.clientType}</Badge>}
@@ -609,10 +682,6 @@ export default function PipelinePage() {
                             >
                                 <Phone className="h-4 w-4" />
                             </a>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1" onClick={() => handleNewFollowUpClick(prospect)}>
-                                <ListPlus className="h-4 w-4 text-muted-foreground" />
-                                <span className="sr-only">Nuevo Seguimiento</span>
-                            </Button>
                             <div className={cn(
                                 "flex items-center gap-1.5 text-xs ml-auto pr-2",
                                  prospect.language ? "text-muted-foreground" : "text-muted-foreground/40"
@@ -621,6 +690,67 @@ export default function PipelinePage() {
                                 <span>{prospect.language || 'N/A'}</span>
                             </div>
                         </div>
+
+                         <Collapsible className="mt-2">
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" className="w-full justify-start text-xs h-8 -ml-2">
+                                    <History className="h-4 w-4 mr-2" />
+                                    Historial de Seguimiento ({prospect.activities.length})
+                                </Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="px-1 py-2 space-y-2 border-t mt-1">
+                                <Button size="sm" className="w-full h-8" onClick={() => handleNewFollowUpClick(prospect)}>
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  Agregar Seguimiento
+                                </Button>
+                                {prospect.activities.length > 0 ? prospect.activities.map((act: any) => (
+                                    <div key={act.id} className="p-2 border rounded-md bg-background/50 text-xs">
+                                        <div className="flex items-start gap-3">
+                                            <Checkbox 
+                                                id={`activity-${act.id}`}
+                                                className="mt-0.5"
+                                                checked={act.completed}
+                                                onCheckedChange={(checked) => handleToggleActivityComplete(act.id, !!checked)}
+                                            />
+                                            <div className={cn("grid gap-1 w-full", act.completed && "line-through text-muted-foreground")}>
+                                                <div className="flex items-center justify-between">
+                                                     <span className="font-bold text-foreground">{act.type} {act.dueDate ? ` - ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
+                                                      <span className="text-xs text-muted-foreground">{format(new Date(act.createdDate), "dd/MM/yy")}</span>
+                                                </div>
+                                                {act.description && <p className="italic">"{act.description}"</p>}
+                                                {act.contactChannels && act.contactChannels.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {act.contactChannels.map((channel: string) => (
+                                                            <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <DropdownMenu>
+                                              <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
+                                                  <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent>
+                                                <DropdownMenuItem onSelect={() => handleEditActivityClick(act, prospect)}>
+                                                  Editar
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem
+                                                  className="text-destructive"
+                                                  onSelect={() => handleDeleteActivityClick(act)}
+                                                >
+                                                  Eliminar
+                                                </DropdownMenuItem>
+                                              </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    </div>
+                                )) : (
+                                     <div className="py-2 text-xs text-center text-muted-foreground">No hay seguimientos registrados.</div>
+                                )}
+                            </CollapsibleContent>
+                        </Collapsible>
                     </TableCell>
                     <TableCell className="align-top">
                       <Badge variant="outline" className={`font-bold ${getBadgeClass(classification)}`}>{classification}</Badge>
@@ -768,44 +898,6 @@ export default function PipelinePage() {
                             </TabsContent>
                           </Tabs>
                         )}
-                        <Collapsible className="mt-2">
-                            <CollapsibleTrigger asChild>
-                                <Button variant="ghost" className="w-full justify-start text-xs h-8">
-                                    <History className="h-4 w-4 mr-2" />
-                                    Historial de Seguimiento ({prospect.activities.length})
-                                </Button>
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="px-3 pb-2 space-y-2">
-                                {prospect.activities.length > 0 ? prospect.activities.map((act: any) => (
-                                    <div key={act.id} className="p-2 border rounded-md bg-background/50 text-xs">
-                                        <div className="flex items-start gap-3">
-                                            <Checkbox 
-                                                id={`activity-${act.id}`}
-                                                className="mt-0.5"
-                                                checked={act.completed}
-                                                onCheckedChange={(checked) => handleToggleActivityComplete(act.id, !!checked)}
-                                            />
-                                            <div className={cn("grid gap-1 w-full", act.completed && "line-through text-muted-foreground")}>
-                                                <div className="flex items-center justify-between">
-                                                     <span className="font-bold text-foreground">{act.type} {act.dueDate ? ` - ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
-                                                      <span className="text-xs text-muted-foreground">{format(new Date(act.createdDate), "dd/MM/yy")}</span>
-                                                </div>
-                                                {act.description && <p className="italic">"{act.description}"</p>}
-                                                {act.contactChannels && act.contactChannels.length > 0 && (
-                                                    <div className="flex flex-wrap gap-1 mt-1">
-                                                        {act.contactChannels.map((channel: string) => (
-                                                            <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )) : (
-                                     <div className="py-4 text-xs text-center text-muted-foreground">No hay seguimientos registrados.</div>
-                                )}
-                            </CollapsibleContent>
-                        </Collapsible>
                         </div>
                     </TableCell>
                     <TableCell className="text-right align-top">
@@ -828,76 +920,99 @@ export default function PipelinePage() {
           </Table>
         </CardContent>
       </Card>
-      {currentProspect && (
-        <InformationSentDialog
-            open={infoSentDialogOpen}
-            onOpenChange={(isOpen) => {
-              if (!isOpen) setCurrentProspect(null);
-              setInfoSentDialogOpen(isOpen);
-            }}
-            onConfirm={handleInfoSentConfirm}
-            opportunity={currentProspect.opportunity}
-            isSubmitting={isSubmitting}
-        />
-      )}
-       {currentProspect && (
-        <QuotationUploadDialog
-            open={quotationUploadOpen}
-            onOpenChange={(isOpen) => {
-              if (!isOpen) setCurrentProspect(null);
-              setQuotationUploadOpen(isOpen);
-            }}
-            onConfirm={handleQuotationUpload}
-            opportunityName={currentProspect.clientName}
-            quotation={currentProspect.quotation}
-            isSubmitting={isSubmitting}
-            uploadProgress={uploadProgress}
-        />
-      )}
-      {currentProspect && (
-        <NegotiationDialog
-            open={negotiationDialogOpen}
-            onOpenChange={(isOpen) => {
-              if (!isOpen) setCurrentProspect(null);
-              setNegotiationDialogOpen(isOpen);
-            }}
-            onConfirm={handleNegotiationConfirm}
-            opportunity={currentProspect.opportunity}
-            isSubmitting={isSubmitting}
-        />
-      )}
-      {currentProspect && (
-        <ClosingDialog
-            open={closingDialogOpen}
-            onOpenChange={(isOpen) => {
-              if (!isOpen) setCurrentProspect(null);
-              setClosingDialogOpen(isOpen);
-            }}
-            onConfirm={handleClosingConfirm}
-            opportunity={currentProspect.opportunity}
-            isSubmitting={isSubmitting}
-        />
-      )}
-      {currentProspect && (
-        <FollowUpDialog
-            open={isFollowUpDialogOpen}
-            onOpenChange={(isOpen) => {
-              if (!isOpen) setCurrentProspect(null);
-              setIsFollowUpDialogOpen(isOpen);
-            }}
-            onConfirm={handleFollowUpSubmit}
-            isSubmitting={isSubmitting}
-            prospectName={currentProspect.clientName}
-        />
-      )}
-      {selectedClient && (
-        <EditClientDialog
-          key={selectedClient.id}
-          open={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
-          client={selectedClient}
-        />
-      )}
     </div>
+    {currentProspect && (
+      <InformationSentDialog
+          open={infoSentDialogOpen}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) setCurrentProspect(null);
+            setInfoSentDialogOpen(isOpen);
+          }}
+          onConfirm={handleInfoSentConfirm}
+          opportunity={currentProspect.opportunity}
+          isSubmitting={isSubmitting}
+      />
+    )}
+      {currentProspect && (
+      <QuotationUploadDialog
+          open={quotationUploadOpen}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) setCurrentProspect(null);
+            setQuotationUploadOpen(isOpen);
+          }}
+          onConfirm={handleQuotationUpload}
+          opportunityName={currentProspect.clientName}
+          quotation={currentProspect.quotation}
+          isSubmitting={isSubmitting}
+          uploadProgress={uploadProgress}
+      />
+    )}
+    {currentProspect && (
+      <NegotiationDialog
+          open={negotiationDialogOpen}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) setCurrentProspect(null);
+            setNegotiationDialogOpen(isOpen);
+          }}
+          onConfirm={handleNegotiationConfirm}
+          opportunity={currentProspect.opportunity}
+          isSubmitting={isSubmitting}
+      />
+    )}
+    {currentProspect && (
+      <ClosingDialog
+          open={closingDialogOpen}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) setCurrentProspect(null);
+            setClosingDialogOpen(isOpen);
+          }}
+          onConfirm={handleClosingConfirm}
+          opportunity={currentProspect.opportunity}
+          isSubmitting={isSubmitting}
+      />
+    )}
+    {currentProspect && (
+      <FollowUpDialog
+          open={isFollowUpDialogOpen}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setCurrentProspect(null);
+              setCurrentActivity(null);
+            }
+            setIsFollowUpDialogOpen(isOpen);
+          }}
+          onConfirm={handleFollowUpSubmit}
+          isSubmitting={isSubmitting}
+          prospectName={currentProspect.clientName}
+          activity={currentActivity}
+      />
+    )}
+    {selectedClient && (
+      <EditClientDialog
+        key={selectedClient.id}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        client={selectedClient}
+      />
+    )}
+     <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente el registro de seguimiento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteActivityConfirm} disabled={isSubmitting}>
+              {isSubmitting ? 'Eliminando...' : 'Eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
+
+    

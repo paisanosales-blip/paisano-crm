@@ -31,6 +31,7 @@ const contactChannelItems = [
 ];
 
 export interface FollowUpSubmitPayload {
+  id?: string;
   observations: string;
   contactChannels: { [key: string]: boolean };
   nextContactDate?: Date;
@@ -43,6 +44,7 @@ interface FollowUpDialogProps {
   onConfirm: (payload: FollowUpSubmitPayload) => void;
   isSubmitting: boolean;
   prospectName: string;
+  activity?: any;
 }
 
 export function FollowUpDialog({
@@ -51,8 +53,10 @@ export function FollowUpDialog({
   onConfirm,
   isSubmitting,
   prospectName,
+  activity,
 }: FollowUpDialogProps) {
 
+  const isEditing = !!activity;
   const initialChannelsState = contactChannelItems.reduce((acc, channel) => {
     acc[channel] = false;
     return acc;
@@ -65,13 +69,23 @@ export function FollowUpDialog({
 
   useEffect(() => {
     if (open) {
-      // Reset state when dialog opens
-      setContactChannels(initialChannelsState);
-      setObservations('');
-      setNextContactDate(undefined);
-      setNextContactType('');
+      if (isEditing && activity) {
+        setObservations(activity.description || '');
+        setNextContactDate(activity.dueDate ? new Date(activity.dueDate) : undefined);
+        setNextContactType(activity.type || '');
+        const currentChannels = contactChannelItems.reduce((acc, channel) => {
+            acc[channel] = activity.contactChannels?.includes(channel) || false;
+            return acc;
+        }, {} as { [key: string]: boolean });
+        setContactChannels(currentChannels);
+      } else {
+        setContactChannels(initialChannelsState);
+        setObservations('');
+        setNextContactDate(undefined);
+        setNextContactType('');
+      }
     }
-  }, [open]);
+  }, [open, activity, isEditing]);
 
   const handleChannelChange = (channel: string, checked: boolean) => {
     setContactChannels((prev) => ({ ...prev, [channel]: checked }));
@@ -79,6 +93,7 @@ export function FollowUpDialog({
 
   const handleConfirm = () => {
     const payload: FollowUpSubmitPayload = {
+      id: activity?.id,
       observations,
       contactChannels,
       nextContactDate,
@@ -99,9 +114,9 @@ export function FollowUpDialog({
         }}
       >
         <DialogHeader>
-          <DialogTitle>Nuevo Seguimiento para {prospectName}</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar' : 'Nuevo'} Seguimiento para {prospectName}</DialogTitle>
           <DialogDescription>
-             Registre una nueva interacción o agende el próximo contacto para este prospecto.
+             {isEditing ? 'Modifique los detalles de esta actividad.' : 'Registre una nueva interacción o agende el próximo contacto para este prospecto.'}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4">
@@ -147,7 +162,7 @@ export function FollowUpDialog({
                     >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {nextContactDate ? (
-                        format(nextContactDate, 'PPP')
+                        format(nextContactDate, 'PPP', { locale: es })
                         ) : (
                         <span>Elegir fecha</span>
                         )}
@@ -188,3 +203,5 @@ export function FollowUpDialog({
     </Dialog>
   );
 }
+
+    
