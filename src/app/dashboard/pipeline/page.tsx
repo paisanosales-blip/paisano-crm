@@ -674,7 +674,7 @@ export default function PipelinePage() {
             const quotationFollowUp = prospect.activities.find((act: any) => act.quotationId && prospect.quotation && act.quotationId === prospect.quotation.id);
 
             return (
-              <Card key={prospect.id}>
+              <Card key={prospect.id} className="border-2">
                 <CardHeader className="flex flex-row items-start justify-between">
                   <div>
                     <CardTitle className="text-xl">{prospect.clientName}</CardTitle>

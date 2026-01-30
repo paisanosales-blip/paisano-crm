@@ -23,7 +23,7 @@ import {
   formatDistanceToNow,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -230,6 +230,14 @@ export default function FollowUpsPage() {
     setIsSubmitting(false);
   };
 
+  const activityIcons: { [key: string]: React.ReactNode } = {
+    'Llamada': <Phone className="h-4 w-4" />,
+    'Correo': <Mail className="h-4 w-4" />,
+    'Mensaje': <MessageSquare className="h-4 w-4" />,
+    'Nota': <StickyNote className="h-4 w-4" />,
+    'Reunión': <Users className="h-4 w-4" />,
+  };
+
 
   return (
     <>
@@ -278,29 +286,41 @@ export default function FollowUpsPage() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="px-6 pb-4">
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-3">
                       {group.activities.map((activity) => {
-                         const isOverdue = group.title === 'Atrasados';
+                         const isOverdue = group.title === 'Atrasados' && !activity.completed;
+                         const isTodayActivity = group.title === 'Hoy' && !activity.completed;
                          const dueDate = activity.dueDate ? new Date(activity.dueDate) : null;
+                         const dateTextClass = cn({
+                           'text-destructive': isOverdue,
+                           'text-primary': isTodayActivity,
+                           'text-muted-foreground': !isOverdue && !isTodayActivity,
+                         });
+
                         return (
-                          <div key={activity.id} className={cn("flex items-start gap-4 rounded-lg border p-4 transition-colors", activity.completed && "bg-muted/50")}>
+                          <div key={activity.id} className={cn("flex items-start gap-4 rounded-lg border p-3 transition-colors", activity.completed ? "bg-muted/50" : "bg-card")}>
                              <Checkbox
                                 id={`activity-${activity.id}`}
                                 checked={activity.completed}
                                 onCheckedChange={(checked) => handleToggleActivityComplete(activity.id, !!checked)}
                                 className="mt-1"
                               />
-                            <div className="flex-grow">
-                              <p className={cn("font-medium", activity.completed && "line-through text-muted-foreground")}>
-                                {activity.type} con {activity.clientName}
-                              </p>
-                              <p className="text-sm text-muted-foreground">{activity.description}</p>
-                              {dueDate && (
-                                <div className="mt-1 flex items-center text-xs text-muted-foreground">
-                                  <Calendar className="mr-1.5 h-3 w-3" />
-                                  <span className={cn(isOverdue && 'text-destructive font-semibold')}>
-                                    {format(dueDate, 'PP', { locale: es })}
-                                    {isOverdue && ` (hace ${formatDistanceToNow(dueDate, { locale: es })})`}
+                            <div className={cn("flex-grow grid gap-1", activity.completed && "line-through text-muted-foreground")}>
+                              <div className="flex items-center gap-2 text-sm">
+                                {activityIcons[activity.type] || <Calendar className="h-4 w-4" />}
+                                <span className="font-semibold">{activity.type}</span>
+                                <span>con</span>
+                                <span className="font-medium text-foreground">{activity.clientName}</span>
+                              </div>
+                              {activity.description && <p className="text-sm text-muted-foreground">{activity.description}</p>}
+                               {dueDate && (
+                                <div className={cn("flex items-center gap-1.5 text-xs font-medium", dateTextClass)}>
+                                  <Calendar className="mr-1 h-3 w-3" />
+                                  <span className="capitalize">
+                                    {format(dueDate, "eeee dd 'de' MMMM", { locale: es })}
+                                  </span>
+                                  <span className="font-normal">
+                                    ({formatDistanceToNow(dueDate, { locale: es, addSuffix: true })})
                                   </span>
                                 </div>
                               )}
