@@ -557,7 +557,10 @@ export default function PipelinePage() {
                 return (
                   <TableRow key={prospect.id}>
                     <TableCell className="font-medium align-top w-[300px]">
-                        <div className="font-semibold">{prospect.clientName}</div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-semibold">{prospect.clientName}</div>
+                          {prospect.clientType && <Badge variant="secondary">{prospect.clientType}</Badge>}
+                        </div>
                         <div className="text-sm text-muted-foreground">{prospect.contactPerson}</div>
                         <div className="text-xs text-muted-foreground mt-1">{prospect.email || 'N/A'}</div>
                         <div className="text-xs text-muted-foreground">{prospect.phone || 'N/A'}</div>

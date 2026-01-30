@@ -60,6 +60,7 @@ const prospectSchema = z
     city: z.string().min(1, 'La ciudad es requerida.'),
     contactMethod: z.string().min(1, 'La forma de contacto es requerida.'),
     language: z.string().min(1, 'El idioma es requerido.'),
+    clientType: z.string().min(1, 'El tipo de cliente es requerido.'),
     website: z.preprocess(
       (val) => {
         if (typeof val !== 'string' || !val) {
@@ -110,6 +111,7 @@ export function NewProspectDialog() {
       city: '',
       contactMethod: '',
       language: 'Español',
+      clientType: '',
       website: '',
       phone: '',
       email: '',
@@ -309,7 +311,7 @@ export function NewProspectDialog() {
                 />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <FormField
                 control={form.control}
                 name="contactMethod"
@@ -348,6 +350,28 @@ export function NewProspectDialog() {
                         <SelectItem value="Español">ESPAÑOL</SelectItem>
                         <SelectItem value="Inglés">INGLÉS</SelectItem>
                         <SelectItem value="Bilingüe">BILINGÜE</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="clientType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>TIPO DE CLIENTE</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione un tipo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Dealer">Dealer</SelectItem>
+                        <SelectItem value="Transportista">Transportista</SelectItem>
+                        <SelectItem value="Sand Industry">Sand Industry</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

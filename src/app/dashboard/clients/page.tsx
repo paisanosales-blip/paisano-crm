@@ -90,6 +90,7 @@ export default function ClientsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Cliente</TableHead>
+                  <TableHead>Tipo de Cliente</TableHead>
                   <TableHead>Contacto</TableHead>
                   <TableHead>Ubicación</TableHead>
                   <TableHead>Status</TableHead>
@@ -103,7 +104,7 @@ export default function ClientsPage() {
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={6}>
+                      <TableCell colSpan={7}>
                         <Skeleton className="h-10 w-full" />
                       </TableCell>
                     </TableRow>
@@ -114,6 +115,7 @@ export default function ClientsPage() {
                       <TableCell className="font-semibold">
                         {client.clientName}
                       </TableCell>
+                      <TableCell>{client.clientType || 'N/A'}</TableCell>
                       <TableCell>
                           <div className="font-medium">{client.contactPerson}</div>
                           <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
@@ -173,7 +175,7 @@ export default function ClientsPage() {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="h-24 text-center"
                     >
                       No se encontraron clientes.

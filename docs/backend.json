@@ -105,6 +105,15 @@
         "language": {
           "type": "string"
         },
+        "clientType": {
+          "type": "string",
+          "description": "Type of the client (e.g., Dealer, Transportista, Sand Industry).",
+          "enum": [
+            "Dealer",
+            "Transportista",
+            "Sand Industry"
+          ]
+        },
         "status": {
           "type": "string",
           "description": "Status of the lead (e.g., New, Contacted, Qualified)."
@@ -126,6 +135,7 @@
         "city",
         "contactMethod",
         "language",
+        "clientType",
         "status",
         "createdDate"
       ]
