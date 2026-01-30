@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   useUser,
   useFirestore,
@@ -23,14 +23,7 @@ export default function DashboardPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
     const firestore = useFirestore();
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-
-    // Set the initial selected user to the current logged-in user
-    useEffect(() => {
-        if (user && !selectedUserId) {
-            setSelectedUserId(user.uid);
-        }
-    }, [user]);
+    const [selectedUserId, setSelectedUserId] = useState<string>('me');
 
     const usersQuery = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -38,7 +31,7 @@ export default function DashboardPage() {
     }, [firestore]);
     const { data: allUsers, isLoading: areUsersLoading } = useCollection(usersQuery);
 
-    const activeUserId = selectedUserId;
+    const activeUserId = selectedUserId === 'me' ? user?.uid : selectedUserId;
 
     const opportunitiesQuery = useMemoFirebase(() => {
         if (!activeUserId) return null;
@@ -153,15 +146,16 @@ export default function DashboardPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h1 className="text-2xl font-headline font-bold">Panel de Estadísticas</h1>
                  <div className="flex items-center gap-4">
-                     <Select onValueChange={setSelectedUserId} value={selectedUserId || ''} disabled={isLoading}>
+                     <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
                         <SelectTrigger className="w-[220px]">
                             <SelectValue placeholder="Seleccionar usuario..." />
                         </SelectTrigger>
                         <SelectContent>
+                            <SelectItem value="me">Mis Estadísticas</SelectItem>
                             <SelectItem value="all">Todas las Estadísticas</SelectItem>
-                            {allUsers?.map((u: any) => (
+                            {allUsers?.filter(u => u.id !== user?.uid).map((u: any) => (
                                 <SelectItem key={u.id} value={u.id}>
-                                    {u.id === user?.uid ? 'Mis Estadísticas' : `${u.firstName} ${u.lastName}`}
+                                    {`${u.firstName} ${u.lastName}`}
                                 </SelectItem>
                             ))}
                         </SelectContent>
