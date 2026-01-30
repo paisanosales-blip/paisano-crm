@@ -548,17 +548,18 @@ export default function PipelinePage() {
                           const isCompleted = index < currentIndex;
                           const isCurrent = index === currentIndex;
                           const isNext = index === currentIndex + 1;
+                          const canMoveTo = isNext || isCompleted;
                           
                           return (
                             <React.Fragment key={stage}>
                               <div
-                                onClick={() => isNext && requestStageChange(prospect, stage)}
+                                onClick={() => canMoveTo && requestStageChange(prospect, stage)}
                                 className={cn(
                                     'flex flex-col items-center gap-1 text-center transition-opacity w-28',
-                                    isNext ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
+                                    canMoveTo ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
                                     !isCompleted && !isCurrent && !isNext && 'opacity-50'
                                 )}
-                                title={isNext ? `Mover a: ${stage}` : stage}
+                                title={canMoveTo ? `Mover a: ${stage}` : stage}
                               >
                                 <div className={cn(
                                     'w-6 h-6 rounded-full flex items-center justify-center transition-colors',
