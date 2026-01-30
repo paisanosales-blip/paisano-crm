@@ -108,6 +108,8 @@ export default function PipelinePage() {
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<any | null>(null);
+  const [isPostQuotationFollowUpAlertOpen, setIsPostQuotationFollowUpAlertOpen] = useState(false);
+  const [followUpQuotationId, setFollowUpQuotationId] = useState<string | null>(null);
 
 
   const { toast } = useToast();
@@ -201,15 +203,17 @@ export default function PipelinePage() {
       setClosingDialogOpen(true);
   };
 
-  const handleNewFollowUpClick = (prospect: any) => {
+  const handleNewFollowUpClick = (prospect: any, quotationId: string | null = null) => {
     setCurrentProspect(prospect);
     setCurrentActivity(null);
+    setFollowUpQuotationId(quotationId);
     setIsFollowUpDialogOpen(true);
   };
 
   const handleEditActivityClick = (activity: any, prospect: any) => {
     setCurrentProspect(prospect);
     setCurrentActivity(activity);
+    setFollowUpQuotationId(activity.quotationId || null);
     setIsFollowUpDialogOpen(true);
   };
 
@@ -283,7 +287,8 @@ export default function PipelinePage() {
     let pdfUrl = isEditing ? currentProspect.quotation.pdfUrl : '';
 
     const performDatabaseUpdate = (finalPdfUrl: string) => {
-        let dbPromise;
+        const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
+        
         if (isEditing) {
             const quotationRef = doc(firestore, 'quotations', currentProspect.quotation.id);
             const quotationData = {
@@ -295,7 +300,20 @@ export default function PipelinePage() {
                 createdDate: new Date().toISOString(),
             };
             updateDocumentNonBlocking(quotationRef, quotationData);
-        } else {
+            
+            if (currentProspect.opportunity.stage === 'Envió de Información') {
+                updateDocumentNonBlocking(opportunityRef, { stage: 'Envió de Cotización' });
+            }
+    
+            toast({
+                title: '¡Cotización Actualizada!',
+                description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
+            });
+            setQuotationUploadOpen(false);
+            setIsPostQuotationFollowUpAlertOpen(true);
+            setIsSubmitting(false);
+            setUploadProgress(0);
+        } else { // Creating a new quotation
             const quotationData = {
                 opportunityId: currentProspect.opportunity.id,
                 sellerId: user.uid,
@@ -307,22 +325,36 @@ export default function PipelinePage() {
                 status: 'Enviada',
                 createdDate: new Date().toISOString(),
             };
-            addDocumentNonBlocking(collection(firestore, 'quotations'), quotationData);
-        }
+            
+            addDocumentNonBlocking(collection(firestore, 'quotations'), quotationData).then(docRef => {
+                if (!docRef) {
+                    setIsSubmitting(false);
+                    setUploadProgress(0);
+                    return;
+                }
 
-        const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
-        if (currentProspect.opportunity.stage === 'Envió de Información') {
-            updateDocumentNonBlocking(opportunityRef, { stage: 'Envió de Cotización' });
-        }
+                if (currentProspect.opportunity.stage === 'Envió de Información') {
+                    updateDocumentNonBlocking(opportunityRef, { stage: 'Envió de Cotización' });
+                }
 
-        toast({
-            title: `¡Cotización ${isEditing ? 'Actualizada' : 'Enviada'}!`,
-            description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
-        });
-        setQuotationUploadOpen(false);
-        setCurrentProspect(null);
-        setIsSubmitting(false);
-        setUploadProgress(0);
+                toast({
+                    title: `¡Cotización Enviada!`,
+                    description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
+                });
+                
+                // Update prospect in state to include new quotation for the follow-up dialog
+                setCurrentProspect((prev: any) => {
+                    if (!prev) return null;
+                    const newQuotation = { ...quotationData, id: docRef.id };
+                    return { ...prev, quotation: newQuotation };
+                });
+
+                setQuotationUploadOpen(false);
+                setIsPostQuotationFollowUpAlertOpen(true);
+                setIsSubmitting(false);
+                setUploadProgress(0);
+            });
+        }
     };
 
     if (values.pdf) {
@@ -434,7 +466,7 @@ export default function PipelinePage() {
       .filter(([, value]) => value)
       .map(([key]) => key) : [];
     
-    const activityData = {
+    const activityData: any = {
         leadId: currentProspect.id,
         sellerId: user.uid,
         sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
@@ -444,6 +476,7 @@ export default function PipelinePage() {
         dueDate: nextContactDate ? nextContactDate.toISOString() : null,
         completed: payload.id ? currentActivity.completed : false,
         createdDate: payload.id ? currentActivity.createdDate : new Date().toISOString(),
+        quotationId: followUpQuotationId || null,
     };
 
     if (payload.id) {
@@ -457,6 +490,7 @@ export default function PipelinePage() {
     setIsFollowUpDialogOpen(false);
     setCurrentProspect(null);
     setCurrentActivity(null);
+    setFollowUpQuotationId(null);
     setIsSubmitting(false);
   };
 
@@ -474,6 +508,17 @@ export default function PipelinePage() {
   const handleEditClick = (prospect: any) => {
     setSelectedClient(prospect);
     setIsEditDialogOpen(true);
+  };
+
+  const handleScheduleQuotationFollowUp = () => {
+    if (!currentProspect) return;
+    handleNewFollowUpClick(currentProspect, currentProspect.quotation?.id);
+  };
+
+  const handleScheduleNewQuotationFollowUp = (prospect: any) => {
+      setCurrentProspect(prospect);
+      setFollowUpQuotationId(prospect.quotation?.id || null);
+      setIsFollowUpDialogOpen(true);
   };
 
   const isLoading = isUserAuthLoading || isProfileLoading || areLeadsLoading || areOppsLoading || areQuotsLoading || areActivitiesLoading;
@@ -563,6 +608,8 @@ export default function PipelinePage() {
                 const availableSummaries = summaryTabsConfig.filter(tab => currentIndex >= tab.stageIndex);
                 
                 const defaultTab = availableSummaries.length > 0 ? availableSummaries[availableSummaries.length - 1].key : undefined;
+
+                const quotationFollowUp = prospect.activities.find((act: any) => act.quotationId && prospect.quotation && act.quotationId === prospect.quotation.id);
 
                 return (
                   <TableRow key={prospect.id}>
@@ -705,7 +752,7 @@ export default function PipelinePage() {
                               return (
                                   <React.Fragment key={stage}>
                                       <div
-                                          onClick={() => requestStageChange(prospect, stage)}
+                                          onClick={() => canMoveTo && requestStageChange(prospect, stage)}
                                           className={cn(
                                               'relative flex flex-col items-center gap-1.5 text-center transition-opacity w-28',
                                               (canMoveTo) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
@@ -800,6 +847,23 @@ export default function PipelinePage() {
                                                     <FileDown className="w-3 h-3 mr-1.5" /> Ver PDF
                                                 </a>
                                             </Button>
+                                        </div>
+                                        <div className="mt-2 pt-2 border-t border-dashed">
+                                          {quotationFollowUp ? (
+                                            <div className="text-xs space-y-1">
+                                              <p className="font-semibold text-foreground/80">SEGUIMIENTO AGENDADO:</p>
+                                              <p>{quotationFollowUp.type} - {quotationFollowUp.dueDate ? format(new Date(quotationFollowUp.dueDate), "PP", { locale: es }) : 'Sin fecha'}</p>
+                                              {quotationFollowUp.description && <p className="italic">"{quotationFollowUp.description}"</p>}
+                                              <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => handleEditActivityClick(quotationFollowUp, prospect)}>
+                                                Editar Seguimiento
+                                              </Button>
+                                            </div>
+                                          ) : (
+                                            <Button variant="secondary" size="sm" className="h-7" onClick={() => handleScheduleNewQuotationFollowUp(prospect)}>
+                                              <PlusCircle className="w-3 h-3 mr-1.5" />
+                                              Agendar Seguimiento
+                                            </Button>
+                                          )}
                                         </div>
                                     </div>
                                 )}
@@ -930,6 +994,7 @@ export default function PipelinePage() {
             if (!isOpen) {
               setCurrentProspect(null);
               setCurrentActivity(null);
+              setFollowUpQuotationId(null);
             }
             setIsFollowUpDialogOpen(isOpen);
           }}
@@ -963,8 +1028,20 @@ export default function PipelinePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog open={isPostQuotationFollowUpAlertOpen} onOpenChange={setIsPostQuotationFollowUpAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Agendar Seguimiento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              La cotización ha sido guardada. ¿Te gustaría agendar un seguimiento para esta cotización ahora?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setCurrentProspect(null)}>Más Tarde</AlertDialogCancel>
+            <AlertDialogAction onClick={handleScheduleQuotationFollowUp}>Agendar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
-
-    
