@@ -33,6 +33,8 @@ export type Opportunity = {
   sentTechnicalInfo?: boolean;
   sentCompanyInfo?: boolean;
   sentMedia?: boolean;
+  infoSentContactChannels?: string[];
+  infoSentNotes?: string;
   acceptedPrice?: boolean;
   quotedFreight?: boolean;
   requestsDiscount?: boolean;
@@ -64,3 +66,5 @@ export type Activity = {
   date: string;
   followUpDate?: string;
 };
+
+    

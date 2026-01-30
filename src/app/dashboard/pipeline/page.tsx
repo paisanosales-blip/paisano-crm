@@ -11,12 +11,12 @@ import {
   useCollection,
   useMemoFirebase,
   useStorage,
-  errorEmitter,
-  FirestorePermissionError,
 } from '@/firebase';
 import { collection, doc, query, where, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { cn } from '@/lib/utils';
+import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+
 
 import type { OpportunityStage, ClientClassification, Opportunity } from '@/lib/types';
 
@@ -150,23 +150,8 @@ export default function PipelinePage() {
     if (!firestore) return;
     const opportunityRef = doc(firestore, 'opportunities', opportunityId);
     
-    updateDoc(opportunityRef, { stage: newStage })
-      .then(() => {
-        toast({ title: 'Éxito', description: `Prospecto movido a: ${newStage}` });
-      })
-      .catch((error) => {
-        const permissionError = new FirestorePermissionError({
-          path: opportunityRef.path,
-          operation: 'update',
-          requestResourceData: { stage: newStage },
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        toast({
-          variant: 'destructive',
-          title: 'Error al actualizar etapa',
-          description: `No se pudo mover el prospecto a: ${newStage}`,
-        });
-      });
+    updateDocumentNonBlocking(opportunityRef, { stage: newStage });
+    toast({ title: 'Éxito', description: `Prospecto movido a: ${newStage}` });
   };
 
   const requestStageChange = (prospect: any, newStage: OpportunityStage) => {
@@ -239,25 +224,16 @@ export default function PipelinePage() {
     }
     setIsSubmitting(true);
     const activityRef = doc(firestore, 'activities', activityToDelete.id);
-    deleteDoc(activityRef).then(() => {
-      toast({ title: 'Seguimiento eliminado' });
-    }).catch((error) => {
-      const permissionError = new FirestorePermissionError({
-        path: activityRef.path,
-        operation: 'delete',
-      });
-      errorEmitter.emit('permission-error', permissionError);
-      toast({ variant: 'destructive', title: 'Error al eliminar', description: 'Ocurrió un problema al eliminar el seguimiento.' });
-    }).finally(() => {
-      setIsDeleteDialogOpen(false);
-      setActivityToDelete(null);
-      setIsSubmitting(false);
-    });
+    deleteDocumentNonBlocking(activityRef);
+    toast({ title: 'Seguimiento eliminado' });
+    setIsDeleteDialogOpen(false);
+    setActivityToDelete(null);
+    setIsSubmitting(false);
   };
 
 
   const handleInfoSentConfirm = (payload: InfoSentConfirmPayload) => {
-    if (!currentProspect || !firestore || !user || !userProfile) {
+    if (!currentProspect || !firestore) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
     }
@@ -267,59 +243,30 @@ export default function PipelinePage() {
     const { checklist, notes, contactChannels } = payload;
     const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
     
-    const updateData: any = { ...checklist };
+    const usedChannels = Object.entries(contactChannels).filter(([, value]) => value).map(([key]) => key);
+
+    const updateData: any = { 
+        ...checklist,
+        infoSentNotes: notes || '',
+        infoSentContactChannels: usedChannels,
+     };
 
     const isStageChange = currentProspect.opportunity.stage === 'Primer contacto';
     if (isStageChange) {
       updateData.stage = 'Envió de Información';
     }
 
-    const updatePromise = updateDoc(opportunityRef, updateData);
-
-    const usedChannels = Object.entries(contactChannels).filter(([, value]) => value).map(([key]) => key);
-    let activityPromise = Promise.resolve();
-    if (notes || usedChannels.length > 0) {
-      const activityData = {
-        leadId: currentProspect.id,
-        sellerId: user.uid,
-        sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
-        type: 'Información Enviada',
-        description: notes,
-        contactChannels: usedChannels,
-        dueDate: new Date().toISOString(),
-        completed: true,
-        createdDate: new Date().toISOString(),
-      };
-      activityPromise = addDoc(collection(firestore, 'activities'), activityData).then(() => {});
-    }
-
-    Promise.all([updatePromise, activityPromise])
-      .then(() => {
-        toast({ 
-          title: 'Éxito', 
-          description: isStageChange 
-            ? `Prospecto movido a: Envió de Información` 
-            : 'Resumen de información actualizado.'
-        });
-        setInfoSentDialogOpen(false);
-        setCurrentProspect(null);
-      })
-      .catch((error) => {
-        const permissionError = new FirestorePermissionError({
-            path: opportunityRef.path, // Or a more relevant path
-            operation: 'write',
-            requestResourceData: { ...updateData, activity: (notes || usedChannels.length > 0) },
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
-        });
-      })
-      .finally(() => {
-          setIsSubmitting(false);
-      });
+    updateDocumentNonBlocking(opportunityRef, updateData);
+    
+    toast({ 
+      title: 'Éxito', 
+      description: isStageChange 
+        ? `Prospecto movido a: Envió de Información` 
+        : 'Resumen de información actualizado.'
+    });
+    setInfoSentDialogOpen(false);
+    setCurrentProspect(null);
+    setIsSubmitting(false);
   };
   
   const handleQuotationUpload = (values: QuotationFormValues) => {
@@ -338,14 +285,15 @@ export default function PipelinePage() {
         let dbPromise;
         if (isEditing) {
             const quotationRef = doc(firestore, 'quotations', currentProspect.quotation.id);
-            dbPromise = updateDoc(quotationRef, {
+            const quotationData = {
                 value: values.value,
                 currency: values.currency,
                 pdfUrl: finalPdfUrl,
                 version: String(Number(currentProspect.quotation.version || 1) + (values.pdf ? 1 : 0)),
                 status: 'Enviada',
                 createdDate: new Date().toISOString(),
-            });
+            };
+            updateDocumentNonBlocking(quotationRef, quotationData);
         } else {
             const quotationData = {
                 opportunityId: currentProspect.opportunity.id,
@@ -358,43 +306,22 @@ export default function PipelinePage() {
                 status: 'Enviada',
                 createdDate: new Date().toISOString(),
             };
-            dbPromise = addDoc(collection(firestore, 'quotations'), quotationData).then((newQuotationRef) => {
-                currentProspect.quotation = { id: newQuotationRef.id, ...quotationData };
-            });
+            addDocumentNonBlocking(collection(firestore, 'quotations'), quotationData);
         }
 
-        let stageUpdatePromise = Promise.resolve();
         const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
         if (currentProspect.opportunity.stage === 'Envió de Información') {
-            stageUpdatePromise = updateDoc(opportunityRef, { stage: 'Envió de Cotización' });
+            updateDocumentNonBlocking(opportunityRef, { stage: 'Envió de Cotización' });
         }
 
-        Promise.all([dbPromise, stageUpdatePromise])
-            .then(() => {
-                toast({
-                    title: `¡Cotización ${isEditing ? 'Actualizada' : 'Enviada'}!`,
-                    description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
-                });
-                setQuotationUploadOpen(false);
-                setCurrentProspect(null);
-            })
-            .catch((dbError) => {
-                const permissionError = new FirestorePermissionError({
-                    path: isEditing ? `quotations/${currentProspect.quotation.id}` : 'quotations',
-                    operation: isEditing ? 'update' : 'create',
-                    requestResourceData: values,
-                });
-                errorEmitter.emit('permission-error', permissionError);
-                toast({
-                    variant: 'destructive',
-                    title: 'Error al Guardar en Base de Datos',
-                    description: dbError.message || 'Ocurrió un problema durante el guardado.',
-                });
-            })
-            .finally(() => {
-                setIsSubmitting(false);
-                setUploadProgress(0);
-            });
+        toast({
+            title: `¡Cotización ${isEditing ? 'Actualizada' : 'Enviada'}!`,
+            description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
+        });
+        setQuotationUploadOpen(false);
+        setCurrentProspect(null);
+        setIsSubmitting(false);
+        setUploadProgress(0);
     };
 
     if (values.pdf) {
@@ -452,33 +379,17 @@ export default function PipelinePage() {
       updateData.stage = 'Negociación';
     }
 
-    updateDoc(opportunityRef, updateData)
-      .then(() => {
-        toast({ 
-          title: 'Éxito', 
-          description: isStageChange 
-            ? `Prospecto movido a: Negociación` 
-            : 'Resumen de negociación actualizado.'
-        });
-        setNegotiationDialogOpen(false);
-        setCurrentProspect(null);
-      })
-      .catch((error) => {
-        const permissionError = new FirestorePermissionError({
-          path: opportunityRef.path,
-          operation: 'update',
-          requestResourceData: updateData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Ocurrió un problema al guardar los datos de negociación. Por favor, inténtelo de nuevo.',
-        });
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+    updateDocumentNonBlocking(opportunityRef, updateData);
+    
+    toast({ 
+      title: 'Éxito', 
+      description: isStageChange 
+        ? `Prospecto movido a: Negociación` 
+        : 'Resumen de negociación actualizado.'
+    });
+    setNegotiationDialogOpen(false);
+    setCurrentProspect(null);
+    setIsSubmitting(false);
   };
 
   const handleClosingConfirm = (payload: ClosingConfirmPayload) => {
@@ -496,33 +407,17 @@ export default function PipelinePage() {
       updateData.stage = 'Cierre de venta';
     }
 
-    updateDoc(opportunityRef, updateData)
-      .then(() => {
-        toast({ 
-          title: 'Éxito', 
-          description: isStageChange 
-            ? `Prospecto movido a: Cierre de venta` 
-            : 'Resumen de cierre actualizado.'
-        });
-        setClosingDialogOpen(false);
-        setCurrentProspect(null);
-      })
-      .catch((error) => {
-        const permissionError = new FirestorePermissionError({
-          path: opportunityRef.path,
-          operation: 'update',
-          requestResourceData: updateData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Ocurrió un problema al guardar los datos de cierre. Por favor, inténtelo de nuevo.',
-        });
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+    updateDocumentNonBlocking(opportunityRef, updateData);
+
+    toast({ 
+      title: 'Éxito', 
+      description: isStageChange 
+        ? `Prospecto movido a: Cierre de venta` 
+        : 'Resumen de cierre actualizado.'
+    });
+    setClosingDialogOpen(false);
+    setCurrentProspect(null);
+    setIsSubmitting(false);
   };
 
   const handleFollowUpSubmit = (payload: FollowUpSubmitPayload) => {
@@ -550,67 +445,29 @@ export default function PipelinePage() {
         createdDate: payload.id ? currentActivity.createdDate : new Date().toISOString(),
     };
 
-    let promise;
-    let action: 'create' | 'update' = 'create';
-    let path = 'activities';
     if (payload.id) {
         const activityRef = doc(firestore, 'activities', payload.id);
-        path = activityRef.path;
-        action = 'update';
-        promise = updateDoc(activityRef, activityData);
+        updateDocumentNonBlocking(activityRef, activityData);
     } else {
-        promise = addDoc(collection(firestore, 'activities'), activityData);
+        addDocumentNonBlocking(collection(firestore, 'activities'), activityData);
     }
     
-    promise
-        .then(() => {
-            toast({ title: payload.id ? 'Seguimiento Actualizado' : 'Actividad Creada', description: payload.id ? 'El seguimiento ha sido modificado.' : `Nuevo seguimiento para ${currentProspect.clientName} agendado.` });
-            setIsFollowUpDialogOpen(false);
-            setCurrentProspect(null);
-            setCurrentActivity(null);
-        })
-        .catch((error) => {
-            const permissionError = new FirestorePermissionError({
-                path: path,
-                operation: action,
-                requestResourceData: activityData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: 'Ocurrió un problema al guardar el seguimiento. Por favor, inténtelo de nuevo.',
-            });
-        })
-        .finally(() => {
-            setIsSubmitting(false);
-        });
+    toast({ title: payload.id ? 'Seguimiento Actualizado' : 'Actividad Creada', description: payload.id ? 'El seguimiento ha sido modificado.' : `Nuevo seguimiento para ${currentProspect.clientName} agendado.` });
+    setIsFollowUpDialogOpen(false);
+    setCurrentProspect(null);
+    setCurrentActivity(null);
+    setIsSubmitting(false);
   };
 
   const handleToggleActivityComplete = (activityId: string, completed: boolean) => {
     if (!firestore) return;
     const activityRef = doc(firestore, 'activities', activityId);
     
-    updateDoc(activityRef, { completed })
-      .then(() => {
-        toast({
-          title: `Actividad ${completed ? 'Completada' : 'Pendiente'}`,
-          description: 'El estado del seguimiento ha sido actualizado.',
-        });
-      })
-      .catch((error) => {
-        const permissionError = new FirestorePermissionError({
-          path: activityRef.path,
-          operation: 'update',
-          requestResourceData: { completed },
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        toast({
-          variant: 'destructive',
-          title: 'Error al actualizar',
-          description: 'No se pudo cambiar el estado de la actividad.',
-        });
-      });
+    updateDocumentNonBlocking(activityRef, { completed });
+    toast({
+      title: `Actividad ${completed ? 'Completada' : 'Pendiente'}`,
+      description: 'El estado del seguimiento ha sido actualizado.',
+    });
   };
 
   const handleEditClick = (prospect: any) => {
@@ -705,8 +562,6 @@ export default function PipelinePage() {
                 const availableSummaries = summaryTabsConfig.filter(tab => currentIndex >= tab.stageIndex);
                 
                 const defaultTab = availableSummaries.length > 0 ? availableSummaries[availableSummaries.length - 1].key : undefined;
-
-                const infoSentActivity = prospect.activities.find((act: any) => act.type === 'Información Enviada');
 
                 return (
                   <TableRow key={prospect.id}>
@@ -908,14 +763,19 @@ export default function PipelinePage() {
                                             <li>Info. Empresa: <span className="font-semibold">{prospect.opportunity.sentCompanyInfo ? '✓ Sí' : '✗ No'}</span></li>
                                             <li>Fotos/Videos: <span className="font-semibold">{prospect.opportunity.sentMedia ? '✓ Sí' : '✗ No'}</span></li>
                                         </ul>
-                                         {infoSentActivity && infoSentActivity.contactChannels?.length > 0 && (
+                                        {(prospect.opportunity.infoSentContactChannels?.length > 0 || prospect.opportunity.infoSentNotes) && (
                                             <div className="mt-2 pt-2 border-t border-dashed">
-                                                <p className="font-semibold text-foreground/80">VÍAS DE CONTACTO USADAS</p>
-                                                <div className="flex flex-wrap gap-1 mt-1">
-                                                    {infoSentActivity.contactChannels.map((channel: string) => (
-                                                        <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
-                                                    ))}
-                                                </div>
+                                                <p className="font-semibold text-foreground/80">REGISTRO DE INTERACCIÓN</p>
+                                                {prospect.opportunity.infoSentContactChannels?.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {prospect.opportunity.infoSentContactChannels.map((channel: string) => (
+                                                            <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {prospect.opportunity.infoSentNotes && (
+                                                    <p className="italic mt-1">"{prospect.opportunity.infoSentNotes}"</p>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -1104,3 +964,5 @@ export default function PipelinePage() {
     </>
   );
 }
+
+    

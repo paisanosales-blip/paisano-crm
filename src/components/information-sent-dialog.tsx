@@ -74,17 +74,25 @@ export function InformationSentDialog({
 
   useEffect(() => {
     if (open) {
-        if (opportunity) {
-            setChecklist({
-                sentPrices: opportunity.sentPrices || false,
-                sentTechnicalInfo: opportunity.sentTechnicalInfo || false,
-                sentCompanyInfo: opportunity.sentCompanyInfo || false,
-                sentMedia: opportunity.sentMedia || false,
-            });
-        }
-        // Reset interaction log fields every time
+      if (opportunity) {
+        setChecklist({
+          sentPrices: opportunity.sentPrices || false,
+          sentTechnicalInfo: opportunity.sentTechnicalInfo || false,
+          sentCompanyInfo: opportunity.sentCompanyInfo || false,
+          sentMedia: opportunity.sentMedia || false,
+        });
+        setNotes(opportunity.infoSentNotes || '');
+        const currentChannels = contactChannelItems.reduce((acc, channel) => {
+            acc[channel] = opportunity.infoSentContactChannels?.includes(channel) || false;
+            return acc;
+        }, {} as { [key: string]: boolean });
+        setContactChannels(currentChannels);
+      } else {
+        // Reset if no opportunity
+        setChecklist({ sentPrices: false, sentTechnicalInfo: false, sentCompanyInfo: false, sentMedia: false });
         setNotes('');
         setContactChannels(initialChannelsState);
+      }
     }
   }, [open, opportunity]);
 
@@ -185,5 +193,7 @@ export function InformationSentDialog({
     </Dialog>
   );
 }
+
+    
 
     
