@@ -300,9 +300,11 @@ export default function PipelinePage() {
                 const currentIndex = stages.indexOf(prospect.opportunity.stage);
                 return (
                   <TableRow key={prospect.id}>
-                    <TableCell className="font-medium align-top w-[250px]">
+                    <TableCell className="font-medium align-top w-[300px]">
                         <div className="font-semibold">{prospect.clientName}</div>
                         <div className="text-sm text-muted-foreground">{prospect.contactPerson}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{prospect.email || 'N/A'}</div>
+                        <div className="text-xs text-muted-foreground">{prospect.phone || 'N/A'}</div>
                         
                         <div className="flex items-center gap-2.5 mt-2">
                             <a 
@@ -357,8 +359,10 @@ export default function PipelinePage() {
                             </div>
                         </div>
                     </TableCell>
-                    <TableCell><Badge variant="outline" className={`uppercase font-bold ${getBadgeClass(classification)}`}>{classification}</Badge></TableCell>
-                    <TableCell>
+                    <TableCell className="align-top">
+                      <Badge variant="outline" className={`uppercase font-bold ${getBadgeClass(classification)}`}>{classification}</Badge>
+                    </TableCell>
+                    <TableCell className="align-top">
                       <div className="flex items-center gap-2">
                         {stages.map((stage, index) => {
                           const isCompleted = index < currentIndex;
@@ -401,7 +405,7 @@ export default function PipelinePage() {
                         </div>
                     )}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right align-top">
                       <DropdownMenu key={`${prospect.id}-${currentIndex}`}>
                         <DropdownMenuTrigger asChild><Button size="icon" variant="ghost"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent>
