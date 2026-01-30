@@ -52,9 +52,9 @@ export default function DashboardLayout({
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <div className="flex items-center gap-2">
-            <IconSwitcher className="h-8 w-8 text-primary" />
-            <Link href="/dashboard">
+          <div className="flex items-center justify-center gap-2">
+            <IconSwitcher className="h-8 w-8" />
+            <Link href="/dashboard" className="group-data-[collapsible=icon]:hidden">
               <span className="text-xl font-semibold text-white font-headline">PAISANO TRAILER</span>
             </Link>
           </div>
