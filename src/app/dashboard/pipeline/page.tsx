@@ -8,6 +8,7 @@ import {
   useDoc,
   useCollection,
   useMemoFirebase,
+  addDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -40,7 +41,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { NewProspectDialog } from '@/components/new-prospect-dialog';
-import { InformationSentDialog, type ChecklistState } from '@/components/information-sent-dialog';
+import { InformationSentDialog, type InfoSentConfirmPayload, type ChecklistState } from '@/components/information-sent-dialog';
 import { QuotationUploadDialog } from '@/components/quotation-upload-dialog';
 
 
@@ -58,7 +59,7 @@ export default function PipelinePage() {
   const [filterStage, setFilterStage] = useState<OpportunityStage | 'Todos'>('Todos');
   const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
-  const [currentOpportunity, setCurrentOpportunity] = useState<{ id: string; name: string; stage: OpportunityStage } | null>(null);
+  const [currentOpportunity, setCurrentOpportunity] = useState<{ id: string; name: string; stage: OpportunityStage, leadId: string; } | null>(null);
 
   const { toast } = useToast();
 
@@ -100,7 +101,7 @@ export default function PipelinePage() {
     toast({ title: 'Éxito', description: `Prospecto movido a: ${newStage}` });
   };
 
-  const requestStageChange = (opportunity: { id: string; name: string; stage: OpportunityStage }, newStage: OpportunityStage) => {
+  const requestStageChange = (opportunity: { id: string; name: string; stage: OpportunityStage; leadId: string; }, newStage: OpportunityStage) => {
     if (opportunity.stage === 'Primer contacto' && newStage === 'Envió de Información') {
         setCurrentOpportunity(opportunity);
         setInfoSentDialogOpen(true);
@@ -112,10 +113,35 @@ export default function PipelinePage() {
     }
   };
 
-  const handleInfoSentConfirm = (checklist: ChecklistState) => {
-    if (currentOpportunity) {
-        handleStageChange(currentOpportunity.id, 'Envió de Información', checklist);
+  const handleInfoSentConfirm = (payload: InfoSentConfirmPayload) => {
+    if (!currentOpportunity || !firestore || !user || !userProfile) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
+        return;
     }
+
+    const { observations, nextContactDate, nextContactType, ...checklist } = payload;
+    
+    // 1. Update Opportunity stage with checklist data
+    handleStageChange(currentOpportunity.id, 'Envió de Información', checklist);
+
+    // 2. Create a new Activity for the follow-up
+    if (nextContactDate && nextContactType && observations) {
+        const activityData = {
+            leadId: currentOpportunity.leadId,
+            sellerId: user.uid,
+            sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+            type: nextContactType,
+            description: observations,
+            dueDate: nextContactDate.toISOString(),
+            completed: false,
+            createdDate: new Date().toISOString(),
+        };
+        
+        addDocumentNonBlocking(collection(firestore, 'activities'), activityData);
+        
+        toast({ title: 'Actividad Creada', description: `Próximo contacto para ${currentOpportunity.name} agendado.` });
+    }
+
     setInfoSentDialogOpen(false);
     setCurrentOpportunity(null);
   };
@@ -223,7 +249,7 @@ export default function PipelinePage() {
                             <DropdownMenuItem 
                               key={stage} 
                               onSelect={() => requestStageChange(
-                                {id: prospect.opportunity.id, name: prospect.clientName, stage: prospect.opportunity.stage },
+                                {id: prospect.opportunity.id, name: prospect.clientName, stage: prospect.opportunity.stage, leadId: prospect.id },
                                 stage
                               )}
                               disabled={prospect.opportunity.stage === stage}

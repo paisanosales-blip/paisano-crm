@@ -308,6 +308,11 @@
         "completed": {
           "type": "boolean",
           "description": "Indicates if the activity is completed."
+        },
+        "createdDate": {
+          "type": "string",
+          "description": "Date the activity was created.",
+          "format": "date-time"
         }
       },
       "required": [
@@ -318,7 +323,8 @@
         "type",
         "description",
         "dueDate",
-        "completed"
+        "completed",
+        "createdDate"
       ]
     }
   },
