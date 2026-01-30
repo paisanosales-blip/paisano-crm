@@ -8,9 +8,9 @@ import {
   useDoc,
   useCollection,
   useMemoFirebase,
-  updateDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 import type { OpportunityStage, ClientClassification } from '@/lib/types';
 
@@ -171,7 +171,8 @@ export default function PipelinePage() {
                       <TableCell className='text-right'><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                   </TableRow>
               )) : filteredProspects.length > 0 ? filteredProspects.map(prospect => {
-                const classification = getClassification(prospect.opportunity!.stage);
+                if (!prospect.opportunity) return null;
+                const classification = getClassification(prospect.opportunity.stage);
                 return (
                   <TableRow key={prospect.id}>
                     <TableCell className="font-medium align-top">
@@ -189,7 +190,7 @@ export default function PipelinePage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {stages.map((stage, index) => {
-                          const currentIndex = stages.indexOf(prospect.opportunity!.stage);
+                          const currentIndex = stages.indexOf(prospect.opportunity.stage);
                           const isCompleted = index < currentIndex;
                           const isCurrent = index === currentIndex;
                           return (
@@ -205,17 +206,17 @@ export default function PipelinePage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
+                      <DropdownMenu key={prospect.opportunity.stage}>
                         <DropdownMenuTrigger asChild><Button size="icon" variant="ghost"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent>
                           {stages.map(stage => ( 
                             <DropdownMenuItem 
                               key={stage} 
                               onSelect={() => requestStageChange(
-                                {id: prospect.opportunity!.id, name: prospect.clientName, stage: prospect.opportunity!.stage },
+                                {id: prospect.opportunity.id, name: prospect.clientName, stage: prospect.opportunity.stage },
                                 stage
                               )}
-                              disabled={prospect.opportunity?.stage === stage}
+                              disabled={prospect.opportunity.stage === stage}
                             >
                               Mover a: {stage}
                             </DropdownMenuItem> 
