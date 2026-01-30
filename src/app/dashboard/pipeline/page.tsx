@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MoreVertical, PlusCircle } from 'lucide-react';
+import { MoreVertical } from 'lucide-react';
 import {
   useUser,
   useFirestore,
@@ -88,9 +88,9 @@ export default function PipelinePage() {
 
   const clientProspects = React.useMemo(() => {
     if (!leads || !opportunities) return [];
-    return (leads as any[]).map(client => {
-      const opportunity = (opportunities as any[]).find(op => op.leadId === client.id);
-      return { ...client, nombreDelCliente: client.clientName, opportunity };
+    return (leads as any[]).map(lead => {
+      const opportunity = (opportunities as any[]).find(op => op.leadId === lead.id);
+      return { ...lead, opportunity };
     }).filter(item => item.opportunity);
   }, [leads, opportunities]);
 
@@ -123,11 +123,17 @@ export default function PipelinePage() {
             {allStagesForFilter.map((stage) => ( <Button key={stage} variant={filterStage === stage ? 'default' : 'outline'} onClick={() => setFilterStage(stage)} className="text-xs h-8">{stage}</Button> ))}
           </div>
           <Table>
-            <TableHeader><TableRow><TableHead>Nombre del Cliente</TableHead><TableHead>Clasificación</TableHead><TableHead>Etapa Actual</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Prospecto</TableHead><TableHead>Clasificación</TableHead><TableHead>Etapa Actual</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
             <TableBody>
               {isLoading ? Array.from({ length: 3 }).map((_, i) => (
                   <TableRow key={i}>
-                      <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-24" />
+                            <Skeleton className="h-3 w-40" />
+                        </div>
+                      </TableCell>
                       <TableCell><Skeleton className="h-6 w-28 rounded-full" /></TableCell>
                       <TableCell><Skeleton className="h-8 w-full" /></TableCell>
                       <TableCell className='text-right'><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
@@ -136,7 +142,17 @@ export default function PipelinePage() {
                 const classification = getClassification(prospect.opportunity!.stage);
                 return (
                   <TableRow key={prospect.id}>
-                    <TableCell className="font-medium">{prospect.nombreDelCliente}</TableCell>
+                    <TableCell className="font-medium align-top">
+                        <div className="font-semibold">{prospect.clientName}</div>
+                        <div className="text-sm text-muted-foreground">{prospect.contactPerson}</div>
+                        {(prospect.phone || prospect.email) && (
+                            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                                {prospect.phone && <span>{prospect.phone}</span>}
+                                {prospect.phone && prospect.email && <span className="text-muted-foreground/50">|</span>}
+                                {prospect.email && <span>{prospect.email}</span>}
+                            </div>
+                        )}
+                    </TableCell>
                     <TableCell><Badge variant="outline" className={`uppercase font-bold ${getBadgeClass(classification)}`}>{classification}</Badge></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
