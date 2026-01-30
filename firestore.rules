@@ -106,6 +106,8 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and forbids user enumeration.
      */
     match /users/{userId} {
+      // This rule is essential. It allows users to read their own profile,
+      // which is required on almost every page for the app to function correctly.
       allow get: if isOwner(userId);
       allow list: if false;
       allow create: if isCreatingOwnProfile(userId);
@@ -177,3 +179,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
