@@ -125,22 +125,22 @@ export function InformationSentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Confirmar'} Envío de Información</DialogTitle>
           <DialogDescription>
              Para {isEditing ? 'actualizar la información de' : 'mover a'} "{opportunity.name}" a la siguiente etapa, por favor confirme qué información se ha enviado y registre el seguimiento.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-6 py-4">
-          <div className="grid gap-4">
-            <h4 className="font-medium text-sm text-muted-foreground">CHECKLIST DE ENVÍO</h4>
+        <div className="space-y-6 py-4">
+          <div className="space-y-4 rounded-lg border p-4">
+            <h4 className="font-medium text-sm text-foreground">CHECKLIST DE ENVÍO</h4>
             {checklistItems.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between rounded-lg border p-3 shadow-sm"
+                className="flex items-center justify-between"
               >
-                <Label htmlFor={item.id} className="text-sm font-medium">
+                <Label htmlFor={item.id} className="text-sm">
                   {item.label}
                 </Label>
                 <Switch
@@ -154,9 +154,9 @@ export function InformationSentDialog({
             ))}
           </div>
 
-          <div className="grid gap-2">
-             <Label className="font-medium text-sm text-muted-foreground">VÍA DE CONTACTO</Label>
-            <div className="grid grid-cols-2 gap-2 rounded-lg border p-3 shadow-sm">
+          <div className="space-y-3 rounded-lg border p-4">
+             <Label className="font-medium text-sm text-foreground">VÍA DE CONTACTO</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
               {contactChannelItems.map((channel) => (
                 <div key={channel} className="flex items-center space-x-2">
                   <Checkbox
@@ -164,7 +164,7 @@ export function InformationSentDialog({
                     checked={contactChannels[channel]}
                     onCheckedChange={(checked) => handleChannelChange(channel, !!checked)}
                   />
-                  <Label htmlFor={channel} className="text-sm font-medium capitalize">
+                  <Label htmlFor={channel} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                     {channel}
                   </Label>
                 </div>
@@ -172,8 +172,8 @@ export function InformationSentDialog({
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="observations" className="font-medium text-sm text-muted-foreground">OBSERVACIONES</Label>
+          <div className="space-y-2">
+            <Label htmlFor="observations" className="font-medium text-sm text-foreground">OBSERVACIONES</Label>
             <Textarea
               id="observations"
               placeholder="Escriba aquí sus observaciones sobre la interacción..."
@@ -182,9 +182,9 @@ export function InformationSentDialog({
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label className="font-medium text-sm text-muted-foreground">PRÓXIMO CONTACTO (OPCIONAL AL EDITAR)</Label>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-3">
+            <Label className="font-medium text-sm text-foreground">PRÓXIMO CONTACTO (OPCIONAL AL EDITAR)</Label>
+            <div className="grid grid-cols-2 gap-4">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
