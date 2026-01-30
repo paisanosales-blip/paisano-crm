@@ -78,7 +78,11 @@ export function NegotiationDialog({
   };
 
   const handleSelectChange = (value: string) => {
-    setNegotiationState((prev) => ({ ...prev, agreedDeliveryTime: value ? Number(value) : undefined }));
+    if (value === 'none') {
+        setNegotiationState((prev) => ({ ...prev, agreedDeliveryTime: undefined }));
+    } else {
+        setNegotiationState((prev) => ({ ...prev, agreedDeliveryTime: Number(value) }));
+    }
   };
   
   const handleConfirm = () => {
@@ -117,7 +121,7 @@ export function NegotiationDialog({
                         <SelectValue placeholder="Seleccionar semanas" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">Ninguno</SelectItem>
+                        <SelectItem value="none">Ninguno</SelectItem>
                         {Array.from({ length: 12 }, (_, i) => i + 1).map(week => (
                             <SelectItem key={week} value={String(week)}>{week} {week === 1 ? 'semana' : 'semanas'}</SelectItem>
                         ))}
