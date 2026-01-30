@@ -3,16 +3,9 @@
     "origin": ["*"],
     "method": ["GET", "HEAD", "PUT", "POST", "DELETE"],
     "responseHeader": [
-      "Access-Control-Allow-Headers",
-      "Access-Control-Allow-Origin",
-      "Authorization",
-      "Content-Length",
       "Content-Type",
-      "Origin",
-      "X-Goog-Resumable",
-      "X-Requested-With",
-      "X-Upload-Content-Type",
-      "X-Upload-Content-Length"
+      "Access-Control-Allow-Origin",
+      "x-goog-resumable"
     ],
     "maxAgeSeconds": 3600
   }
