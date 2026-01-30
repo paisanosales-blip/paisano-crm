@@ -58,7 +58,7 @@ export default function NewQuotationPage() {
   const [freight, setFreight] = useState(0);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [quotationDetails, setQuotationDetails] = useState<QuotationDetails>({
-    number: `QT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
+    number: `QT-${Date.now().toString().slice(-6)}`,
     validity: '30 DAYS',
     terms: 'PAYMENT TERMS: 50% DOWN PAYMENT, 50% UPON DELIVERY.\nPRICES DO NOT INCLUDE VAT.\nDELIVERY TIMES ARE SUBJECT TO CHANGE WITHOUT PRIOR NOTICE.',
     notes: 'THANK YOU FOR YOUR PREFERENCE.',
@@ -111,6 +111,7 @@ export default function NewQuotationPage() {
     const logoUrl = localStorage.getItem('sidebarLogo');
     const RED = '#8B0000';
     const BLACK = '#000000';
+    const LIGHT_GRAY = '#F5F5F5';
 
     // --- HEADER ---
     if (logoUrl) {
@@ -123,12 +124,12 @@ export default function NewQuotationPage() {
     }
     
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(22);
+    doc.setFontSize(16);
     doc.setTextColor(BLACK);
     doc.text('PAISANO TRAILER', docWidth - margin, 25, { align: 'right' });
     
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, 32, { align: 'right' });
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, 36, { align: 'right' });
@@ -139,52 +140,60 @@ export default function NewQuotationPage() {
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
     doc.line(margin, 55, docWidth - margin, 55);
+    doc.setDrawColor(BLACK);
+    doc.setLineWidth(0.3);
+    doc.line(margin, 56.5, docWidth - margin, 56.5);
 
     finalY = 65;
 
     // --- INFO SECTION ---
     const infoStartY = finalY;
     const rightColX = docWidth / 2 + 10;
+    const infoBoxHeight = 28;
 
+    // Add background boxes
+    doc.setFillColor(LIGHT_GRAY);
+    doc.rect(margin, infoStartY - 2, (docWidth / 2) - margin - 5, infoBoxHeight, 'F');
+    doc.rect(rightColX, infoStartY - 2, (docWidth / 2) - margin - 10, infoBoxHeight, 'F');
+    
     // Salesperson Info
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(BLACK);
-    doc.text('SALESPERSON:', margin, infoStartY);
+    doc.text('SALES PERSON:', margin + 3, infoStartY + 4);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     if (userProfile) {
-        doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin, infoStartY + 6);
-        if (userProfile.email) doc.text(userProfile.email.toUpperCase(), margin, infoStartY + 11);
+        doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, infoStartY + 10);
+        if (userProfile.email) doc.text(userProfile.email.toUpperCase(), margin + 3, infoStartY + 15);
     }
 
     // Client Info
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text('BILL TO:', rightColX, infoStartY);
+    doc.text('BILL TO:', rightColX + 3, infoStartY + 4);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(selectedClient.clientName.toUpperCase(), rightColX, infoStartY + 6);
-    doc.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX, infoStartY + 11);
-    if(selectedClient.email) doc.text(selectedClient.email.toUpperCase(), rightColX, infoStartY + 16);
-    if(selectedClient.phone) doc.text(selectedClient.phone.toUpperCase(), rightColX, infoStartY + 21);
+    doc.text(selectedClient.clientName.toUpperCase(), rightColX + 3, infoStartY + 10);
+    doc.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 15);
+    if(selectedClient.email) doc.text(selectedClient.email.toUpperCase(), rightColX + 3, infoStartY + 20);
 
 
     // Quotation Details
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     const quoteDetailsX = docWidth - margin;
-    doc.text('QUOTATION #:', quoteDetailsX - 45, infoStartY + 35, { align: 'left' });
-    doc.text('DATE:', quoteDetailsX - 45, infoStartY + 41, { align: 'left' });
-    doc.text('VALIDITY:', quoteDetailsX - 45, infoStartY + 47, { align: 'left' });
+    doc.text('QUOTATION #:', quoteDetailsX - 45, finalY + infoBoxHeight + 10, { align: 'left' });
+    doc.text('DATE:', quoteDetailsX - 45, finalY + infoBoxHeight + 16, { align: 'left' });
+    doc.text('VALIDITY:', quoteDetailsX - 45, finalY + infoBoxHeight + 22, { align: 'left' });
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(quotationDetails.number.toUpperCase(), quoteDetailsX, infoStartY + 35, { align: 'right' });
-    doc.text(new Date().toLocaleDateString('en-US'), quoteDetailsX, infoStartY + 41, { align: 'right' });
-    doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, infoStartY + 47, { align: 'right' });
+    doc.text(quotationDetails.number.toUpperCase(), quoteDetailsX, finalY + infoBoxHeight + 10, { align: 'right' });
+    doc.text(new Date().toLocaleDateString('en-US').toUpperCase(), quoteDetailsX, finalY + infoBoxHeight + 16, { align: 'right' });
+    doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, finalY + infoBoxHeight + 22, { align: 'right' });
 
-    finalY = infoStartY + 60;
+    finalY = finalY + infoBoxHeight + 35;
 
     // --- PRODUCTS TABLE ---
     const tableColumn = ["DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"];
@@ -205,34 +214,36 @@ export default function NewQuotationPage() {
         body: tableRows,
         startY: finalY,
         theme: 'striped',
-        headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold' },
-        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 11 },
+        styles: { fontSize: 11, cellPadding: 3 },
         margin: { left: margin, right: margin }
     });
     
-    finalY = doc.autoTable.previous.finalY;
+    finalY = (doc as any).autoTable.previous.finalY;
     
     // --- TOTALS ---
     const totalsY = finalY + 10;
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text('SUBTOTAL:', docWidth - 70, totalsY, { align: 'right' });
-    doc.text(`$${subtotal.toFixed(2)}`, docWidth - margin, totalsY, { align: 'right' });
-
-    doc.text('FREIGHT:', docWidth - 70, totalsY + 7, { align: 'right' });
-    doc.text(`$${freight.toFixed(2)}`, docWidth - margin, totalsY + 7, { align: 'right' });
     
     doc.setDrawColor(BLACK);
     doc.setLineWidth(0.2);
-    doc.line(docWidth - 80, totalsY + 11, docWidth - margin, totalsY + 11);
+    doc.line(docWidth - 80, totalsY + 14, docWidth - margin, totalsY + 14);
 
-    doc.setFontSize(12);
-    doc.setTextColor(RED);
-    doc.text('TOTAL:', docWidth - 70, totalsY + 16, { align: 'right' });
-    doc.setTextColor(BLACK);
-    doc.text(`$${total.toFixed(2)}`, docWidth - margin, totalsY + 16, { align: 'right' });
+    doc.text('SUBTOTAL:', docWidth - 70, totalsY, { align: 'right' });
+    doc.text('FREIGHT:', docWidth - 70, totalsY + 7, { align: 'right' });
+    doc.text('TOTAL:', docWidth - 70, totalsY + 21, { align: 'right' });
     
-    let currentY = totalsY + 30;
+    doc.setFont('helvetica', 'normal');
+    doc.text(`$${subtotal.toFixed(2)}`, docWidth - margin, totalsY, { align: 'right' });
+    doc.text(`$${freight.toFixed(2)}`, docWidth - margin, totalsY + 7, { align: 'right' });
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(RED);
+    doc.text(`$${total.toFixed(2)}`, docWidth - margin, totalsY + 21, { align: 'right' });
+    
+    let currentY = totalsY + 35;
+    doc.setTextColor(BLACK);
 
     // --- TERMS, NOTES ---
     if (quotationDetails.notes) {
@@ -260,7 +271,7 @@ export default function NewQuotationPage() {
     }
     
     // --- FOOTER AND SIGNATURE ---
-    const pageCount = doc.internal.getNumberOfPages();
+    const pageCount = (doc as any).internal.getNumberOfPages();
     for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         const isLastPage = i === pageCount;
@@ -272,16 +283,16 @@ export default function NewQuotationPage() {
             // Add a new page if the content + signature block will overflow
             if (currentY > sigY && i === (doc as any).internal.getCurrentPageInfo().pageNumber) {
                 doc.addPage();
-                // Redefine page count as we have added a new page
-                const newPageCount = doc.internal.getNumberOfPages();
+                const newPageCount = (doc as any).internal.getNumberOfPages();
                 doc.setPage(newPageCount);
-                currentY = margin; 
                 sigY = pageHeight - 55;
             }
             
-            doc.line(margin, sigY, docWidth / 2 - margin, sigY);
+            const sigWidth = 80;
+            const sigXStart = (docWidth - sigWidth) / 2;
+            doc.line(sigXStart, sigY, sigXStart + sigWidth, sigY);
             doc.setFontSize(9);
-            doc.text('APPROVAL SIGNATURE', margin, sigY + 5);
+            doc.text('APPROVAL SIGNATURE', docWidth / 2, sigY + 5, { align: 'center' });
         }
 
         doc.setDrawColor(RED);
@@ -292,10 +303,15 @@ export default function NewQuotationPage() {
         doc.setTextColor(100);
         const footerText = `PAISANOSALES@GMAIL.COM | 915 408 7478 | WWW.PAISANOTRAILER.COM`;
         doc.text(footerText, docWidth / 2, footerY + 8, { align: 'center' });
-        doc.text(`PAGE ${i} OF ${doc.internal.getNumberOfPages()}`, docWidth - margin, footerY + 8, { align: 'right' });
+        doc.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerY + 8, { align: 'right' });
     }
 
     doc.save(`QUOTATION-${selectedClient.clientName.replace(/\s/g, '_')}-${quotationDetails.number}.pdf`);
+
+    setQuotationDetails(prev => ({
+        ...prev,
+        number: `QT-${Date.now().toString().slice(-6)}`
+    }));
   };
 
   return (
