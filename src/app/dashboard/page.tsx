@@ -11,7 +11,6 @@ import { collection, query, where, orderBy, limit, doc } from 'firebase/firestor
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TrendingUp, FileText, DollarSign, UserX, Clock, Target } from 'lucide-react';
 import { DashboardCharts } from '@/components/dashboard-charts';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,35 +19,10 @@ import React from 'react';
 export default function DashboardPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
     const firestore = useFirestore();
-    // Default the filter to 'all', which we'll treat as the manager's own view.
-    const [selectedUserId, setSelectedUserId] = React.useState('all');
 
-    const userProfileRef = useMemoFirebase(() => {
-        if (!user) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [firestore, user]);
-    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
-
-    const isManagerView = userProfile && userProfile.role?.toLowerCase() === 'manager';
-
-    const usersQuery = useMemoFirebase(() => {
-      if (!isManagerView) return null;
-      return query(collection(firestore, 'users'));
-    }, [firestore, isManagerView]);
-    const { data: users, isLoading: areUsersLoading } = useCollection(usersQuery);
-
-    // This is the single, safe user ID we will use for all queries.
-    // - For sellers, it's always their own user ID.
-    // - For managers, it's the ID of the seller they select from the dropdown.
-    // - If a manager selects "All Sellers", we use the manager's own user ID as a safe default to prevent permission errors.
-    const activeUserId = React.useMemo(() => {
-        if (!user) return null;
-        if (isManagerView) {
-            return selectedUserId === 'all' ? user.uid : selectedUserId;
-        }
-        return user.uid;
-    }, [user, isManagerView, selectedUserId]);
-
+    // All queries will now be based directly on the logged-in user's ID.
+    // This ensures stability and compliance with security rules.
+    const activeUserId = user?.uid;
 
     const opportunitiesQuery = useMemoFirebase(() => {
         if (!activeUserId) return null;
@@ -74,14 +48,12 @@ export default function DashboardPage() {
     }, [firestore, activeUserId]);
     const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
     
-    // This map is derived from the `leads` query which is already safely filtered.
-    // This avoids making a separate, potentially unsafe query for lead details.
     const leadsMap = React.useMemo(() => {
         if (!leads) return new Map();
         return new Map((leads as any[]).map(lead => [lead.id, lead]));
     }, [leads]);
 
-    const isLoading = isUserAuthLoading || isProfileLoading || (isManagerView && areUsersLoading) || areOppsLoading || areLeadsLoading || areQuotsLoading || areActivitiesLoading;
+    const isLoading = isUserAuthLoading || areOppsLoading || areLeadsLoading || areQuotsLoading || areActivitiesLoading;
 
     const dashboardStats = React.useMemo(() => {
         if (!opportunities || !quotations || !leads || !activities) {
@@ -131,26 +103,10 @@ export default function DashboardPage() {
         };
     }, [opportunities, quotations, leads, activities]);
 
-    const isFilterable = userProfile && userProfile.role?.toLowerCase() === 'manager';
-
     return (
         <div className="grid gap-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-headline font-bold">Panel de Estadísticas</h1>
-                {isFilterable && (
-                  <Select value={selectedUserId} onValueChange={setSelectedUserId} disabled={areUsersLoading}>
-                    <SelectTrigger className="w-[220px]">
-                      <SelectValue placeholder="Filtrar por usuario..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Mis Estadísticas</SelectItem>
-                      {users?.map((u: any) => {
-                        if (u.id === user?.uid) return null; // Don't show manager in the list again
-                        return <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>
-                      })}
-                    </SelectContent>
-                  </Select>
-                )}
             </div>
             {isLoading ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

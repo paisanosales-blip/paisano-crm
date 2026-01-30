@@ -20,9 +20,12 @@ service cloud.firestore {
     // User Profiles
     // =====================================================================
     match /users/{userId} {
+      // A user can get their own profile. A manager can get any profile. This is safe.
       allow get: if isManager() || request.auth.uid == userId;
-      allow list: if isSignedIn();
+      // Listing users is only allowed for managers (e.g., for the user management page).
+      allow list: if isManager();
       allow create: if request.auth.uid == userId;
+      // Only a manager can change roles or update other users.
       allow update: if isManager() || request.auth.uid == userId;
       allow delete: if isManager() && request.auth.uid != userId;
     }
@@ -31,41 +34,30 @@ service cloud.firestore {
     // Business Data Collections (Leads, Opportunities, etc.)
     // =====================================================================
     match /leads/{leadId} {
-      // For 'list' operations, we allow any signed-in user to attempt a query.
-      // The security is then enforced by the queries in the application code,
-      // which MUST include `where('sellerId', '==', request.auth.uid)` for non-managers.
-      // This permissive rule is necessary to allow 'manager' users to query across all sellers.
-      allow list: if isSignedIn();
-      
-      // For single-document reads ('get') and writes ('update', 'delete'), we can enforce ownership.
-      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
-      
+      // A user can read a lead document if their UID is on it.
+      allow read: if request.auth.uid == resource.data.sellerId;
       // A user can create a lead if they set themselves as the seller.
       allow create: if request.resource.data.sellerId == request.auth.uid;
-      
-      // A manager can update anything. A seller can update their own doc, but cannot change the owner.
-      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId);
+      // A manager can update/delete anything. A seller can only update/delete their own docs.
+      allow update, delete: if isManager() || request.auth.uid == resource.data.sellerId;
     }
     
     match /opportunities/{opportunityId} {
-      allow list: if isSignedIn();
-      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow read: if request.auth.uid == resource.data.sellerId;
       allow create: if request.resource.data.sellerId == request.auth.uid;
-      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId);
+      allow update, delete: if isManager() || request.auth.uid == resource.data.sellerId;
     }
 
     match /quotations/{quotationId} {
-      allow list: if isSignedIn();
-      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow read: if request.auth.uid == resource.data.sellerId;
       allow create: if request.resource.data.sellerId == request.auth.uid;
-      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId);
+      allow update, delete: if isManager() || request.auth.uid == resource.data.sellerId;
     }
 
     match /activities/{activityId} {
-      allow list: if isSignedIn();
-      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow read: if request.auth.uid == resource.data.sellerId;
       allow create: if request.resource.data.sellerId == request.auth.uid;
-      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId);
+      allow update, delete: if isManager() || request.auth.uid == resource.data.sellerId;
     }
   }
 }
