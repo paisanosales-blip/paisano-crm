@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import React, { useState, useMemo } from 'react';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,10 +10,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Trash2, PlusCircle, FileDown, Settings } from 'lucide-react';
-import { PaisanoLogoFull } from '@/components/paisano-logo-full';
 import { QuotationDetailsDialog, type QuotationDetails } from '@/components/quotation-details-dialog';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+
+interface jsPDFWithAutoTable extends jsPDF {
+  autoTable: (options: any) => jsPDF;
+}
 
 type Product = {
   description: string;
@@ -32,6 +35,12 @@ type Client = {
 export default function NewQuotationPage() {
   const { user } = useUser();
   const firestore = useFirestore();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userProfile } = useDoc(userProfileRef);
 
   const leadsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -90,46 +99,72 @@ export default function NewQuotationPage() {
       return;
     }
 
-    const doc = new jsPDF();
-    const docWidth = doc.internal.pageSize.getWidth();
+    const doc = new jsPDF() as jsPDFWithAutoTable;
+    const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+    const docWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
     let finalY = 0;
 
-    // Add Logo
-    doc.addImage(PaisanoLogoFull, 'PNG', 15, 15, 60, 20);
-    
-    // Company Info
-    doc.setFontSize(10);
-    doc.text('PAISANO TRAILER MANUFACTURING LLC', docWidth - 15, 20, { align: 'right' });
-    doc.text('8410 W University, Odessa, TX, 79764', docWidth - 15, 25, { align: 'right' });
-    doc.text('Phone: 432-305-1972', docWidth - 15, 30, { align: 'right' });
-    doc.text('Email: sales@paisanotrailer.com', docWidth - 15, 35, { align: 'right' });
+    const logoUrl = localStorage.getItem('sidebarLogo');
 
-    // Quotation Title
+    // Header
+    doc.setFillColor(20, 20, 20); // Black
+    doc.rect(0, 0, docWidth, 35, 'F');
+
+    if (logoUrl) {
+        try {
+            const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
+            doc.addImage(logoUrl, format.toUpperCase(), 15, 5, 50, 25);
+        } catch (e) {
+            console.error("Error adding logo image to PDF:", e);
+        }
+    }
+    
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255); // White
+    doc.setFont('helvetica', 'bold');
+    doc.text('PAISANO TRAILER MANUFACTURING', docWidth - 15, 12, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.text('paisanosales@gmail.com', docWidth - 15, 18, { align: 'right' });
+    doc.text('915 408 7478', docWidth - 15, 24, { align: 'right' });
+    doc.text('www.paisanotrailer.com', docWidth - 15, 30, { align: 'right' });
+    
+
+    // Title
     doc.setFontSize(22);
+    doc.setTextColor(0, 0, 0); // Black
     doc.setFont('helvetica', 'bold');
     doc.text('COTIZACIÓN', 15, 50);
-    doc.setLineWidth(0.5);
-    doc.line(15, 52, docWidth - 15, 52);
 
+    // Info sections
+    const infoStartY = 60;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('VENDIDO A:', 15, infoStartY);
+    doc.text('VENDEDOR:', docWidth / 2, infoStartY);
+
+    doc.setLineWidth(0.2);
+    doc.line(15, infoStartY + 2, docWidth - 15, infoStartY + 2);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    
     // Client Info
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Cliente:', 15, 60);
-    doc.setFont('helvetica', 'normal');
-    doc.text(selectedClient.clientName, 15, 67);
-    doc.text(`Attn: ${selectedClient.contactPerson}`, 15, 74);
-    doc.text(selectedClient.email || '', 15, 81);
-    doc.text(selectedClient.phone || '', 15, 88);
-
+    doc.text(selectedClient.clientName, 15, infoStartY + 8);
+    doc.text(`Attn: ${selectedClient.contactPerson}`, 15, infoStartY + 13);
+    if(selectedClient.email) doc.text(selectedClient.email, 15, infoStartY + 18);
+    if(selectedClient.phone) doc.text(selectedClient.phone, 15, infoStartY + 23);
+    
+    // Seller Info
+    if (userProfile) {
+        doc.text(`${userProfile.firstName} ${userProfile.lastName}`, docWidth / 2, infoStartY + 8);
+        doc.text(userProfile.email || '', docWidth / 2, infoStartY + 13);
+    }
+    
     // Quotation Details
-    doc.setFont('helvetica', 'bold');
-    doc.text('Cotización #:', docWidth - 60, 60);
-    doc.text('Fecha:', docWidth - 60, 67);
-    doc.text('Validez:', docWidth - 60, 74);
-    doc.setFont('helvetica', 'normal');
-    doc.text(quotationDetails.number, docWidth - 15, 60, { align: 'right' });
-    doc.text(new Date().toLocaleDateString('es-MX'), docWidth - 15, 67, { align: 'right' });
-    doc.text(quotationDetails.validity, docWidth - 15, 74, { align: 'right' });
+    doc.text(`COTIZACIÓN #: ${quotationDetails.number}`, docWidth - 15, infoStartY + 8, { align: 'right' });
+    doc.text(`FECHA: ${new Date().toLocaleDateString('es-MX')}`, docWidth - 15, infoStartY + 13, { align: 'right' });
+    doc.text(`VALIDEZ: ${quotationDetails.validity}`, docWidth - 15, infoStartY + 18, { align: 'right' });
+
 
     // Products Table
     const tableColumn = ["Descripción", "Cant.", "Precio Unitario", "Total"];
@@ -145,61 +180,82 @@ export default function NewQuotationPage() {
         tableRows.push(productData);
     });
 
-    (doc as any).autoTable({
+    doc.autoTable({
         head: [tableColumn],
         body: tableRows,
-        startY: 100,
+        startY: infoStartY + 30,
         theme: 'grid',
-        headStyles: { fillColor: [139, 0, 0] },
+        headStyles: { fillColor: [139, 0, 0] }, // Deep Red
+        styles: { fontSize: 9 },
     });
     
-    // Totals
-    finalY = (doc as any).lastAutoTable.finalY;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Subtotal:', docWidth - 60, finalY + 10);
-    doc.text('Flete:', docWidth - 60, finalY + 17);
-    doc.text('Total:', docWidth - 60, finalY + 24);
+    finalY = doc.autoTable.previous.finalY;
     
+    // Totals
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
+    doc.text('Subtotal:', docWidth - 60, finalY + 10);
     doc.text(`$${subtotal.toFixed(2)}`, docWidth - 15, finalY + 10, { align: 'right' });
+
+    doc.text('Flete:', docWidth - 60, finalY + 17);
     doc.text(`$${freight.toFixed(2)}`, docWidth - 15, finalY + 17, { align: 'right' });
+    
     doc.setFont('helvetica', 'bold');
+    doc.text('Total:', docWidth - 60, finalY + 24);
     doc.text(`$${total.toFixed(2)}`, docWidth - 15, finalY + 24, { align: 'right' });
     
     finalY = finalY + 30;
 
+    let currentY = finalY + 20;
+
+    // Signature
+    doc.line(15, currentY, docWidth / 2 - 15, currentY);
+    doc.setFontSize(8);
+    doc.text('Firma de Aprobación', 15, currentY + 5);
+    currentY += 15;
+
     // Terms and Notes
     if (quotationDetails.terms) {
-      finalY += 10;
+      if (currentY + 20 > pageHeight) { // Check if new page is needed
+        doc.addPage();
+        currentY = 20;
+      }
       doc.setFont('helvetica', 'bold');
-      doc.text('Términos y Condiciones', 15, finalY);
+      doc.setFontSize(9);
+      doc.text('Términos y Condiciones', 15, currentY);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       const termsLines = doc.splitTextToSize(quotationDetails.terms, docWidth - 30);
-      doc.text(termsLines, 15, finalY + 5);
-      finalY += (termsLines.length * 4) + 5;
+      doc.text(termsLines, 15, currentY + 5);
+      currentY += (termsLines.length * 4) + 10;
     }
-
+    
     if (quotationDetails.notes) {
-      finalY += 10;
-      doc.setFontSize(10);
+       if (currentY + 20 > pageHeight) {
+        doc.addPage();
+        currentY = 20;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text('Notas Adicionales', 15, currentY);
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
       const notesLines = doc.splitTextToSize(quotationDetails.notes, docWidth - 30);
-      doc.text(notesLines, 15, finalY);
-      finalY += (notesLines.length * 5);
+      doc.text(notesLines, 15, currentY + 5);
     }
-
 
     // Footer
-    const pageCount = (doc as any).internal.getNumberOfPages();
-    for(var i = 1; i <= pageCount; i++) {
+    const pageCount = doc.internal.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
+        doc.setFillColor(20, 20, 20);
+        doc.rect(0, pageHeight - 15, docWidth, 15, 'F');
         doc.setFontSize(8);
-        doc.text(`Página ${i} de ${pageCount}`, docWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+        doc.setTextColor(255, 255, 255);
+        doc.text(`Página ${i} de ${pageCount}`, docWidth / 2, pageHeight - 7, { align: 'center' });
     }
 
-    doc.save(`Cotizacion-${selectedClient.clientName}-${quotationDetails.number}.pdf`);
+    doc.save(`Cotizacion-${selectedClient.clientName.replace(/\s/g, '_')}-${quotationDetails.number}.pdf`);
   };
 
   return (
