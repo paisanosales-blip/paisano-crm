@@ -159,7 +159,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
         });
       })
       .finally(() => {
-        form.control.reset(); // Also reset form on submit end
+        form.reset(); // Also reset form on submit end
       });
   }
   

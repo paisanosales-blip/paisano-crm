@@ -186,7 +186,7 @@ export function NewProspectDialog() {
         });
       })
       .finally(() => {
-        form.control.reset();
+        form.reset();
       });
   }
 
