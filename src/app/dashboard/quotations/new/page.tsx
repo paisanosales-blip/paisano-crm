@@ -102,71 +102,72 @@ export default function NewQuotationPage() {
     const doc = new jsPDF() as jsPDFWithAutoTable;
     const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
     const docWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
+    const margin = 15;
     let finalY = 0;
 
     const logoUrl = localStorage.getItem('sidebarLogo');
 
-    // Header
-    doc.setFillColor(20, 20, 20); // Black
-    doc.rect(0, 0, docWidth, 35, 'F');
-
+    // --- HEADER ---
     if (logoUrl) {
         try {
             const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
-            doc.addImage(logoUrl, format.toUpperCase(), 15, 5, 50, 25);
+            doc.addImage(logoUrl, format.toUpperCase(), margin, 12, 50, 25);
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
         }
     }
     
-    doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255); // White
     doc.setFont('helvetica', 'bold');
-    doc.text('PAISANO TRAILER MANUFACTURING', docWidth - 15, 12, { align: 'right' });
+    doc.setFontSize(16);
+    doc.text('PAISANO TRAILER MANUFACTURING', docWidth - margin, 20, { align: 'right' });
     doc.setFont('helvetica', 'normal');
-    doc.text('paisanosales@gmail.com', docWidth - 15, 18, { align: 'right' });
-    doc.text('915 408 7478', docWidth - 15, 24, { align: 'right' });
-    doc.text('www.paisanotrailer.com', docWidth - 15, 30, { align: 'right' });
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text('paisanosales@gmail.com', docWidth - margin, 26, { align: 'right' });
+    doc.text('915 408 7478', docWidth - margin, 30, { align: 'right' });
+    doc.text('www.paisanotrailer.com', docWidth - margin, 34, { align: 'right' });
     
+    finalY = 45;
 
-    // Title
-    doc.setFontSize(22);
-    doc.setTextColor(0, 0, 0); // Black
-    doc.setFont('helvetica', 'bold');
-    doc.text('QUOTATION', 15, 50);
+    doc.setDrawColor(220, 220, 220); // light grey
+    doc.line(margin, finalY, docWidth - margin, finalY);
 
-    // Info sections
-    const infoStartY = 60;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('SOLD TO:', 15, infoStartY);
-    doc.text('SALESPERSON:', docWidth / 2, infoStartY);
-
-    doc.setLineWidth(0.2);
-    doc.line(15, infoStartY + 2, docWidth - 15, infoStartY + 2);
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
+    // --- INFO SECTION ---
+    const infoStartY = finalY + 10;
     
     // Client Info
-    doc.text(selectedClient.clientName, 15, infoStartY + 8);
-    doc.text(`Attn: ${selectedClient.contactPerson}`, 15, infoStartY + 13);
-    if(selectedClient.email) doc.text(selectedClient.email, 15, infoStartY + 18);
-    if(selectedClient.phone) doc.text(selectedClient.phone, 15, infoStartY + 23);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    doc.text('BILL TO:', margin, infoStartY);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(selectedClient.clientName, margin, infoStartY + 6);
+    doc.text(`Attn: ${selectedClient.contactPerson}`, margin, infoStartY + 11);
+    if(selectedClient.email) doc.text(selectedClient.email, margin, infoStartY + 16);
+    if(selectedClient.phone) doc.text(selectedClient.phone, margin, infoStartY + 21);
+
+    // Quotation & Seller Info
+    const rightColX = docWidth - margin;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('QUOTATION #:', rightColX - 45, infoStartY, { align: 'left' });
+    doc.text('DATE:', rightColX - 45, infoStartY + 6, { align: 'left' });
+    doc.text('VALIDITY:', rightColX - 45, infoStartY + 12, { align: 'left' });
+    doc.text('SALESPERSON:', rightColX - 45, infoStartY + 18, { align: 'left' });
     
-    // Seller Info
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(quotationDetails.number, rightColX, infoStartY, { align: 'right' });
+    doc.text(new Date().toLocaleDateString('en-US'), rightColX, infoStartY + 6, { align: 'right' });
+    doc.text(quotationDetails.validity, rightColX, infoStartY + 12, { align: 'right' });
     if (userProfile) {
-        doc.text(`${userProfile.firstName} ${userProfile.lastName}`, docWidth / 2, infoStartY + 8);
-        doc.text(userProfile.email || '', docWidth / 2, infoStartY + 13);
+        doc.text(`${userProfile.firstName} ${userProfile.lastName}`, rightColX, infoStartY + 18, { align: 'right' });
     }
-    
-    // Quotation Details
-    doc.text(`QUOTATION #: ${quotationDetails.number}`, docWidth - 15, infoStartY + 8, { align: 'right' });
-    doc.text(`DATE: ${new Date().toLocaleDateString('en-US')}`, docWidth - 15, infoStartY + 13, { align: 'right' });
-    doc.text(`VALIDITY: ${quotationDetails.validity}`, docWidth - 15, infoStartY + 18, { align: 'right' });
 
+    finalY = infoStartY + 30;
 
-    // Products Table
+    // --- PRODUCTS TABLE ---
     const tableColumn = ["Description", "Qty.", "Unit Price", "Total"];
     const tableRows: (string | number)[][] = [];
 
@@ -183,76 +184,76 @@ export default function NewQuotationPage() {
     doc.autoTable({
         head: [tableColumn],
         body: tableRows,
-        startY: infoStartY + 30,
-        theme: 'grid',
+        startY: finalY,
+        theme: 'striped',
         headStyles: { fillColor: [139, 0, 0] }, // Deep Red
-        styles: { fontSize: 9 },
+        styles: { fontSize: 9, cellPadding: 3 },
+        margin: { left: margin, right: margin }
     });
     
     finalY = doc.autoTable.previous.finalY;
     
-    // Totals
+    // --- TOTALS ---
+    const totalsY = finalY + 10;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Subtotal:', docWidth - 60, finalY + 10);
-    doc.text(`$${subtotal.toFixed(2)}`, docWidth - 15, finalY + 10, { align: 'right' });
+    doc.text('Subtotal:', docWidth - 70, totalsY, { align: 'right' });
+    doc.text(`$${subtotal.toFixed(2)}`, docWidth - margin, totalsY, { align: 'right' });
 
-    doc.text('Freight:', docWidth - 60, finalY + 17);
-    doc.text(`$${freight.toFixed(2)}`, docWidth - 15, finalY + 17, { align: 'right' });
+    doc.text('Freight:', docWidth - 70, totalsY + 7, { align: 'right' });
+    doc.text(`$${freight.toFixed(2)}`, docWidth - margin, totalsY + 7, { align: 'right' });
     
     doc.setFont('helvetica', 'bold');
-    doc.text('Total:', docWidth - 60, finalY + 24);
-    doc.text(`$${total.toFixed(2)}`, docWidth - 15, finalY + 24, { align: 'right' });
+    doc.setFontSize(11);
+    doc.text('Total:', docWidth - 70, totalsY + 15, { align: 'right' });
+    doc.text(`$${total.toFixed(2)}`, docWidth - margin, totalsY + 15, { align: 'right' });
     
-    finalY = finalY + 30;
+    let currentY = totalsY + 30;
 
-    let currentY = finalY + 20;
-
-    // Signature
-    doc.line(15, currentY, docWidth / 2 - 15, currentY);
-    doc.setFontSize(8);
-    doc.text('Approval Signature', 15, currentY + 5);
-    currentY += 15;
-
-    // Terms and Notes
-    if (quotationDetails.terms) {
-      if (currentY + 20 > pageHeight) { // Check if new page is needed
-        doc.addPage();
-        currentY = 20;
-      }
+    // --- TERMS, NOTES, SIGNATURE ---
+    if (quotationDetails.notes) {
+       if (currentY + 20 > pageHeight) { doc.addPage(); currentY = margin; }
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
-      doc.text('Terms and Conditions', 15, currentY);
+      doc.text('Additional Notes', margin, currentY);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
-      const termsLines = doc.splitTextToSize(quotationDetails.terms, docWidth - 30);
-      doc.text(termsLines, 15, currentY + 5);
+      const notesLines = doc.splitTextToSize(quotationDetails.notes, docWidth - (margin * 2));
+      doc.text(notesLines, margin, currentY + 5);
+      currentY += (notesLines.length * 4) + 10;
+    }
+
+    if (quotationDetails.terms) {
+      if (currentY + 20 > pageHeight) { doc.addPage(); currentY = margin; }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text('Terms and Conditions', margin, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      const termsLines = doc.splitTextToSize(quotationDetails.terms, docWidth - (margin * 2));
+      doc.text(termsLines, margin, currentY + 5);
       currentY += (termsLines.length * 4) + 10;
     }
     
-    if (quotationDetails.notes) {
-       if (currentY + 20 > pageHeight) {
-        doc.addPage();
-        currentY = 20;
-      }
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.text('Additional Notes', 15, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      const notesLines = doc.splitTextToSize(quotationDetails.notes, docWidth - 30);
-      doc.text(notesLines, 15, currentY + 5);
-    }
-
-    // Footer
+    // --- FOOTER ---
     const pageCount = doc.internal.getNumberOfPages();
     for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
-        doc.setFillColor(20, 20, 20);
-        doc.rect(0, pageHeight - 15, docWidth, 15, 'F');
+        const isLastPage = i === pageCount;
+        
+        if (isLastPage) {
+            // Add signature only on last page
+            let sigY = pageHeight - 50;
+            if (currentY > sigY) sigY = currentY + 10; // make sure it doesn't overlap
+            
+            doc.line(margin, sigY, docWidth / 2 - margin, sigY);
+            doc.setFontSize(8);
+            doc.text('Approval Signature', margin, sigY + 5);
+        }
+        
         doc.setFontSize(8);
-        doc.setTextColor(255, 255, 255);
-        doc.text(`Page ${i} of ${pageCount}`, docWidth / 2, pageHeight - 7, { align: 'center' });
+        doc.setTextColor(150);
+        doc.text(`Page ${i} of ${pageCount}`, docWidth / 2, pageHeight - margin + 5, { align: 'center' });
     }
 
     doc.save(`Quotation-${selectedClient.clientName.replace(/\s/g, '_')}-${quotationDetails.number}.pdf`);
