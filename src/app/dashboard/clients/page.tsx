@@ -6,6 +6,7 @@ import {
   useFirestore,
   useCollection,
   useMemoFirebase,
+  useDoc,
 } from '@/firebase';
 import { collection, query, where, doc, getDocs, deleteDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -47,6 +48,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EditClientDialog } from '@/components/edit-client-dialog';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 export default function ClientsPage() {
@@ -59,16 +61,38 @@ export default function ClientsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>('me');
 
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore || userProfile?.role !== 'manager') return null;
+    return query(collection(firestore, 'users'));
+  }, [firestore, userProfile]);
+  const { data: allUsers, isLoading: areUsersLoading } = useCollection(usersQuery);
 
   const leadsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    // Admins/Managers could see all, but for now, sellers see their own.
-    return query(collection(firestore, 'leads'), where('sellerId', '==', user.uid));
-  }, [firestore, user]);
+    if (!user || !userProfile) return null;
+    const baseCollection = collection(firestore, 'leads');
+    const isManager = userProfile.role === 'manager';
+
+    if (isManager) {
+        if (selectedUserId === 'all') {
+            return query(baseCollection);
+        }
+        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+        return query(baseCollection, where('sellerId', '==', userIdToFilter));
+    }
+    
+    return query(baseCollection, where('sellerId', '==', user.uid));
+  }, [firestore, user, userProfile, selectedUserId]);
 
   const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
-  const isLoading = isUserAuthLoading || areLeadsLoading;
+  const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areLeadsLoading;
 
   const handleEditClick = (client: any) => {
     setSelectedClient(client);
@@ -162,6 +186,24 @@ export default function ClientsPage() {
       <div className="grid gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-headline font-bold">Clientes</h1>
+           <div className="flex items-center gap-4">
+              {userProfile?.role === 'manager' && (
+                  <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
+                      <SelectTrigger className="w-[220px]">
+                          <SelectValue placeholder="Seleccionar vendedor..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                          <SelectItem value="me">Mis Clientes</SelectItem>
+                          <SelectItem value="all">Todos los Clientes</SelectItem>
+                          {allUsers?.filter(u => u.id !== user?.uid).map((u: any) => (
+                              <SelectItem key={u.id} value={u.id}>
+                                  {`${u.firstName} ${u.lastName}`}
+                              </SelectItem>
+                          ))}
+                      </SelectContent>
+                  </Select>
+              )}
+            </div>
         </div>
         <Card>
           <CardHeader>

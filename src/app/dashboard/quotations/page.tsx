@@ -1,13 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   useUser,
   useFirestore,
   useCollection,
   useMemoFirebase,
+  useDoc,
 } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,36 +16,81 @@ import { MoreHorizontal, PlusCircle, FileDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 export default function QuotationsPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
     const firestore = useFirestore();
+    const [selectedUserId, setSelectedUserId] = useState<string>('me');
+
+    const userProfileRef = useMemoFirebase(() => {
+      if (!user) return null;
+      return doc(firestore, 'users', user.uid);
+    }, [firestore, user]);
+    const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
+    const usersQuery = useMemoFirebase(() => {
+        if (!firestore || userProfile?.role !== 'manager') return null;
+        return query(collection(firestore, 'users'));
+    }, [firestore, userProfile]);
+    const { data: allUsers, isLoading: areUsersLoading } = useCollection(usersQuery);
 
     // Query for quotations
     const quotationsQuery = useMemoFirebase(() => {
-        if (!user) return null;
-        return query(collection(firestore, 'quotations'), where('sellerId', '==', user.uid));
-    }, [firestore, user]);
+        if (!user || !userProfile) return null;
+        const baseCollection = collection(firestore, 'quotations');
+        const isManager = userProfile.role === 'manager';
+    
+        if (isManager) {
+            if (selectedUserId === 'all') {
+                return query(baseCollection);
+            }
+            const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+            return query(baseCollection, where('sellerId', '==', userIdToFilter));
+        }
+        
+        return query(baseCollection, where('sellerId', '==', user.uid));
+    }, [firestore, user, userProfile, selectedUserId]);
     const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
     // Query for opportunities to link quotations to leads
     const opportunitiesQuery = useMemoFirebase(() => {
-        if (!user) return null;
-        // Fetch all opportunities for the seller to create a map
-        return query(collection(firestore, 'opportunities'), where('sellerId', '==', user.uid));
-    }, [firestore, user]);
+        if (!user || !userProfile) return null;
+        const baseCollection = collection(firestore, 'opportunities');
+        const isManager = userProfile.role === 'manager';
+
+        if (isManager) {
+            if (selectedUserId === 'all') {
+                return query(baseCollection);
+            }
+            const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+            return query(baseCollection, where('sellerId', '==', userIdToFilter));
+        }
+        
+        return query(baseCollection, where('sellerId', '==', user.uid));
+    }, [firestore, user, userProfile, selectedUserId]);
     const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
 
     // Query for leads to get client names
     const leadsQuery = useMemoFirebase(() => {
-        if (!user) return null;
-        // Fetch all leads for the seller to create a map
-        return query(collection(firestore, 'leads'), where('sellerId', '==', user.uid));
-    }, [firestore, user]);
+        if (!user || !userProfile) return null;
+        const baseCollection = collection(firestore, 'leads');
+        const isManager = userProfile.role === 'manager';
+
+        if (isManager) {
+            if (selectedUserId === 'all') {
+                return query(baseCollection);
+            }
+            const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+            return query(baseCollection, where('sellerId', '==', userIdToFilter));
+        }
+        
+        return query(baseCollection, where('sellerId', '==', user.uid));
+    }, [firestore, user, userProfile, selectedUserId]);
     const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
 
-    const isLoading = isUserAuthLoading || areQuotsLoading || areOppsLoading || areLeadsLoading;
+    const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areQuotsLoading || areOppsLoading || areLeadsLoading;
 
     // Memoize the joined data to avoid re-computation on every render
     const enrichedQuotations = React.useMemo(() => {
@@ -68,10 +114,28 @@ export default function QuotationsPage() {
         <div className="grid gap-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-headline font-bold">Cotizaciones</h1>
-                <Button disabled>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Nueva Cotización
-                </Button>
+                <div className="flex items-center gap-4">
+                    {userProfile?.role === 'manager' && (
+                        <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
+                            <SelectTrigger className="w-[220px]">
+                                <SelectValue placeholder="Seleccionar vendedor..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="me">Mis Cotizaciones</SelectItem>
+                                <SelectItem value="all">Todas las Cotizaciones</SelectItem>
+                                {allUsers?.filter(u => u.id !== user?.uid).map((u: any) => (
+                                    <SelectItem key={u.id} value={u.id}>
+                                        {`${u.firstName} ${u.lastName}`}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                    <Button disabled>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Nueva Cotización
+                    </Button>
+                </div>
             </div>
             <Card>
                 <CardHeader>
