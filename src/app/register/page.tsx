@@ -70,6 +70,7 @@ export default function RegisterPage() {
         email: newUser.email,
         phone: '',
         role: 'seller', // Default role for new users
+        avatarUrl: '',
       };
 
       const userDocRef = doc(firestore, 'users', newUser.uid);

@@ -34,6 +34,11 @@
         "role": {
           "type": "string",
           "description": "The user's role (Admin, Seller, Manager)."
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "URL of the user's profile picture.",
+          "format": "uri"
         }
       },
       "required": [
