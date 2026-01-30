@@ -151,14 +151,28 @@ export default function PipelinePage() {
     const { observations, nextContactDate, nextContactType, contactChannels, ...checklist } = payload;
     
     try {
-      // 1. Update Opportunity stage with checklist data
+      // 1. Update Opportunity with checklist data
       const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
+      
       const updateData: any = { 
-        stage: 'Envió de Información',
         ...checklist,
       };
+
+      // Only move the stage forward if it's the first time
+      const isStageChange = currentProspect.opportunity.stage === 'Primer contacto';
+      if (isStageChange) {
+        updateData.stage = 'Envió de Información';
+      }
+
       await updateDoc(opportunityRef, updateData);
-      toast({ title: 'Éxito', description: `Prospecto movido a: Envió de Información` });
+      
+      toast({ 
+        title: 'Éxito', 
+        description: isStageChange 
+          ? `Prospecto movido a: Envió de Información` 
+          : 'Resumen de información actualizado.'
+      });
+
 
       // 2. Create a new Activity for the follow-up if provided
       if (nextContactDate && nextContactType && observations) {
