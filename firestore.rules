@@ -7,10 +7,6 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
     function getUserData() {
       // It's safer to check for existence before accessing data
       return exists(/databases/$(database)/documents/users/$(request.auth.uid))
@@ -20,12 +16,12 @@ service cloud.firestore {
 
     function isAdmin() {
       let userData = getUserData();
-      return isSignedIn() && userData != null && (userData.role == 'Admin' || userData.role == 'admin');
+      return isSignedIn() && userData != null && 'role' in userData && userData.role.lower() == 'admin';
     }
 
     function isManager() {
       let userData = getUserData();
-      return isSignedIn() && userData != null && userData.role == 'Manager';
+      return isSignedIn() && userData != null && 'role' in userData && userData.role.lower() == 'manager';
     }
 
     function isAdminOrManager() {
@@ -33,9 +29,9 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if isSignedIn() && (isOwner(userId) || isAdminOrManager());
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdminOrManager());
       allow list: if isSignedIn();
-      allow create: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && request.auth.uid == userId;
       // Any signed-in user can update any other user's profile, including their role.
       allow update: if isSignedIn();
       allow delete: if isAdmin() && request.auth.uid != userId;
