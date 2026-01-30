@@ -29,6 +29,7 @@ export type Opportunity = {
   value: number;
   currency: 'USD' | 'MXN';
   closeDate: string;
+  createdDate?: string;
   sentPrices?: boolean;
   sentTechnicalInfo?: boolean;
   sentCompanyInfo?: boolean;

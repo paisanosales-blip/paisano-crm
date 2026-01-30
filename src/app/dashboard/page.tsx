@@ -7,11 +7,12 @@ import {
   useCollection,
   useMemoFirebase,
 } from '@/firebase';
-import { collection, query, where, orderBy, limit, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, doc, Query } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Users, TrendingUp, UserCheck, Target } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TrendingUp, FileText, DollarSign, UserX, Clock, Target, Users } from 'lucide-react';
 import { DashboardCharts } from '@/components/dashboard-charts';
 import { Skeleton } from '@/components/ui/skeleton';
 import React from 'react';
@@ -19,116 +20,174 @@ import React from 'react';
 export default function DashboardPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
     const firestore = useFirestore();
+    const [selectedUserId, setSelectedUserId] = React.useState('all');
 
     const userProfileRef = useMemoFirebase(() => {
         if (!user) return null;
         return doc(firestore, 'users', user.uid);
     }, [firestore, user]);
     const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
-    
-    // Fetch opportunities
-    const opportunitiesQuery = useMemoFirebase(() => {
+
+    const usersQuery = useMemoFirebase(() => {
+      if (!userProfile || userProfile.role?.toLowerCase() === 'seller') return null;
+      return query(collection(firestore, 'users'));
+    }, [firestore, userProfile]);
+    const { data: users, isLoading: areUsersLoading } = useCollection(usersQuery);
+
+    const buildFilteredQuery = (collectionName: string) => {
+      return useMemoFirebase(() => {
         if (!user || !userProfile) return null;
+
+        const baseQuery = collection(firestore, collectionName);
+
         if (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') {
-            return query(collection(firestore, 'opportunities'));
+            if (selectedUserId === 'all') {
+                return query(baseQuery);
+            }
+            return query(baseQuery, where('sellerId', '==', selectedUserId));
         }
-        return query(collection(firestore, 'opportunities'), where('sellerId', '==', user.uid));
-    }, [firestore, user, userProfile]);
+        // Sellers always see their own data
+        return query(baseQuery, where('sellerId', '==', user.uid));
+      }, [firestore, user, userProfile, selectedUserId]);
+    };
+    
+    // Fetch data based on filter
+    const opportunitiesQuery = buildFilteredQuery('opportunities');
     const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
     
-    // Fetch recent activities
+    const leadsQuery = buildFilteredQuery('leads');
+    const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
+    
+    const quotationsQuery = buildFilteredQuery('quotations');
+    const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
+
     const activitiesQuery = useMemoFirebase(() => {
         if (!user || !userProfile) return null;
+        const baseQuery = collection(firestore, 'activities');
+        let finalQuery;
+
         if (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') {
-            return query(collection(firestore, 'activities'), orderBy('createdDate', 'desc'), limit(5));
+            if (selectedUserId === 'all') {
+                finalQuery = query(baseQuery, orderBy('createdDate', 'desc'), limit(5));
+            } else {
+                finalQuery = query(baseQuery, where('sellerId', '==', selectedUserId), orderBy('createdDate', 'desc'), limit(5));
+            }
+        } else {
+            finalQuery = query(baseQuery, where('sellerId', '==', user.uid), orderBy('createdDate', 'desc'), limit(5));
         }
-        return query(collection(firestore, 'activities'), where('sellerId', '==', user.uid), orderBy('createdDate', 'desc'), limit(5));
-    }, [firestore, user, userProfile]);
+        return finalQuery;
+    }, [firestore, user, userProfile, selectedUserId]);
     const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
 
-    // Fetch all leads to map activities to client names
-    const leadsQuery = useMemoFirebase(() => {
-        if (!user || !userProfile) return null;
-        if (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') {
-            return query(collection(firestore, 'leads'));
-        }
-        return query(collection(firestore, 'leads'), where('sellerId', '==', user.uid));
-    }, [firestore, user, userProfile]);
-    const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
+    // This query is for the recent activity log to map leadId to clientName. It needs to see all leads if the user is an admin viewing all activity.
+    const allLeadsForActivityQuery = useMemoFirebase(() => {
+      if (!user) return null;
+      return collection(firestore, 'leads');
+    }, [firestore, user]);
+    const { data: allLeads, isLoading: areAllLeadsLoading } = useCollection(allLeadsForActivityQuery);
 
-    const isLoading = isUserAuthLoading || isProfileLoading || areOppsLoading || areActivitiesLoading || areLeadsLoading;
+    const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areOppsLoading || areLeadsLoading || areQuotsLoading || areActivitiesLoading || areAllLeadsLoading;
 
     const leadsMap = React.useMemo(() => {
-        if (!leads) return new Map();
-        return new Map((leads as any[]).map(lead => [lead.id, lead]));
-    }, [leads]);
+        if (!allLeads) return new Map();
+        return new Map((allLeads as any[]).map(lead => [lead.id, lead]));
+    }, [allLeads]);
 
     const dashboardStats = React.useMemo(() => {
-        if (!opportunities) {
+        if (!opportunities || !quotations || !leads || !activities) {
             return {
                 totalOpportunities: 0,
-                activeProspects: 0,
-                potentialClients: 0,
                 closingRate: 0,
+                generatedQuotations: 0,
+                totalQuotedValue: 0,
+                leadsWithoutFollowUp: 0,
+                avgQuotationResponseTime: 'N/A',
             };
         }
         
         const totalOpportunities = opportunities.length;
         const closedWon = opportunities.filter(o => o.stage === 'Cierre de venta').length;
-        const activeProspects = opportunities.filter(o => o.stage === 'Primer contacto' || o.stage === 'Envió de Información').length;
-        const potentialClients = opportunities.filter(o => o.stage === 'Envió de Cotización' || o.stage === 'Negociación').length;
         const closingRate = totalOpportunities > 0 ? (closedWon / totalOpportunities) * 100 : 0;
+        
+        const generatedQuotations = quotations.length;
+        const totalQuotedValue = quotations.reduce((sum, q) => sum + q.value, 0);
+
+        const followedUpLeadIds = new Set(activities.map(a => a.leadId));
+        const leadsWithoutFollowUp = leads.filter(l => !followedUpLeadIds.has(l.id)).length;
+
+        const opportunitiesMap = new Map(opportunities.map(o => [o.id, o]));
+        const responseTimes = quotations.map(q => {
+            const opp = opportunitiesMap.get(q.opportunityId);
+            if (opp && opp.infoSentDate && q.createdDate) {
+                const quoteDate = new Date(q.createdDate).getTime();
+                const infoDate = new Date(opp.infoSentDate).getTime();
+                if (quoteDate > infoDate) {
+                    return (quoteDate - infoDate) / (1000 * 60 * 60); // Time in hours
+                }
+            }
+            return null;
+        }).filter((t): t is number => t !== null);
+
+        const avgHours = responseTimes.length > 0 ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length : 0;
+        const avgQuotationResponseTime = responseTimes.length > 0 ? `${avgHours.toFixed(1)} horas` : 'N/A';
 
         return {
             totalOpportunities,
-            activeProspects,
-            potentialClients,
             closingRate: parseFloat(closingRate.toFixed(1)),
+            generatedQuotations,
+            totalQuotedValue,
+            leadsWithoutFollowUp,
+            avgQuotationResponseTime,
         };
-    }, [opportunities]);
+    }, [opportunities, quotations, leads, activities]);
+
+    const isFilterable = userProfile && (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager');
 
     return (
         <div className="grid gap-6">
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-headline font-bold">Panel de Estadísticas</h1>
+                {isFilterable && (
+                  <Select value={selectedUserId} onValueChange={setSelectedUserId} disabled={areUsersLoading}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Filtrar por usuario..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos los Vendedores</SelectItem>
+                      {users?.map((u: any) => (
+                        <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+            </div>
             {isLoading ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <Skeleton className="h-28 w-full" />
-                    <Skeleton className="h-28 w-full" />
-                    <Skeleton className="h-28 w-full" />
-                    <Skeleton className="h-28 w-full" />
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {Array.from({length: 6}).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
                 </div>
             ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Oportunidades Totales</CardTitle>
-                            <Target className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-medium">Cotizaciones Generadas</CardTitle>
+                            <FileText className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{dashboardStats.totalOpportunities}</div>
-                            <p className="text-xs text-muted-foreground">En tu flujo de ventas</p>
+                            <div className="text-2xl font-bold">{dashboardStats.generatedQuotations}</div>
+                            <p className="text-xs text-muted-foreground">En el período seleccionado</p>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Prospectos Activos</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-medium">Valor Total Cotizado</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{dashboardStats.activeProspects}</div>
-                            <p className="text-xs text-muted-foreground">En contacto e información</p>
+                            <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dashboardStats.totalQuotedValue)}</div>
+                            <p className="text-xs text-muted-foreground">Suma de todas las cotizaciones</p>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Clientes Potenciales</CardTitle>
-                            <UserCheck className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{dashboardStats.potentialClients}</div>
-                            <p className="text-xs text-muted-foreground">En cotización y negociación</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
+                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Tasa de Cierre</CardTitle>
                             <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -136,6 +195,36 @@ export default function DashboardPage() {
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.closingRate}%</div>
                             <p className="text-xs text-muted-foreground">De todas las oportunidades</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Leads sin Seguimiento</CardTitle>
+                            <UserX className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{dashboardStats.leadsWithoutFollowUp}</div>
+                            <p className="text-xs text-muted-foreground">Prospectos sin actividad registrada</p>
+                        </CardContent>
+                    </Card>
+                     <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Tiempo Promedio de Cotización</CardTitle>
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{dashboardStats.avgQuotationResponseTime}</div>
+                            <p className="text-xs text-muted-foreground">Desde envío de info a cotización</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Oportunidades Totales</CardTitle>
+                            <Target className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{dashboardStats.totalOpportunities}</div>
+                            <p className="text-xs text-muted-foreground">En el flujo de ventas</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -146,7 +235,7 @@ export default function DashboardPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Actividad Reciente</CardTitle>
-                    <CardDescription>Un registro de las últimas interacciones y notas.</CardDescription>
+                    <CardDescription>Un registro de las últimas interacciones y notas del equipo.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>

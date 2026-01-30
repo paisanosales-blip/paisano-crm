@@ -159,6 +159,7 @@ export function NewProspectDialog() {
           value: 0,
           currency: 'USD',
           probability: 10,
+          createdDate: new Date().toISOString(),
           expectedCloseDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
         };
         // The second write is chained

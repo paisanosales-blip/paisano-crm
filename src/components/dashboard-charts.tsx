@@ -24,6 +24,15 @@ const pipelineConfig = {
     'Cierre de venta': { label: 'Cierre', color: 'hsl(var(--chart-5))' },
 } satisfies ChartConfig;
 
+const prospectSourceConfig = {
+    count: { label: 'Prospectos' },
+    'REDESSOCIALES': { label: 'Redes Sociales', color: 'hsl(var(--chart-1))' },
+    'PUBLICIDAD': { label: 'Publicidad', color: 'hsl(var(--chart-2))' },
+    'BUSQUEDAENGOOGLE': { label: 'Búsqueda en Google', color: 'hsl(var(--chart-3))' },
+    'BUSQUEDAENMAPS': { label: 'Búsqueda en Maps', color: 'hsl(var(--chart-4))' },
+    'Desconocido': { label: 'Desconocido', color: 'hsl(var(--chart-5))' },
+} satisfies ChartConfig;
+
 interface DashboardChartsProps {
     opportunities: any[] | null;
     leads: any[] | null;
@@ -68,18 +77,37 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
         }));
     }, [opportunities]);
 
+     const prospectSourceData = React.useMemo(() => {
+        if (!leads) return [];
+        const sourceCounts = leads.reduce((acc, lead) => {
+            const source = lead.contactMethod || 'Desconocido';
+            acc[source] = (acc[source] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        return Object.entries(sourceCounts).map(([source, count]) => {
+            const configKey = source.replace(/\s+/g, '').toUpperCase();
+            return {
+                source,
+                count,
+                fill: prospectSourceConfig[configKey as keyof typeof prospectSourceConfig]?.color || 'hsl(var(--muted))',
+            };
+        });
+    }, [leads]);
+
     if (isLoading) {
         return (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-                <Skeleton className="lg:col-span-4 h-[400px]" />
                 <Skeleton className="lg:col-span-3 h-[400px]" />
+                <Skeleton className="lg:col-span-2 h-[400px]" />
+                <Skeleton className="lg:col-span-2 h-[400px]" />
             </div>
         )
     }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
+    <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-7">
+        <Card className="lg:col-span-3">
             <CardHeader>
                 <CardTitle>Ventas por Región</CardTitle>
                 <CardDescription>Un vistazo al rendimiento de ventas en diferentes regiones.</CardDescription>
@@ -117,10 +145,51 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                  )}
             </CardContent>
         </Card>
-        <Card className="lg:col-span-3">
+        <Card className="lg:col-span-2">
             <CardHeader>
-                <CardTitle>Resumen del Flujo de Ventas</CardTitle>
-                <CardDescription>Distribución actual de oportunidades en el flujo de ventas.</CardDescription>
+                <CardTitle>Fuente de Prospectos</CardTitle>
+                <CardDescription>Canales de origen de los prospectos.</CardDescription>
+            </CardHeader>
+            <CardContent className="pl-2">
+                 {prospectSourceData.length > 0 ? (
+                    <ChartContainer config={prospectSourceConfig} className="h-[300px] w-full">
+                        <BarChart
+                            accessibilityLayer
+                            data={prospectSourceData}
+                            layout="vertical"
+                            margin={{ left: 10 }}
+                        >
+                            <CartesianGrid horizontal={false} />
+                            <YAxis
+                                dataKey="source"
+                                type="category"
+                                tickLine={false}
+                                axisLine={false}
+                                tickMargin={10}
+                                tickFormatter={(value) => {
+                                    const configKey = value.replace(/\s+/g, '').toUpperCase();
+                                    return prospectSourceConfig[configKey as keyof typeof prospectSourceConfig]?.label || value;
+                                }}
+                            />
+                            <XAxis dataKey="count" type="number" hide />
+                            <ChartTooltip
+                                cursor={false}
+                                content={<ChartTooltipContent indicator="dot" />}
+                            />
+                            <Bar dataKey="count" radius={4} />
+                        </BarChart>
+                    </ChartContainer>
+                 ) : (
+                    <div className="h-[300px] w-full flex items-center justify-center text-muted-foreground">
+                        No hay datos de prospectos.
+                    </div>
+                 )}
+            </CardContent>
+        </Card>
+        <Card className="lg:col-span-2">
+            <CardHeader>
+                <CardTitle>Resumen del Flujo</CardTitle>
+                <CardDescription>Distribución de oportunidades.</CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-center [&>div]:h-[300px]">
                 {pipelineData.length > 0 ? (
@@ -137,7 +206,7 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                     </ChartContainer>
                 ) : (
                      <div className="h-[300px] w-full flex items-center justify-center text-muted-foreground">
-                        No hay oportunidades para mostrar.
+                        No hay oportunidades.
                     </div>
                 )}
             </CardContent>
