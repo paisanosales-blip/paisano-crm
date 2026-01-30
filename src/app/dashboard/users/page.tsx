@@ -1,16 +1,17 @@
 'use client';
 
 import React from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, doc } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, doc, updateDoc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
-const ROLES = ['seller', 'manager', 'Admin'];
+const ROLES = ['seller', 'manager'];
 
 export default function UsersPage() {
   const { user: currentUser, isUserLoading: isUserAuthLoading } = useUser();
@@ -29,7 +30,7 @@ export default function UsersPage() {
   const handleRoleChange = (userId: string, newRole: string) => {
     if (!firestore) return;
     const userDocRef = doc(firestore, 'users', userId);
-    updateDocumentNonBlocking(userDocRef, { role: newRole });
+    setDocumentNonBlocking(userDocRef, { role: newRole }, { merge: true });
     toast({
       title: 'Rol actualizado',
       description: `El rol del usuario ha sido cambiado a ${newRole}.`,
@@ -40,6 +41,28 @@ export default function UsersPage() {
     if (!firstName) return 'U';
     return `${firstName.charAt(0)}${lastName ? lastName.charAt(0) : ''}`.toUpperCase();
   };
+
+  // This check should be handled by routing/layout, but as a fallback:
+  if (!isLoading && currentUser) {
+      // A client-side check to prevent non-managers from seeing the page content
+      // In a real-world scenario, you would have a `useRole` hook or similar
+      // but for now, we'll just check if the current user is in the fetched list and has the manager role.
+      const currentUserProfile = users?.find((u: any) => u.id === currentUser.id);
+      if (currentUserProfile && currentUserProfile.role.toLowerCase() !== 'manager') {
+         return (
+          <div className="grid gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Acceso Denegado</CardTitle>
+                <CardDescription>
+                  No tienes los permisos necesarios para administrar usuarios.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        );
+      }
+  }
 
   return (
     <div className="grid gap-6">

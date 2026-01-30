@@ -34,70 +34,64 @@ export default function DashboardPage() {
     }, [firestore, userProfile]);
     const { data: users, isLoading: areUsersLoading } = useCollection(usersQuery);
 
-    const buildFilteredQuery = (collectionName: string, shouldQueryAll: boolean = false) => {
-      return useMemoFirebase(() => {
+    const isManagerView = userProfile && userProfile.role?.toLowerCase() === 'manager';
+
+    const opportunitiesQuery = useMemoFirebase(() => {
         if (!user || !userProfile) return null;
-
-        const baseQuery = collection(firestore, collectionName);
-        
-        if ((userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') && shouldQueryAll) {
-            return baseQuery;
+        const baseQuery = collection(firestore, 'opportunities');
+        if (isManagerView) {
+            if (selectedUserId === 'all') return baseQuery;
+            return query(baseQuery, where('sellerId', '==', selectedUserId));
         }
-
-        let querySellerId = user.uid; // Default to current user for safety
-        if (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') {
-            if (selectedUserId !== 'all') {
-                querySellerId = selectedUserId;
-            }
-        }
-        
-        return query(baseQuery, where('sellerId', '==', querySellerId));
-      }, [firestore, user, userProfile, selectedUserId]);
-    };
-    
-    // When an admin selects 'all', we want a global view.
-    const queryAllData = userProfile && (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') && selectedUserId === 'all';
-
-    // Fetch data based on filter
-    const opportunitiesQuery = buildFilteredQuery('opportunities', queryAllData);
+        return query(baseQuery, where('sellerId', '==', user.uid));
+    }, [firestore, user, userProfile, selectedUserId, isManagerView]);
     const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
-    
-    const leadsQuery = buildFilteredQuery('leads', queryAllData);
+
+    const leadsQuery = useMemoFirebase(() => {
+        if (!user || !userProfile) return null;
+        const baseQuery = collection(firestore, 'leads');
+        if (isManagerView) {
+            if (selectedUserId === 'all') return baseQuery;
+            return query(baseQuery, where('sellerId', '==', selectedUserId));
+        }
+        return query(baseQuery, where('sellerId', '==', user.uid));
+    }, [firestore, user, userProfile, selectedUserId, isManagerView]);
     const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
-    
-    const quotationsQuery = buildFilteredQuery('quotations', queryAllData);
+
+    const quotationsQuery = useMemoFirebase(() => {
+        if (!user || !userProfile) return null;
+        const baseQuery = collection(firestore, 'quotations');
+        if (isManagerView) {
+            if (selectedUserId === 'all') return baseQuery;
+            return query(baseQuery, where('sellerId', '==', selectedUserId));
+        }
+        return query(baseQuery, where('sellerId', '==', user.uid));
+    }, [firestore, user, userProfile, selectedUserId, isManagerView]);
     const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
     const activitiesQuery = useMemoFirebase(() => {
         if (!user || !userProfile) return null;
         const baseQuery = collection(firestore, 'activities');
-        
-        if (queryAllData) {
-            return query(baseQuery, orderBy('createdDate', 'desc'), limit(5));
+        const baseOrderedQuery = query(baseQuery, orderBy('createdDate', 'desc'), limit(5));
+
+        if (isManagerView) {
+            if (selectedUserId === 'all') return baseOrderedQuery;
+            return query(baseQuery, where('sellerId', '==', selectedUserId), orderBy('createdDate', 'desc'), limit(5));
         }
-        
-        let querySellerId = user.uid; // Default to current user
-        if (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager') {
-             if (selectedUserId !== 'all') {
-                querySellerId = selectedUserId;
-            }
-        }
-        
-        return query(baseQuery, where('sellerId', '==', querySellerId), orderBy('createdDate', 'desc'), limit(5));
-    }, [firestore, user, userProfile, selectedUserId, queryAllData]);
+        return query(baseQuery, where('sellerId', '==', user.uid), orderBy('createdDate', 'desc'), limit(5));
+    }, [firestore, user, userProfile, selectedUserId, isManagerView]);
     const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
 
     // This query is for the recent activity log to map leadId to clientName.
     const allLeadsForActivityQuery = useMemoFirebase(() => {
-      if (!user) return null;
-      // We need all leads if we're showing all activities
-      if (queryAllData) {
-          return collection(firestore, 'leads');
-      }
-      // Otherwise, just get the leads for the selected seller
-      return buildFilteredQuery('leads')();
-    }, [firestore, user, queryAllData, buildFilteredQuery]);
-
+        if (!user || !userProfile) return null;
+        const baseQuery = collection(firestore, 'leads');
+        if (isManagerView) {
+             if (selectedUserId === 'all') return baseQuery;
+             return query(baseQuery, where('sellerId', '==', selectedUserId));
+        }
+        return query(baseQuery, where('sellerId', '==', user.uid));
+    }, [firestore, user, userProfile, selectedUserId, isManagerView]);
     const { data: allLeads, isLoading: areAllLeadsLoading } = useCollection(allLeadsForActivityQuery);
 
     const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areOppsLoading || areLeadsLoading || areQuotsLoading || areActivitiesLoading || areAllLeadsLoading;
@@ -155,7 +149,7 @@ export default function DashboardPage() {
         };
     }, [opportunities, quotations, leads, activities]);
 
-    const isFilterable = userProfile && (userProfile.role?.toLowerCase() === 'admin' || userProfile.role?.toLowerCase() === 'manager');
+    const isFilterable = userProfile && userProfile.role?.toLowerCase() === 'manager';
 
     return (
         <div className="grid gap-6">
@@ -296,5 +290,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    
