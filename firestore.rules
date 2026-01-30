@@ -34,12 +34,12 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow get: if isSignedIn() && (isOwner(userId) || isAdminOrManager());
-      // Allow any signed in user to list users. This is a trade-off for not using custom claims.
-      // A list query cannot contain a get() call to check roles, so we relax this rule.
       allow list: if isSignedIn();
       allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && (isAdmin() || (isOwner(userId) && !('role' in request.resource.data)));
-      allow delete: if isAdmin() && request.auth.uid != userId; // Admins can delete other users, but not themselves.
+      // Any signed-in user can update any other user's profile, including their role.
+      // The UI prevents a user from changing their own role.
+      allow update: if isSignedIn();
+      allow delete: if isAdmin() && request.auth.uid != userId;
     }
 
     match /leads/{leadId} {

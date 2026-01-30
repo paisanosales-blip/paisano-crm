@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking, useDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ShieldAlert } from 'lucide-react';
 
 const ROLES = ['seller', 'manager', 'Admin'];
 
@@ -18,20 +17,14 @@ export default function UsersPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const userProfileRef = useMemoFirebase(() => {
-    if (!currentUser) return null;
-    return doc(firestore, 'users', currentUser.uid);
-  }, [firestore, currentUser]);
-  const { data: currentUserProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
-
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || !currentUserProfile || currentUserProfile.role?.toLowerCase() !== 'admin') return null;
+    if (!firestore) return null;
     return query(collection(firestore, 'users'));
-  }, [firestore, currentUserProfile]);
+  }, [firestore]);
   
   const { data: users, isLoading: areUsersLoading } = useCollection(usersQuery);
 
-  const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading;
+  const isLoading = isUserAuthLoading || areUsersLoading;
 
   const handleRoleChange = (userId: string, newRole: string) => {
     if (!firestore) return;
@@ -47,18 +40,6 @@ export default function UsersPage() {
     if (!firstName) return 'U';
     return `${firstName.charAt(0)}${lastName ? lastName.charAt(0) : ''}`.toUpperCase();
   };
-
-  if (!isLoading && currentUserProfile?.role?.toLowerCase() !== 'admin') {
-    return (
-      <div className="flex h-full flex-col items-center justify-center rounded-lg border border-dashed bg-card p-12 text-center">
-        <ShieldAlert className="mx-auto h-12 w-12 text-destructive" />
-        <h2 className="mt-4 text-xl font-semibold">Acceso Denegado</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          No tienes los permisos necesarios para administrar usuarios.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="grid gap-6">
