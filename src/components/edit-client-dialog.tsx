@@ -8,6 +8,8 @@ import { doc, updateDoc } from 'firebase/firestore';
 
 import {
   useFirestore,
+  errorEmitter,
+  FirestorePermissionError,
 } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { countries, states, cities } from '@/lib/geography';
@@ -123,7 +125,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
   const availableStates = selectedCountry ? states[selectedCountry] || [] : [];
   const availableCities = selectedState ? cities[selectedState] || [] : [];
 
-  async function onSubmit(values: ProspectFormValues) {
+  function onSubmit(values: ProspectFormValues) {
     if (!firestore || !client?.id) {
       toast({
         variant: 'destructive',
@@ -132,24 +134,33 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
       });
       return;
     }
+    
+    const leadRef = doc(firestore, 'leads', client.id);
 
-    try {
-      const leadRef = doc(firestore, 'leads', client.id);
-      await updateDoc(leadRef, values);
-
-      toast({
-        title: '¡Cliente Actualizado!',
-        description: `${values.clientName} ha sido actualizado correctamente.`,
+    updateDoc(leadRef, values)
+      .then(() => {
+        toast({
+          title: '¡Cliente Actualizado!',
+          description: `${values.clientName} ha sido actualizado correctamente.`,
+        });
+        onOpenChange(false);
+      })
+      .catch((error) => {
+        const permissionError = new FirestorePermissionError({
+          path: leadRef.path,
+          operation: 'update',
+          requestResourceData: values,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error al actualizar',
+          description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
+        });
+      })
+      .finally(() => {
+        form.control.reset(); // Also reset form on submit end
       });
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Error updating prospect:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al actualizar',
-        description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
-      });
-    }
   }
   
   const handleClose = (isOpen: boolean) => {

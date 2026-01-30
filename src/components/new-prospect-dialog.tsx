@@ -12,6 +12,8 @@ import {
   useUser,
   useDoc,
   useMemoFirebase,
+  errorEmitter,
+  FirestorePermissionError,
 } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { countries, states, cities } from '@/lib/geography';
@@ -124,7 +126,7 @@ export function NewProspectDialog() {
   const availableStates = selectedCountry ? states[selectedCountry] || [] : [];
   const availableCities = selectedState ? cities[selectedState] || [] : [];
 
-  async function onSubmit(values: ProspectFormValues) {
+  function onSubmit(values: ProspectFormValues) {
     if (!firestore || !user || !userProfile) {
       toast({
         variant: 'destructive',
@@ -133,50 +135,59 @@ export function NewProspectDialog() {
       });
       return;
     }
+    
+    form.clearErrors(); // Clear previous errors
 
-    try {
-      // 1. Create Lead
-      const leadData = {
-        ...values,
-        sellerId: user.uid,
-        sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
-        status: 'New',
-        createdDate: new Date().toISOString(),
-        clienteNumber: '', // Can be generated or set later
-        region: '', // Can be derived from country/state if needed
-      };
+    const leadData = {
+      ...values,
+      sellerId: user.uid,
+      sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+      status: 'New',
+      createdDate: new Date().toISOString(),
+      clienteNumber: '',
+      region: '',
+    };
 
-      const leadRef = await addDoc(collection(firestore, 'leads'), leadData);
-
-      // 2. Create corresponding Opportunity
-      const opportunityData = {
-        leadId: leadRef.id,
-        sellerId: user.uid,
-        sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
-        stage: 'Primer contacto',
-        name: `Oportunidad para ${values.clientName}`,
-        value: 0,
-        currency: 'USD',
-        probability: 10,
-        expectedCloseDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
-      };
-
-      await addDoc(collection(firestore, 'opportunities'), opportunityData);
-
-      toast({
-        title: '¡Prospecto Creado!',
-        description: `${values.clientName} ha sido agregado a tu flujo de ventas.`,
+    addDoc(collection(firestore, 'leads'), leadData)
+      .then(leadRef => {
+        const opportunityData = {
+          leadId: leadRef.id,
+          sellerId: user.uid,
+          sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+          stage: 'Primer contacto',
+          name: `Oportunidad para ${values.clientName}`,
+          value: 0,
+          currency: 'USD',
+          probability: 10,
+          expectedCloseDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
+        };
+        // The second write is chained
+        return addDoc(collection(firestore, 'opportunities'), opportunityData);
+      })
+      .then(() => {
+        toast({
+          title: '¡Prospecto Creado!',
+          description: `${values.clientName} ha sido agregado a tu flujo de ventas.`,
+        });
+        setOpen(false);
+        form.reset();
+      })
+      .catch((error) => {
+        const permissionError = new FirestorePermissionError({
+          path: 'leads', // Or 'opportunities', depending on where it failed
+          operation: 'create',
+          requestResourceData: leadData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error al crear prospecto',
+          description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
+        });
+      })
+      .finally(() => {
+        form.control.reset();
       });
-      setOpen(false);
-      form.reset();
-    } catch (error) {
-      console.error('Error creating prospect:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al crear prospecto',
-        description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
-      });
-    }
   }
 
   return (

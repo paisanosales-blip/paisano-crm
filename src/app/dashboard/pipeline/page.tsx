@@ -11,6 +11,8 @@ import {
   useCollection,
   useMemoFirebase,
   useStorage,
+  errorEmitter,
+  FirestorePermissionError,
 } from '@/firebase';
 import { collection, doc, query, where, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -138,31 +140,37 @@ export default function PipelinePage() {
   const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
 
 
-  const handleStageChange = async (opportunityId: string, newStage: OpportunityStage) => {
+  const handleStageChange = (opportunityId: string, newStage: OpportunityStage) => {
     if (!firestore) return;
     const opportunityRef = doc(firestore, 'opportunities', opportunityId);
     
-    try {
-      await updateDoc(opportunityRef, { stage: newStage });
-      toast({ title: 'Éxito', description: `Prospecto movido a: ${newStage}` });
-    } catch (error) {
-      console.error(`Error moving prospect to ${newStage}:`, error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al actualizar etapa',
-        description: `No se pudo mover el prospecto a: ${newStage}`,
+    updateDoc(opportunityRef, { stage: newStage })
+      .then(() => {
+        toast({ title: 'Éxito', description: `Prospecto movido a: ${newStage}` });
+      })
+      .catch((error) => {
+        const permissionError = new FirestorePermissionError({
+          path: opportunityRef.path,
+          operation: 'update',
+          requestResourceData: { stage: newStage },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error al actualizar etapa',
+          description: `No se pudo mover el prospecto a: ${newStage}`,
+        });
       });
-    }
   };
 
-  const requestStageChange = async (prospect: any, newStage: OpportunityStage) => {
+  const requestStageChange = (prospect: any, newStage: OpportunityStage) => {
     setCurrentProspect(prospect);
     const currentIndex = stages.indexOf(prospect.opportunity.stage);
     const newIndex = stages.indexOf(newStage);
 
     if (newIndex < currentIndex) {
       // Moving backwards
-      await handleStageChange(prospect.opportunity.id, newStage);
+      handleStageChange(prospect.opportunity.id, newStage);
       return;
     }
 
@@ -177,7 +185,7 @@ export default function PipelinePage() {
         setClosingDialogOpen(true);
     } else if (newIndex > currentIndex) {
         // Allow jumping forward only if editing an already passed stage
-        await handleStageChange(prospect.opportunity.id, newStage);
+        handleStageChange(prospect.opportunity.id, newStage);
     }
   };
 
@@ -218,28 +226,31 @@ export default function PipelinePage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const handleDeleteActivityConfirm = async () => {
+  const handleDeleteActivityConfirm = () => {
     if (!activityToDelete || !firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el seguimiento.' });
       return;
     }
     setIsSubmitting(true);
-    try {
-      const activityRef = doc(firestore, 'activities', activityToDelete.id);
-      await deleteDoc(activityRef);
+    const activityRef = doc(firestore, 'activities', activityToDelete.id);
+    deleteDoc(activityRef).then(() => {
       toast({ title: 'Seguimiento eliminado' });
-    } catch (error) {
-      console.error('Error deleting activity:', error);
+    }).catch((error) => {
+      const permissionError = new FirestorePermissionError({
+        path: activityRef.path,
+        operation: 'delete',
+      });
+      errorEmitter.emit('permission-error', permissionError);
       toast({ variant: 'destructive', title: 'Error al eliminar', description: 'Ocurrió un problema al eliminar el seguimiento.' });
-    } finally {
+    }).finally(() => {
       setIsDeleteDialogOpen(false);
       setActivityToDelete(null);
       setIsSubmitting(false);
-    }
+    });
   };
 
 
-  const handleInfoSentConfirm = async (payload: InfoSentConfirmPayload) => {
+  const handleInfoSentConfirm = (payload: InfoSentConfirmPayload) => {
     if (!currentProspect || !firestore || !user || !userProfile) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
@@ -247,58 +258,65 @@ export default function PipelinePage() {
 
     setIsSubmitting(true);
     
-    try {
-      const { checklist, notes, contactChannels } = payload;
-      const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
-      
-      const updateData: any = { ...checklist };
+    const { checklist, notes, contactChannels } = payload;
+    const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
+    
+    const updateData: any = { ...checklist };
 
-      const isStageChange = currentProspect.opportunity.stage === 'Primer contacto';
-      if (isStageChange) {
-        updateData.stage = 'Envió de Información';
-      }
-
-      await updateDoc(opportunityRef, updateData);
-
-      // Log the interaction as a completed activity if notes or channels were provided
-      const usedChannels = Object.entries(contactChannels).filter(([, value]) => value).map(([key]) => key);
-      if (notes || usedChannels.length > 0) {
-        const activityData = {
-          leadId: currentProspect.id,
-          sellerId: user.uid,
-          sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
-          type: 'Información Enviada',
-          description: notes,
-          contactChannels: usedChannels,
-          dueDate: new Date().toISOString(), // Use dueDate to mark the date of interaction
-          completed: true, // This is a log of a past event
-          createdDate: new Date().toISOString(),
-        };
-        await addDoc(collection(firestore, 'activities'), activityData);
-      }
-      
-      toast({ 
-        title: 'Éxito', 
-        description: isStageChange 
-          ? `Prospecto movido a: Envió de Información` 
-          : 'Resumen de información actualizado.'
-      });
-
-      setInfoSentDialogOpen(false);
-      setCurrentProspect(null);
-    } catch (error) {
-      console.error('Error in handleInfoSentConfirm:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
-      });
-    } finally {
-        setIsSubmitting(false);
+    const isStageChange = currentProspect.opportunity.stage === 'Primer contacto';
+    if (isStageChange) {
+      updateData.stage = 'Envió de Información';
     }
+
+    const updatePromise = updateDoc(opportunityRef, updateData);
+
+    const usedChannels = Object.entries(contactChannels).filter(([, value]) => value).map(([key]) => key);
+    let activityPromise = Promise.resolve();
+    if (notes || usedChannels.length > 0) {
+      const activityData = {
+        leadId: currentProspect.id,
+        sellerId: user.uid,
+        sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+        type: 'Información Enviada',
+        description: notes,
+        contactChannels: usedChannels,
+        dueDate: new Date().toISOString(),
+        completed: true,
+        createdDate: new Date().toISOString(),
+      };
+      activityPromise = addDoc(collection(firestore, 'activities'), activityData).then(() => {});
+    }
+
+    Promise.all([updatePromise, activityPromise])
+      .then(() => {
+        toast({ 
+          title: 'Éxito', 
+          description: isStageChange 
+            ? `Prospecto movido a: Envió de Información` 
+            : 'Resumen de información actualizado.'
+        });
+        setInfoSentDialogOpen(false);
+        setCurrentProspect(null);
+      })
+      .catch((error) => {
+        const permissionError = new FirestorePermissionError({
+            path: opportunityRef.path, // Or a more relevant path
+            operation: 'write',
+            requestResourceData: { ...updateData, activity: (notes || usedChannels.length > 0) },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
+        });
+      })
+      .finally(() => {
+          setIsSubmitting(false);
+      });
   };
   
-  const handleQuotationUpload = async (values: QuotationFormValues) => {
+  const handleQuotationUpload = (values: QuotationFormValues) => {
     if (!firestore || !storage || !user || !userProfile || !currentProspect) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo conectar con Firebase.' });
       return;
@@ -307,101 +325,158 @@ export default function PipelinePage() {
     setIsSubmitting(true);
     setUploadProgress(0);
   
-    try {
-      const isEditing = !!currentProspect.quotation;
-      let pdfUrl = isEditing ? currentProspect.quotation.pdfUrl : '';
-  
-      if (values.pdf) {
-        const pdfFile = values.pdf;
-        const storageRef = ref(storage, `quotations/${currentProspect.opportunity.id}/${pdfFile.name}`);
-        const uploadTask = uploadBytesResumable(storageRef, pdfFile);
-  
-        pdfUrl = await new Promise<string>((resolve, reject) => {
-          uploadTask.on('state_changed',
-            (snapshot) => {
-              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-              setUploadProgress(progress);
-              if (progress === 100) {
+    const isEditing = !!currentProspect.quotation;
+    let pdfUrl = isEditing ? currentProspect.quotation.pdfUrl : '';
+
+    const performDatabaseUpdate = (finalPdfUrl: string) => {
+        let dbPromise;
+        if (isEditing) {
+            const quotationRef = doc(firestore, 'quotations', currentProspect.quotation.id);
+            dbPromise = updateDoc(quotationRef, {
+                value: values.value,
+                currency: values.currency,
+                pdfUrl: finalPdfUrl,
+                version: String(Number(currentProspect.quotation.version || 1) + (values.pdf ? 1 : 0)),
+                status: 'Enviada',
+                createdDate: new Date().toISOString(),
+            });
+        } else {
+            const quotationData = {
+                opportunityId: currentProspect.opportunity.id,
+                sellerId: user.uid,
+                sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+                pdfUrl: finalPdfUrl,
+                value: values.value,
+                currency: values.currency,
+                version: '1',
+                status: 'Enviada',
+                createdDate: new Date().toISOString(),
+            };
+            dbPromise = addDoc(collection(firestore, 'quotations'), quotationData).then((newQuotationRef) => {
+                currentProspect.quotation = { id: newQuotationRef.id, ...quotationData };
+            });
+        }
+
+        let stageUpdatePromise = Promise.resolve();
+        const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
+        if (currentProspect.opportunity.stage === 'Envió de Información') {
+            stageUpdatePromise = updateDoc(opportunityRef, { stage: 'Envió de Cotización' });
+        }
+
+        Promise.all([dbPromise, stageUpdatePromise])
+            .then(() => {
+                toast({
+                    title: `¡Cotización ${isEditing ? 'Actualizada' : 'Enviada'}!`,
+                    description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
+                });
+                setQuotationUploadOpen(false);
+                setCurrentProspect(null);
+            })
+            .catch((dbError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: isEditing ? `quotations/${currentProspect.quotation.id}` : 'quotations',
+                    operation: isEditing ? 'update' : 'create',
+                    requestResourceData: values,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error al Guardar en Base de Datos',
+                    description: dbError.message || 'Ocurrió un problema durante el guardado.',
+                });
+            })
+            .finally(() => {
+                setIsSubmitting(false);
+                setUploadProgress(0);
+            });
+    };
+
+    if (values.pdf) {
+      const pdfFile = values.pdf;
+      const storageRef = ref(storage, `quotations/${currentProspect.opportunity.id}/${pdfFile.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, pdfFile);
+
+      uploadTask.on('state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(progress);
+           if (progress === 100) {
                  setTimeout(() => toast({ title: 'Carga completa', description: 'Guardando datos...' }), 200);
               }
-            },
-            (error) => {
-              console.error("Error en la subida del archivo:", error);
-              let description = `Error al subir: ${error.message}`;
-              if (error.code === 'storage/unauthorized' || error.code === 'storage/unknown') {
-                description = 'Fallo al subir el archivo. Esto suele ser un problema de permisos CORS en el bucket de Storage. Por favor, asegúrese de que la configuración CORS es correcta.';
-              }
-              reject(new Error(description));
-            },
-            async () => {
-              try {
-                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve(downloadURL);
-              } catch (urlError) {
-                reject(new Error('El PDF se subió, pero falló el guardado en la base de datos.'));
-              }
-            }
-          );
+        },
+        (error) => {
+          console.error("Error en la subida del archivo:", error);
+          let description = `Error al subir: ${error.message}`;
+          if (error.code === 'storage/unauthorized' || error.code === 'storage/unknown') {
+            description = 'Fallo al subir el archivo. Esto suele ser un problema de permisos CORS en el bucket de Storage. Por favor, asegúrese de que la configuración CORS es correcta.';
+          }
+          toast({ variant: 'destructive', title: 'Error de Subida', description });
+          setIsSubmitting(false);
+          setUploadProgress(0);
+        },
+        () => {
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+              performDatabaseUpdate(downloadURL);
+          }).catch((urlError) => {
+              toast({ variant: 'destructive', title: 'Error al obtener URL', description: 'El PDF se subió, pero falló el guardado en la base de datos.' });
+              setIsSubmitting(false);
+              setUploadProgress(0);
+          });
+        }
+      );
+    } else if (isEditing && pdfUrl) {
+        performDatabaseUpdate(pdfUrl);
+    } else {
+        toast({ variant: 'destructive', title: 'Error', description: 'Se requiere un archivo PDF y no se pudo obtener la URL.' });
+        setIsSubmitting(false);
+    }
+  };
+
+  const handleNegotiationConfirm = (payload: NegotiationConfirmPayload) => {
+    if (!currentProspect || !firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
+        return;
+    }
+
+    setIsSubmitting(true);
+    
+    const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
+    const updateData: any = { ...payload };
+    const isStageChange = currentProspect.opportunity.stage === 'Envió de Cotización';
+    if (isStageChange) {
+      updateData.stage = 'Negociación';
+    }
+
+    updateDoc(opportunityRef, updateData)
+      .then(() => {
+        toast({ 
+          title: 'Éxito', 
+          description: isStageChange 
+            ? `Prospecto movido a: Negociación` 
+            : 'Resumen de negociación actualizado.'
         });
-      }
-  
-      if (!pdfUrl) {
-          throw new Error('Se requiere un archivo PDF y no se pudo obtener la URL.');
-      }
-  
-      if (isEditing) {
-         const quotationRef = doc(firestore, 'quotations', currentProspect.quotation.id);
-         await updateDoc(quotationRef, {
-             value: values.value,
-             currency: values.currency,
-             pdfUrl: pdfUrl,
-             version: String(Number(currentProspect.quotation.version || 1) + (values.pdf ? 1 : 0)),
-             status: 'Enviada',
-             createdDate: new Date().toISOString(),
-         });
-      } else {
-        const quotationData = {
-            opportunityId: currentProspect.opportunity.id,
-            sellerId: user.uid,
-            sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
-            pdfUrl,
-            value: values.value,
-            currency: values.currency,
-            version: '1',
-            status: 'Enviada',
-            createdDate: new Date().toISOString(),
-        };
-        const newQuotationRef = await addDoc(collection(firestore, 'quotations'), quotationData);
-        currentProspect.quotation = { id: newQuotationRef.id, ...quotationData };
-      }
-  
-      const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
-      if (currentProspect.opportunity.stage === 'Envió de Información') {
-        await updateDoc(opportunityRef, { stage: 'Envió de Cotización' });
-      }
-  
-      toast({
-        title: `¡Cotización ${isEditing ? 'Actualizada' : 'Enviada'}!`,
-        description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
-      });
-  
-      setQuotationUploadOpen(false);
-      setCurrentProspect(null);
-  
-    } catch (error: any) {
-      console.error('Error al procesar cotización:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al Guardar',
-        description: error.message || 'Ocurrió un problema durante la subida o el guardado.',
-      });
-    } finally {
+        setNegotiationDialogOpen(false);
+        setCurrentProspect(null);
+      })
+      .catch((error) => {
+        const permissionError = new FirestorePermissionError({
+          path: opportunityRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Ocurrió un problema al guardar los datos de negociación. Por favor, inténtelo de nuevo.',
+        });
+      })
+      .finally(() => {
         setIsSubmitting(false);
-        setUploadProgress(0);
-    }
+      });
   };
 
-  const handleNegotiationConfirm = async (payload: NegotiationConfirmPayload) => {
+  const handleClosingConfirm = (payload: ClosingConfirmPayload) => {
     if (!currentProspect || !firestore) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
@@ -409,81 +484,43 @@ export default function PipelinePage() {
 
     setIsSubmitting(true);
     
-    try {
-      const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
-      
-      const updateData: any = { ...payload };
-
-      const isStageChange = currentProspect.opportunity.stage === 'Envió de Cotización';
-      if (isStageChange) {
-        updateData.stage = 'Negociación';
-      }
-
-      await updateDoc(opportunityRef, updateData);
-      
-      toast({ 
-        title: 'Éxito', 
-        description: isStageChange 
-          ? `Prospecto movido a: Negociación` 
-          : 'Resumen de negociación actualizado.'
-      });
-
-      setNegotiationDialogOpen(false);
-      setCurrentProspect(null);
-    } catch (error) {
-      console.error('Error in handleNegotiationConfirm:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Ocurrió un problema al guardar los datos de negociación. Por favor, inténtelo de nuevo.',
-      });
-    } finally {
-        setIsSubmitting(false);
+    const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
+    const updateData: any = { ...payload };
+    const isStageChange = currentProspect.opportunity.stage === 'Negociación';
+    if (isStageChange) {
+      updateData.stage = 'Cierre de venta';
     }
+
+    updateDoc(opportunityRef, updateData)
+      .then(() => {
+        toast({ 
+          title: 'Éxito', 
+          description: isStageChange 
+            ? `Prospecto movido a: Cierre de venta` 
+            : 'Resumen de cierre actualizado.'
+        });
+        setClosingDialogOpen(false);
+        setCurrentProspect(null);
+      })
+      .catch((error) => {
+        const permissionError = new FirestorePermissionError({
+          path: opportunityRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Ocurrió un problema al guardar los datos de cierre. Por favor, inténtelo de nuevo.',
+        });
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
 
-  const handleClosingConfirm = async (payload: ClosingConfirmPayload) => {
-    if (!currentProspect || !firestore) {
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
-        return;
-    }
-
-    setIsSubmitting(true);
-    
-    try {
-      const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
-      
-      const updateData: any = { ...payload };
-
-      const isStageChange = currentProspect.opportunity.stage === 'Negociación';
-      if (isStageChange) {
-        updateData.stage = 'Cierre de venta';
-      }
-
-      await updateDoc(opportunityRef, updateData);
-      
-      toast({ 
-        title: 'Éxito', 
-        description: isStageChange 
-          ? `Prospecto movido a: Cierre de venta` 
-          : 'Resumen de cierre actualizado.'
-      });
-
-      setClosingDialogOpen(false);
-      setCurrentProspect(null);
-    } catch (error) {
-      console.error('Error in handleClosingConfirm:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Ocurrió un problema al guardar los datos de cierre. Por favor, inténtelo de nuevo.',
-      });
-    } finally {
-        setIsSubmitting(false);
-    }
-  };
-
-  const handleFollowUpSubmit = async (payload: FollowUpSubmitPayload) => {
+  const handleFollowUpSubmit = (payload: FollowUpSubmitPayload) => {
     if (!currentProspect || !firestore || !user || !userProfile) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
@@ -491,67 +528,84 @@ export default function PipelinePage() {
 
     setIsSubmitting(true);
 
-    try {
-        const { id, observations, nextContactDate, nextContactType, contactChannels } = payload;
-        
-        const selectedChannels = contactChannels ? Object.entries(contactChannels)
-          .filter(([, value]) => value)
-          .map(([key]) => key) : [];
-        
-        const activityData = {
-            leadId: currentProspect.id,
-            sellerId: user.uid,
-            sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
-            type: nextContactType || 'Nota',
-            description: observations || '',
-            contactChannels: selectedChannels,
-            dueDate: nextContactDate ? nextContactDate.toISOString() : null,
-            completed: payload.id ? currentActivity.completed : false, // Preserve existing completed state on edit
-            createdDate: payload.id ? currentActivity.createdDate : new Date().toISOString(),
-        };
+    const { id, observations, nextContactDate, nextContactType, contactChannels } = payload;
+    const selectedChannels = contactChannels ? Object.entries(contactChannels)
+      .filter(([, value]) => value)
+      .map(([key]) => key) : [];
+    
+    const activityData = {
+        leadId: currentProspect.id,
+        sellerId: user.uid,
+        sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+        type: nextContactType || 'Nota',
+        description: observations || '',
+        contactChannels: selectedChannels,
+        dueDate: nextContactDate ? nextContactDate.toISOString() : null,
+        completed: payload.id ? currentActivity.completed : false,
+        createdDate: payload.id ? currentActivity.createdDate : new Date().toISOString(),
+    };
 
-        if (payload.id) {
-            const activityRef = doc(firestore, 'activities', payload.id);
-            await updateDoc(activityRef, activityData);
-            toast({ title: 'Seguimiento Actualizado', description: 'El seguimiento ha sido modificado.' });
-        } else {
-            await addDoc(collection(firestore, 'activities'), activityData);
-            toast({ title: 'Actividad Creada', description: `Nuevo seguimiento para ${currentProspect.clientName} agendado.` });
-        }
-        
-
-        setIsFollowUpDialogOpen(false);
-        setCurrentProspect(null);
-        setCurrentActivity(null);
-    } catch (error) {
-        console.error('Error in handleFollowUpSubmit:', error);
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Ocurrió un problema al guardar el seguimiento. Por favor, inténtelo de nuevo.',
-        });
-    } finally {
-        setIsSubmitting(false);
+    let promise;
+    let action: 'create' | 'update' = 'create';
+    let path = 'activities';
+    if (payload.id) {
+        const activityRef = doc(firestore, 'activities', payload.id);
+        path = activityRef.path;
+        action = 'update';
+        promise = updateDoc(activityRef, activityData);
+    } else {
+        promise = addDoc(collection(firestore, 'activities'), activityData);
     }
+    
+    promise
+        .then(() => {
+            toast({ title: payload.id ? 'Seguimiento Actualizado' : 'Actividad Creada', description: payload.id ? 'El seguimiento ha sido modificado.' : `Nuevo seguimiento para ${currentProspect.clientName} agendado.` });
+            setIsFollowUpDialogOpen(false);
+            setCurrentProspect(null);
+            setCurrentActivity(null);
+        })
+        .catch((error) => {
+            const permissionError = new FirestorePermissionError({
+                path: path,
+                operation: action,
+                requestResourceData: activityData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Ocurrió un problema al guardar el seguimiento. Por favor, inténtelo de nuevo.',
+            });
+        })
+        .finally(() => {
+            setIsSubmitting(false);
+        });
   };
 
-  const handleToggleActivityComplete = async (activityId: string, completed: boolean) => {
+  const handleToggleActivityComplete = (activityId: string, completed: boolean) => {
     if (!firestore) return;
     const activityRef = doc(firestore, 'activities', activityId);
-    try {
-      await updateDoc(activityRef, { completed });
-      toast({
-        title: `Actividad ${completed ? 'Completada' : 'Pendiente'}`,
-        description: 'El estado del seguimiento ha sido actualizado.',
+    
+    updateDoc(activityRef, { completed })
+      .then(() => {
+        toast({
+          title: `Actividad ${completed ? 'Completada' : 'Pendiente'}`,
+          description: 'El estado del seguimiento ha sido actualizado.',
+        });
+      })
+      .catch((error) => {
+        const permissionError = new FirestorePermissionError({
+          path: activityRef.path,
+          operation: 'update',
+          requestResourceData: { completed },
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error al actualizar',
+          description: 'No se pudo cambiar el estado de la actividad.',
+        });
       });
-    } catch (error) {
-      console.error('Error updating activity status:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al actualizar',
-        description: 'No se pudo cambiar el estado de la actividad.',
-      });
-    }
   };
 
   const handleEditClick = (prospect: any) => {
@@ -782,7 +836,7 @@ export default function PipelinePage() {
                               const isCompleted = index < currentIndex;
                               const isCurrent = index === currentIndex;
                               const isNext = index === currentIndex + 1;
-                              const canMoveTo = isNext || isCompleted;
+                              const canMoveTo = isNext || isCompleted || index < currentIndex;
 
                               return (
                                   <React.Fragment key={stage}>
@@ -790,7 +844,7 @@ export default function PipelinePage() {
                                           onClick={() => requestStageChange(prospect, stage)}
                                           className={cn(
                                               'relative flex flex-col items-center gap-1.5 text-center transition-opacity w-28',
-                                              (isNext || isCompleted) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
+                                              (canMoveTo) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
                                               !isCompleted && !isCurrent && !isNext && 'opacity-50'
                                           )}
                                           title={canMoveTo ? `Mover a: ${stage}` : stage}
@@ -1033,5 +1087,3 @@ export default function PipelinePage() {
     </>
   );
 }
-
-    
