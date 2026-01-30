@@ -288,14 +288,7 @@ export default function FollowUpsPage() {
                   <AccordionContent className="px-6 pb-4">
                     <div className="flex flex-col gap-3">
                       {group.activities.map((activity) => {
-                         const isOverdue = group.title === 'Atrasados' && !activity.completed;
-                         const isTodayActivity = group.title === 'Hoy' && !activity.completed;
                          const dueDate = activity.dueDate ? new Date(activity.dueDate) : null;
-                         const dateTextClass = cn({
-                           'text-destructive': isOverdue,
-                           'text-primary': isTodayActivity,
-                           'text-muted-foreground': !isOverdue && !isTodayActivity,
-                         });
 
                         return (
                           <div key={activity.id} className={cn("flex items-start gap-4 rounded-lg border p-3 transition-colors", activity.completed ? "bg-muted/50" : "bg-card")}>
@@ -314,7 +307,7 @@ export default function FollowUpsPage() {
                               </div>
                               {activity.description && <p className="text-sm text-muted-foreground">{activity.description}</p>}
                                {dueDate && (
-                                <div className={cn("flex items-center gap-1.5 text-xs font-medium", dateTextClass)}>
+                                <div className={cn("flex items-center gap-1.5 text-xs font-medium", "text-destructive")}>
                                   <Calendar className="mr-1 h-3 w-3" />
                                   <span className="capitalize">
                                     {format(dueDate, "eeee dd 'de' MMMM", { locale: es })}
