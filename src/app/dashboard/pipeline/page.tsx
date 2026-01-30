@@ -39,6 +39,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -46,6 +47,7 @@ import { useToast } from '@/hooks/use-toast';
 import { NewProspectDialog } from '@/components/new-prospect-dialog';
 import { InformationSentDialog, type InfoSentConfirmPayload, type ChecklistState } from '@/components/information-sent-dialog';
 import { QuotationUploadDialog, type QuotationFormValues } from '@/components/quotation-upload-dialog';
+import { EditClientDialog } from '@/components/edit-client-dialog';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -64,6 +66,9 @@ export default function PipelinePage() {
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
   const [currentOpportunity, setCurrentOpportunity] = useState<{ id: string; name: string; stage: OpportunityStage, leadId: string; } | null>(null);
   const [isUploadingQuotation, setIsUploadingQuotation] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<any | null>(null);
+
 
   const { toast } = useToast();
 
@@ -233,6 +238,10 @@ export default function PipelinePage() {
     }
   };
 
+  const handleEditClick = (prospect: any) => {
+    setSelectedClient(prospect);
+    setIsEditDialogOpen(true);
+  };
 
   const isLoading = isUserAuthLoading || isProfileLoading || areLeadsLoading || areOppsLoading || areQuotsLoading;
 
@@ -297,13 +306,13 @@ export default function PipelinePage() {
               )) : filteredProspects.length > 0 ? filteredProspects.map(prospect => {
                 if (!prospect.opportunity) return null;
                 const classification = getClassification(prospect.opportunity.stage);
-                const currentIndex = stages.indexOf(prospect.opportunity.stage);
+                
                 return (
                   <TableRow key={prospect.id}>
                     <TableCell className="font-medium align-top w-[300px]">
                         <div className="font-semibold">{prospect.clientName}</div>
                         <div className="text-sm text-muted-foreground">{prospect.contactPerson}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{prospect.email || 'N/A'}</div>
+                        <div className="text-xs text-muted-foreground mt-1 normal-case">{prospect.email || 'N/A'}</div>
                         <div className="text-xs text-muted-foreground">{prospect.phone || 'N/A'}</div>
                         
                         <div className="flex items-center gap-2.5 mt-2">
@@ -360,36 +369,62 @@ export default function PipelinePage() {
                         </div>
                     </TableCell>
                     <TableCell className="align-top">
-                      <Badge variant="outline" className={`uppercase font-bold ${getBadgeClass(classification)}`}>{classification}</Badge>
+                      <Badge variant="outline" className={`font-bold ${getBadgeClass(classification)}`}>{classification}</Badge>
                     </TableCell>
                     <TableCell className="align-top">
                       <div className="flex items-center gap-2">
                         {stages.map((stage, index) => {
+                          const currentIndex = stages.indexOf(prospect.opportunity.stage);
                           const isCompleted = index < currentIndex;
                           const isCurrent = index === currentIndex;
+                          const isNext = index === currentIndex + 1;
+                          
                           return (
                             <React.Fragment key={stage}>
-                              <div className='flex flex-col items-center gap-1'>
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isCompleted || isCurrent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>{index + 1}</div>
-                                <span className={`text-xs text-center ${isCurrent ? 'font-bold text-primary' : 'text-muted-foreground'}`}>{stage}</span>
+                              <div
+                                onClick={() => isNext && requestStageChange(
+                                    { id: prospect.opportunity.id, name: prospect.clientName, stage: prospect.opportunity.stage, leadId: prospect.id },
+                                    stage
+                                )}
+                                className={cn(
+                                    'flex flex-col items-center gap-1 text-center transition-opacity w-28',
+                                    isNext ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
+                                    !isCompleted && !isCurrent && !isNext && 'opacity-50'
+                                )}
+                                title={isNext ? `Mover a: ${stage}` : stage}
+                              >
+                                <div className={cn(
+                                    'w-6 h-6 rounded-full flex items-center justify-center transition-colors',
+                                    (isCompleted || isCurrent) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+                                )}>
+                                    {index + 1}
+                                </div>
+                                <span className={cn(
+                                    'text-xs',
+                                    isCurrent ? 'font-bold text-primary' : 'text-muted-foreground'
+                                )}>
+                                    {stage}
+                                </span>
                               </div>
                               {index < stages.length - 1 && <div className="flex-1 h-px bg-border mt-[-1.25rem]" />}
                             </React.Fragment>
                           )
                         })}
                       </div>
-                       {currentIndex >= 1 && (
+                       {prospect.opportunity.stage !== 'Primer contacto' && (
                         <div className="mt-4 pt-4 border-t border-dashed space-y-2 text-xs text-muted-foreground">
-                            <div className="p-2 border rounded-md bg-background/50">
-                                <p className="font-bold text-foreground">RESUMEN: ENVIÓ DE INFORMACIÓN</p>
-                                <ul className="mt-1 space-y-1">
-                                    <li>Precios Enviados: <span className="font-semibold">{prospect.opportunity.sentPrices ? '✓ Sí' : '✗ No'}</span></li>
-                                    <li>Info. Técnica: <span className="font-semibold">{prospect.opportunity.sentTechnicalInfo ? '✓ Sí' : '✗ No'}</span></li>
-                                    <li>Info. Empresa: <span className="font-semibold">{prospect.opportunity.sentCompanyInfo ? '✓ Sí' : '✗ No'}</span></li>
-                                    <li>Fotos/Videos: <span className="font-semibold">{prospect.opportunity.sentMedia ? '✓ Sí' : '✗ No'}</span></li>
-                                </ul>
-                            </div>
-                            {currentIndex >= 2 && prospect.quotation && (
+                            {prospect.opportunity.stage !== 'Primer contacto' && prospect.opportunity.sentPrices !== undefined && (
+                              <div className="p-2 border rounded-md bg-background/50">
+                                  <p className="font-bold text-foreground">RESUMEN: ENVIÓ DE INFORMACIÓN</p>
+                                  <ul className="mt-1 space-y-1">
+                                      <li>Precios Enviados: <span className="font-semibold">{prospect.opportunity.sentPrices ? '✓ Sí' : '✗ No'}</span></li>
+                                      <li>Info. Técnica: <span className="font-semibold">{prospect.opportunity.sentTechnicalInfo ? '✓ Sí' : '✗ No'}</span></li>
+                                      <li>Info. Empresa: <span className="font-semibold">{prospect.opportunity.sentCompanyInfo ? '✓ Sí' : '✗ No'}</span></li>
+                                      <li>Fotos/Videos: <span className="font-semibold">{prospect.opportunity.sentMedia ? '✓ Sí' : '✗ No'}</span></li>
+                                  </ul>
+                              </div>
+                            )}
+                            {prospect.opportunity.stage !== 'Primer contacto' && prospect.opportunity.stage !== 'Envió de Información' && prospect.quotation && (
                                 <div className="p-2 border rounded-md bg-background/50">
                                     <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
                                     <div className="flex items-center justify-between mt-1">
@@ -406,21 +441,11 @@ export default function PipelinePage() {
                     )}
                     </TableCell>
                     <TableCell className="text-right align-top">
-                      <DropdownMenu key={`${prospect.id}-${currentIndex}`}>
+                      <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button size="icon" variant="ghost"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent>
-                          {stages.map(stage => ( 
-                            <DropdownMenuItem 
-                              key={stage} 
-                              onSelect={() => requestStageChange(
-                                {id: prospect.opportunity.id, name: prospect.clientName, stage: prospect.opportunity.stage, leadId: prospect.id },
-                                stage
-                              )}
-                              disabled={prospect.opportunity.stage === stage}
-                            >
-                              Mover a: {stage}
-                            </DropdownMenuItem> 
-                          ))}
+                          <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                          <DropdownMenuItem onSelect={() => handleEditClick(prospect)}>Editar</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -450,6 +475,14 @@ export default function PipelinePage() {
             onConfirm={handleQuotationUpload}
             opportunityName={currentOpportunity.name}
             isUploading={isUploadingQuotation}
+        />
+      )}
+      {selectedClient && (
+        <EditClientDialog
+          key={selectedClient.id} // Re-mount the component when client changes
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          client={selectedClient}
         />
       )}
     </div>
