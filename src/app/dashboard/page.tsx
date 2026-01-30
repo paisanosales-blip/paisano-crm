@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   useUser,
   useFirestore,
@@ -17,13 +17,28 @@ import { format, subMonths, addMonths, startOfMonth, endOfMonth, isWithinInterva
 import { es } from 'date-fns/locale';
 import { getClassification } from '@/lib/types';
 import { DashboardCharts } from '@/components/dashboard-charts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function DashboardPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
     const firestore = useFirestore();
     const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-    const activeUserId = user?.uid;
+    // Set the initial selected user to the current logged-in user
+    useEffect(() => {
+        if (user && !selectedUserId) {
+            setSelectedUserId(user.uid);
+        }
+    }, [user, selectedUserId]);
+
+    const usersQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'users'));
+    }, [firestore]);
+    const { data: allUsers, isLoading: areUsersLoading } = useCollection(usersQuery);
+
+    const activeUserId = selectedUserId;
 
     const opportunitiesQuery = useMemoFirebase(() => {
         if (!activeUserId) return null;
@@ -44,7 +59,7 @@ export default function DashboardPage() {
     const { data: allLeads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
     const { data: allQuotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
     
-    const isLoading = isUserAuthLoading || areOppsLoading || areLeadsLoading || areQuotsLoading;
+    const isLoading = isUserAuthLoading || areOppsLoading || areLeadsLoading || areQuotsLoading || areUsersLoading;
 
     const { filteredOpportunities, filteredLeads, filteredQuotations } = useMemo(() => {
         const start = startOfMonth(currentMonth);
@@ -125,16 +140,30 @@ export default function DashboardPage() {
         <div className="grid gap-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h1 className="text-2xl font-headline font-bold">Panel de Estadísticas</h1>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={handlePrevMonth}>
-                        <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="text-lg font-semibold w-40 text-center capitalize">
-                        {format(currentMonth, 'MMMM yyyy', { locale: es })}
-                    </span>
-                    <Button variant="outline" size="icon" onClick={handleNextMonth} disabled={endOfMonth(currentMonth) > new Date()}>
-                        <ChevronRight className="h-4 w-4" />
-                    </Button>
+                 <div className="flex items-center gap-4">
+                     <Select onValueChange={setSelectedUserId} value={selectedUserId || ''} disabled={isLoading}>
+                        <SelectTrigger className="w-[220px]">
+                            <SelectValue placeholder="Seleccionar usuario..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {allUsers?.map((u: any) => (
+                                <SelectItem key={u.id} value={u.id}>
+                                    {u.id === user?.uid ? 'Mis Estadísticas' : `${u.firstName} ${u.lastName}`}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" onClick={handlePrevMonth}>
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-lg font-semibold w-40 text-center capitalize">
+                            {format(currentMonth, 'MMMM yyyy', { locale: es })}
+                        </span>
+                        <Button variant="outline" size="icon" onClick={handleNextMonth} disabled={endOfMonth(currentMonth) > new Date()}>
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
             </div>
             {isLoading ? (
