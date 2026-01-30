@@ -61,19 +61,19 @@ const groupStyleKeys = {
         title: "text-primary",
         badge: "default",
         icon: "bg-primary/10 text-primary",
-        date: "text-primary font-semibold",
+        date: "text-destructive font-semibold",
     },
     secondary: {
         title: "text-foreground",
         badge: "secondary",
         icon: "bg-muted text-muted-foreground",
-        date: "text-muted-foreground",
+        date: "text-destructive font-semibold",
     },
     muted: {
         title: "text-muted-foreground",
         badge: "outline",
         icon: "bg-muted text-muted-foreground",
-        date: "text-muted-foreground",
+        date: "text-destructive font-semibold",
     }
 } as const;
 
@@ -406,7 +406,7 @@ export default function FollowUpsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteActivityConfirm} disabled={isSubmitting}>
+            <AlertDialogAction onClick={handleDeleteActivityConfirm} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">
               {isSubmitting ? 'Eliminando...' : 'Eliminar'}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -415,5 +415,3 @@ export default function FollowUpsPage() {
     </>
   );
 }
-
-    
