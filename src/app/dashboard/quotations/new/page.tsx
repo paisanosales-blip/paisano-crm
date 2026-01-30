@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Trash2, PlusCircle, FileDown } from 'lucide-react';
+import { Trash2, PlusCircle, FileDown, Settings } from 'lucide-react';
 import { PaisanoLogoFull } from '@/components/paisano-logo-full';
+import { QuotationDetailsDialog, type QuotationDetails } from '@/components/quotation-details-dialog';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -43,6 +44,13 @@ export default function NewQuotationPage() {
     { description: '', quantity: 1, price: 0 },
   ]);
   const [freight, setFreight] = useState(0);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [quotationDetails, setQuotationDetails] = useState<QuotationDetails>({
+    number: `QT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
+    validity: '30 días',
+    terms: 'Condiciones de pago: 50% de anticipo, 50% contra entrega.\nLos precios no incluyen IVA.\nTiempo de entrega sujeto a cambios sin previo aviso.',
+    notes: 'Gracias por su preferencia.',
+  });
 
   const selectedClient = useMemo(() => {
     if (!leads || !selectedClientId) return null;
@@ -84,7 +92,8 @@ export default function NewQuotationPage() {
 
     const doc = new jsPDF();
     const docWidth = doc.internal.pageSize.getWidth();
-    
+    let finalY = 0;
+
     // Add Logo
     doc.addImage(PaisanoLogoFull, 'PNG', 15, 15, 60, 20);
     
@@ -116,9 +125,11 @@ export default function NewQuotationPage() {
     doc.setFont('helvetica', 'bold');
     doc.text('Cotización #:', docWidth - 60, 60);
     doc.text('Fecha:', docWidth - 60, 67);
+    doc.text('Validez:', docWidth - 60, 74);
     doc.setFont('helvetica', 'normal');
-    doc.text('12345', docWidth - 15, 60, { align: 'right' });
+    doc.text(quotationDetails.number, docWidth - 15, 60, { align: 'right' });
     doc.text(new Date().toLocaleDateString('es-MX'), docWidth - 15, 67, { align: 'right' });
+    doc.text(quotationDetails.validity, docWidth - 15, 74, { align: 'right' });
 
     // Products Table
     const tableColumn = ["Descripción", "Cant.", "Precio Unitario", "Total"];
@@ -143,7 +154,7 @@ export default function NewQuotationPage() {
     });
     
     // Totals
-    const finalY = (doc as any).lastAutoTable.finalY;
+    finalY = (doc as any).lastAutoTable.finalY;
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Subtotal:', docWidth - 60, finalY + 10);
@@ -155,6 +166,29 @@ export default function NewQuotationPage() {
     doc.text(`$${freight.toFixed(2)}`, docWidth - 15, finalY + 17, { align: 'right' });
     doc.setFont('helvetica', 'bold');
     doc.text(`$${total.toFixed(2)}`, docWidth - 15, finalY + 24, { align: 'right' });
+    
+    finalY = finalY + 30;
+
+    // Terms and Notes
+    if (quotationDetails.terms) {
+      finalY += 10;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Términos y Condiciones', 15, finalY);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      const termsLines = doc.splitTextToSize(quotationDetails.terms, docWidth - 30);
+      doc.text(termsLines, 15, finalY + 5);
+      finalY += (termsLines.length * 4) + 5;
+    }
+
+    if (quotationDetails.notes) {
+      finalY += 10;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const notesLines = doc.splitTextToSize(quotationDetails.notes, docWidth - 30);
+      doc.text(notesLines, 15, finalY);
+      finalY += (notesLines.length * 5);
+    }
 
 
     // Footer
@@ -162,126 +196,139 @@ export default function NewQuotationPage() {
     for(var i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
-        doc.text('Gracias por su preferencia.', 15, doc.internal.pageSize.getHeight() - 10);
         doc.text(`Página ${i} de ${pageCount}`, docWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
     }
 
-    doc.save(`Cotizacion-${selectedClient.clientName}.pdf`);
+    doc.save(`Cotizacion-${selectedClient.clientName}-${quotationDetails.number}.pdf`);
   };
 
   return (
-    <div className="grid gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-headline font-bold">Nueva Cotización</h1>
-        <Button onClick={generatePdf} disabled={!selectedClientId}>
-            <FileDown className="mr-2 h-4 w-4" />
-            Generar PDF
-        </Button>
+    <>
+      <div className="grid gap-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-headline font-bold">Nueva Cotización</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setIsDetailsDialogOpen(true)}>
+                <Settings className="mr-2 h-4 w-4" />
+                Datos de la Cotización
+            </Button>
+            <Button onClick={generatePdf} disabled={!selectedClientId}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Generar PDF
+            </Button>
+          </div>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Detalles de la Cotización</CardTitle>
+            <CardDescription>
+              Seleccione un cliente y agregue los productos para generar el documento de cotización.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-8">
+              <div className="max-w-sm">
+                  <Label htmlFor="client-select">Seleccionar Cliente</Label>
+                  <Select onValueChange={setSelectedClientId} value={selectedClientId} disabled={areLeadsLoading}>
+                      <SelectTrigger id="client-select">
+                          <SelectValue placeholder="Elija un cliente..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {areLeadsLoading ? (
+                              <SelectItem value="loading" disabled>Cargando clientes...</SelectItem>
+                          ) : (
+                              leads?.map((lead: any) => (
+                                  <SelectItem key={lead.id} value={lead.id}>
+                                      {lead.clientName}
+                                  </SelectItem>
+                              ))
+                          )}
+                      </SelectContent>
+                  </Select>
+              </div>
+
+              <div>
+                  <Label>Productos / Servicios</Label>
+                  <Table>
+                      <TableHeader>
+                          <TableRow>
+                              <TableHead className="w-[60%]">Descripción</TableHead>
+                              <TableHead>Cantidad</TableHead>
+                              <TableHead>Precio Unitario</TableHead>
+                              <TableHead>Total</TableHead>
+                              <TableHead className="w-[50px]"><span className="sr-only">Actions</span></TableHead>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                          {products.map((product, index) => (
+                              <TableRow key={index}>
+                                  <TableCell>
+                                      <Input
+                                          type="text"
+                                          placeholder="Descripción del producto..."
+                                          value={product.description}
+                                          onChange={(e) => handleProductChange(index, 'description', e.target.value)}
+                                      />
+                                  </TableCell>
+                                  <TableCell>
+                                      <Input
+                                          type="number"
+                                          value={product.quantity}
+                                          onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
+                                          className="w-20"
+                                      />
+                                  </TableCell>
+                                  <TableCell>
+                                      <Input
+                                          type="number"
+                                          value={product.price}
+                                          onChange={(e) => handleProductChange(index, 'price', e.target.value)}
+                                          className="w-32"
+                                      />
+                                  </TableCell>
+                                  <TableCell className="font-medium">
+                                      ${(product.quantity * product.price).toFixed(2)}
+                                  </TableCell>
+                                  <TableCell>
+                                      <Button variant="ghost" size="icon" onClick={() => removeProduct(index)}>
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                  </TableCell>
+                              </TableRow>
+                          ))}
+                      </TableBody>
+                  </Table>
+                  <Button variant="outline" size="sm" onClick={addProduct} className="mt-4">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Agregar Producto
+                  </Button>
+              </div>
+
+              <div className="flex justify-end">
+                  <div className="w-full max-w-sm space-y-4">
+                      <div className="flex justify-between items-center">
+                          <Label>Flete</Label>
+                          <Input type="number" value={freight} onChange={(e) => setFreight(Number(e.target.value))} className="w-32" />
+                      </div>
+                      <div className="flex justify-between items-center font-medium">
+                          <p>Subtotal:</p>
+                          <p>${subtotal.toFixed(2)}</p>
+                      </div>
+                      <div className="flex justify-between items-center text-lg font-bold">
+                          <p>Total:</p>
+                          <p>${total.toFixed(2)}</p>
+                      </div>
+                  </div>
+              </div>
+          </CardContent>
+        </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Detalles de la Cotización</CardTitle>
-          <CardDescription>
-            Seleccione un cliente y agregue los productos para generar el documento de cotización.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-8">
-            <div className="max-w-sm">
-                <Label htmlFor="client-select">Seleccionar Cliente</Label>
-                <Select onValueChange={setSelectedClientId} value={selectedClientId} disabled={areLeadsLoading}>
-                    <SelectTrigger id="client-select">
-                        <SelectValue placeholder="Elija un cliente..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {areLeadsLoading ? (
-                            <SelectItem value="loading" disabled>Cargando clientes...</SelectItem>
-                        ) : (
-                            leads?.map((lead: any) => (
-                                <SelectItem key={lead.id} value={lead.id}>
-                                    {lead.clientName}
-                                </SelectItem>
-                            ))
-                        )}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            <div>
-                <Label>Productos / Servicios</Label>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[60%]">Descripción</TableHead>
-                            <TableHead>Cantidad</TableHead>
-                            <TableHead>Precio Unitario</TableHead>
-                            <TableHead>Total</TableHead>
-                            <TableHead className="w-[50px]"><span className="sr-only">Actions</span></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {products.map((product, index) => (
-                            <TableRow key={index}>
-                                <TableCell>
-                                    <Input
-                                        type="text"
-                                        placeholder="Descripción del producto..."
-                                        value={product.description}
-                                        onChange={(e) => handleProductChange(index, 'description', e.target.value)}
-                                    />
-                                </TableCell>
-                                <TableCell>
-                                     <Input
-                                        type="number"
-                                        value={product.quantity}
-                                        onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
-                                        className="w-20"
-                                    />
-                                </TableCell>
-                                <TableCell>
-                                     <Input
-                                        type="number"
-                                        value={product.price}
-                                        onChange={(e) => handleProductChange(index, 'price', e.target.value)}
-                                        className="w-32"
-                                    />
-                                </TableCell>
-                                <TableCell className="font-medium">
-                                    ${(product.quantity * product.price).toFixed(2)}
-                                </TableCell>
-                                <TableCell>
-                                    <Button variant="ghost" size="icon" onClick={() => removeProduct(index)}>
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-                <Button variant="outline" size="sm" onClick={addProduct} className="mt-4">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Agregar Producto
-                </Button>
-            </div>
-
-            <div className="flex justify-end">
-                <div className="w-full max-w-sm space-y-4">
-                    <div className="flex justify-between items-center">
-                        <Label>Flete</Label>
-                        <Input type="number" value={freight} onChange={(e) => setFreight(Number(e.target.value))} className="w-32" />
-                    </div>
-                     <div className="flex justify-between items-center font-medium">
-                        <p>Subtotal:</p>
-                        <p>${subtotal.toFixed(2)}</p>
-                    </div>
-                     <div className="flex justify-between items-center text-lg font-bold">
-                        <p>Total:</p>
-                        <p>${total.toFixed(2)}</p>
-                    </div>
-                </div>
-            </div>
-        </CardContent>
-      </Card>
-    </div>
+      <QuotationDetailsDialog
+        open={isDetailsDialogOpen}
+        onOpenChange={setIsDetailsDialogOpen}
+        initialDetails={quotationDetails}
+        onSave={setQuotationDetails}
+      />
+    </>
   );
 }
