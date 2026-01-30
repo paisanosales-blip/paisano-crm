@@ -33,6 +33,10 @@ export type Opportunity = {
   sentTechnicalInfo?: boolean;
   sentCompanyInfo?: boolean;
   sentMedia?: boolean;
+  acceptedPrice?: boolean;
+  quotedFreight?: boolean;
+  requestsDiscount?: boolean;
+  negotiationNotes?: string;
 };
 
 export type Quotation = {

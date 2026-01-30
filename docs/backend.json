@@ -188,6 +188,22 @@
         "sentMedia": {
           "type": "boolean",
           "description": "Indicates if photos or videos were sent as part of moving to the 'Information Sent' stage."
+        },
+        "acceptedPrice": {
+          "type": "boolean",
+          "description": "Indicates if the client accepted the quoted price."
+        },
+        "quotedFreight": {
+          "type": "boolean",
+          "description": "Indicates if freight was quoted."
+        },
+        "requestsDiscount": {
+          "type": "boolean",
+          "description": "Indicates if the client requested a discount."
+        },
+        "negotiationNotes": {
+          "type": "string",
+          "description": "Observations from the negotiation stage."
         }
       },
       "required": [

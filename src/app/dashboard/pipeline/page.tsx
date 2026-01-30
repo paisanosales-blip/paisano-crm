@@ -46,6 +46,7 @@ import { NewProspectDialog } from '@/components/new-prospect-dialog';
 import { InformationSentDialog, type InfoSentConfirmPayload } from '@/components/information-sent-dialog';
 import { QuotationUploadDialog, type QuotationFormValues } from '@/components/quotation-upload-dialog';
 import { EditClientDialog } from '@/components/edit-client-dialog';
+import { NegotiationDialog, type NegotiationConfirmPayload } from '@/components/negotiation-dialog';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -62,6 +63,7 @@ export default function PipelinePage() {
   const [filterStage, setFilterStage] = useState<OpportunityStage | 'Todos'>('Todos');
   const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
+  const [negotiationDialogOpen, setNegotiationDialogOpen] = useState(false);
   const [currentProspect, setCurrentProspect] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -123,6 +125,8 @@ export default function PipelinePage() {
         setInfoSentDialogOpen(true);
     } else if (prospect.opportunity.stage === 'Envió de Información' && newStage === 'Envió de Cotización') {
         setQuotationUploadOpen(true);
+    } else if (prospect.opportunity.stage === 'Envió de Cotización' && newStage === 'Negociación') {
+        setNegotiationDialogOpen(true);
     } else {
         await handleStageChange(prospect.opportunity.id, newStage);
     }
@@ -136,6 +140,11 @@ export default function PipelinePage() {
   const handleEditQuotation = (prospect: any) => {
       setCurrentProspect(prospect);
       setQuotationUploadOpen(true);
+  };
+
+  const handleEditNegotiation = (prospect: any) => {
+      setCurrentProspect(prospect);
+      setNegotiationDialogOpen(true);
   };
 
   const handleInfoSentConfirm = async (payload: InfoSentConfirmPayload) => {
@@ -219,13 +228,11 @@ export default function PipelinePage() {
       const isEditing = !!currentProspect.quotation;
       let pdfUrl = isEditing ? currentProspect.quotation.pdfUrl : '';
 
-      // This is the core change: Go back to resumable uploads with better error handling
       if (values.pdf) {
         const pdfFile = values.pdf;
         const storageRef = ref(storage, `quotations/${currentProspect.opportunity.id}/${pdfFile.name}`);
         const uploadTask = uploadBytesResumable(storageRef, pdfFile);
 
-        // Use a promise to handle the upload task events
         pdfUrl = await new Promise<string>((resolve, reject) => {
           uploadTask.on(
             'state_changed',
@@ -234,9 +241,7 @@ export default function PipelinePage() {
               setUploadProgress(progress);
             },
             (error) => {
-              // This is the crucial error handler for the upload itself.
               console.error("Error en la subida del archivo:", error);
-              // Enhance error message for CORS
               let description = `Error al subir: ${error.message}`;
               if (error.code === 'storage/unauthorized' || error.code === 'storage/unknown') {
                 description = 'Fallo al subir el archivo. Esto suele ser un problema de permisos CORS en el bucket de Storage. Por favor, asegúrese de que la configuración CORS es correcta.';
@@ -244,7 +249,6 @@ export default function PipelinePage() {
               reject(new Error(description));
             },
             async () => {
-              // Upload completed successfully, now get the download URL.
               try {
                 const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
                 resolve(downloadURL);
@@ -261,7 +265,6 @@ export default function PipelinePage() {
           throw new Error('Se requiere un archivo PDF y no se pudo obtener la URL.');
       }
       
-      // The rest of the logic: saving the URL to Firestore
       if (isEditing) {
          const quotationRef = doc(firestore, 'quotations', currentProspect.quotation.id);
          await updateDoc(quotationRef, {
@@ -284,7 +287,9 @@ export default function PipelinePage() {
             status: 'Enviada',
             createdDate: new Date().toISOString(),
         };
-        await addDoc(collection(firestore, 'quotations'), quotationData);
+        const newQuotationRef = await addDoc(collection(firestore, 'quotations'), quotationData);
+        // Add id to local data for immediate UI update if needed
+        currentProspect.quotation = { id: newQuotationRef.id, ...quotationData };
       }
 
       const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
@@ -313,6 +318,46 @@ export default function PipelinePage() {
     }
   };
 
+  const handleNegotiationConfirm = async (payload: NegotiationConfirmPayload) => {
+    if (!currentProspect || !firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
+        return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
+      
+      const updateData: any = { ...payload };
+
+      const isStageChange = currentProspect.opportunity.stage === 'Envió de Cotización';
+      if (isStageChange) {
+        updateData.stage = 'Negociación';
+      }
+
+      await updateDoc(opportunityRef, updateData);
+      
+      toast({ 
+        title: 'Éxito', 
+        description: isStageChange 
+          ? `Prospecto movido a: Negociación` 
+          : 'Resumen de negociación actualizado.'
+      });
+
+      setNegotiationDialogOpen(false);
+      setCurrentProspect(null);
+    } catch (error) {
+      console.error('Error in handleNegotiationConfirm:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Ocurrió un problema al guardar los datos de negociación. Por favor, inténtelo de nuevo.',
+      });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
 
   const handleEditClick = (prospect: any) => {
     setSelectedClient(prospect);
@@ -483,8 +528,7 @@ export default function PipelinePage() {
                           )
                         })}
                       </div>
-                       {prospect.opportunity.stage !== 'Primer contacto' && (
-                        <div className="mt-4 pt-4 border-t border-dashed space-y-2 text-xs text-muted-foreground">
+                       <div className="mt-4 pt-4 border-t border-dashed space-y-2 text-xs text-muted-foreground">
                             {prospect.opportunity.sentPrices !== undefined && (
                               <div className="p-2 border rounded-md bg-background/50">
                                   <div className="flex items-center justify-between mb-1">
@@ -503,7 +547,7 @@ export default function PipelinePage() {
                               </div>
                             )}
                             {prospect.quotation && (
-                                <div className="p-2 border rounded-md bg-background/50">
+                                <div className="p-2 mt-2 border rounded-md bg-background/50">
                                     <div className="flex items-center justify-between">
                                         <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
                                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditQuotation(prospect)}>
@@ -521,8 +565,26 @@ export default function PipelinePage() {
                                     </div>
                                 </div>
                             )}
+                            {prospect.opportunity.acceptedPrice !== undefined && (
+                                <div className="p-2 mt-2 border rounded-md bg-background/50">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <p className="font-bold text-foreground">RESUMEN: NEGOCIACIÓN</p>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditNegotiation(prospect)}>
+                                            <Pencil className="h-3 w-3 text-muted-foreground" />
+                                            <span className="sr-only">Editar negociación</span>
+                                        </Button>
+                                    </div>
+                                    <ul className="mt-1 space-y-1">
+                                        <li>Precio Aceptado: <span className="font-semibold">{prospect.opportunity.acceptedPrice ? '✓ Sí' : '✗ No'}</span></li>
+                                        <li>Flete Cotizado: <span className="font-semibold">{prospect.opportunity.quotedFreight ? '✓ Sí' : '✗ No'}</span></li>
+                                        <li>Solicita Descuento: <span className="font-semibold">{prospect.opportunity.requestsDiscount ? '✓ Sí' : '✗ No'}</span></li>
+                                        {prospect.opportunity.negotiationNotes && (
+                                            <li>Notas: <span className="font-semibold italic">{prospect.opportunity.negotiationNotes}</span></li>
+                                        )}
+                                    </ul>
+                                </div>
+                            )}
                         </div>
-                    )}
                     </TableCell>
                     <TableCell className="text-right align-top">
                       <DropdownMenu>
@@ -568,6 +630,18 @@ export default function PipelinePage() {
             quotation={currentProspect.quotation}
             isSubmitting={isSubmitting}
             uploadProgress={uploadProgress}
+        />
+      )}
+      {currentProspect && (
+        <NegotiationDialog
+            open={negotiationDialogOpen}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) setCurrentProspect(null);
+              setNegotiationDialogOpen(isOpen);
+            }}
+            onConfirm={handleNegotiationConfirm}
+            opportunity={currentProspect.opportunity}
+            isSubmitting={isSubmitting}
         />
       )}
       {selectedClient && (
