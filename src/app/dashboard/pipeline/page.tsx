@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, ListPlus, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -51,6 +51,9 @@ import { EditClientDialog } from '@/components/edit-client-dialog';
 import { NegotiationDialog, type NegotiationConfirmPayload } from '@/components/negotiation-dialog';
 import { ClosingDialog, type ClosingConfirmPayload } from '@/components/closing-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FollowUpDialog, type FollowUpSubmitPayload } from '@/components/follow-up-dialog';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -69,6 +72,7 @@ export default function PipelinePage() {
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
   const [negotiationDialogOpen, setNegotiationDialogOpen] = useState(false);
   const [closingDialogOpen, setClosingDialogOpen] = useState(false);
+  const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
   const [currentProspect, setCurrentProspect] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -176,20 +180,23 @@ export default function PipelinePage() {
       setClosingDialogOpen(true);
   };
 
+  const handleNewFollowUpClick = (prospect: any) => {
+    setCurrentProspect(prospect);
+    setIsFollowUpDialogOpen(true);
+  };
+
   const handleInfoSentConfirm = async (payload: InfoSentConfirmPayload) => {
-    if (!currentProspect || !firestore || !user || !userProfile) {
+    if (!currentProspect || !firestore) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
     }
 
     setIsSubmitting(true);
-    const { observations, nextContactDate, nextContactType, contactChannels, ...checklist } = payload;
     
     try {
-      // 1. Update Opportunity with checklist data
       const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
       
-      const updateData: any = { ...checklist };
+      const updateData: any = { ...payload };
 
       const isStageChange = currentProspect.opportunity.stage === 'Primer contacto';
       if (isStageChange) {
@@ -204,48 +211,6 @@ export default function PipelinePage() {
           ? `Prospecto movido a: Envió de Información` 
           : 'Resumen de información actualizado.'
       });
-
-
-      // 2. Create or Update Activity for the follow-up
-      const existingActivity = currentProspect.activities?.find((act: any) => !act.completed);
-      
-      // Determine if there's any follow-up info to save
-      const hasFollowUpData = nextContactDate !== undefined || nextContactType || observations || (contactChannels && Object.values(contactChannels).some(v => v));
-
-      if (hasFollowUpData) {
-        const selectedChannels = contactChannels ? Object.entries(contactChannels)
-          .filter(([, value]) => value)
-          .map(([key]) => key) : [];
-
-        if (existingActivity) {
-          // Update existing activity
-          const activityRef = doc(firestore, 'activities', existingActivity.id);
-          const activityUpdatePayload = {
-            type: nextContactType,
-            description: observations,
-            contactChannels: selectedChannels,
-            dueDate: nextContactDate ? nextContactDate.toISOString() : null, // Allow clearing the date
-          };
-          await updateDoc(activityRef, activityUpdatePayload);
-          toast({ title: 'Actividad Actualizada', description: `Seguimiento para ${currentProspect.clientName} actualizado.` });
-
-        } else {
-          // Create new activity
-          const activityData = {
-            leadId: currentProspect.id,
-            sellerId: user.uid,
-            sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
-            type: nextContactType || 'Nota', // Default to Note if not provided
-            description: observations || '',
-            contactChannels: selectedChannels,
-            dueDate: nextContactDate ? nextContactDate.toISOString() : null,
-            completed: false,
-            createdDate: new Date().toISOString(),
-          };
-          await addDoc(collection(firestore, 'activities'), activityData);
-          toast({ title: 'Actividad Creada', description: `Próximo contacto para ${currentProspect.clientName} agendado.` });
-        }
-      }
 
       setInfoSentDialogOpen(false);
       setCurrentProspect(null);
@@ -446,6 +411,69 @@ export default function PipelinePage() {
     }
   };
 
+  const handleFollowUpSubmit = async (payload: FollowUpSubmitPayload) => {
+    if (!currentProspect || !firestore || !user || !userProfile) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
+        return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+        const { observations, nextContactDate, nextContactType, contactChannels } = payload;
+        
+        const selectedChannels = contactChannels ? Object.entries(contactChannels)
+          .filter(([, value]) => value)
+          .map(([key]) => key) : [];
+        
+        const activityData = {
+            leadId: currentProspect.id,
+            sellerId: user.uid,
+            sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+            type: nextContactType || 'Nota',
+            description: observations || '',
+            contactChannels: selectedChannels,
+            dueDate: nextContactDate ? nextContactDate.toISOString() : null,
+            completed: false,
+            createdDate: new Date().toISOString(),
+        };
+
+        await addDoc(collection(firestore, 'activities'), activityData);
+        toast({ title: 'Actividad Creada', description: `Nuevo seguimiento para ${currentProspect.clientName} agendado.` });
+
+        setIsFollowUpDialogOpen(false);
+        setCurrentProspect(null);
+    } catch (error) {
+        console.error('Error in handleFollowUpSubmit:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Ocurrió un problema al guardar el seguimiento. Por favor, inténtelo de nuevo.',
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
+  const handleToggleActivityComplete = async (activityId: string, completed: boolean) => {
+    if (!firestore) return;
+    const activityRef = doc(firestore, 'activities', activityId);
+    try {
+      await updateDoc(activityRef, { completed });
+      toast({
+        title: `Actividad ${completed ? 'Completada' : 'Pendiente'}`,
+        description: 'El estado del seguimiento ha sido actualizado.',
+      });
+    } catch (error) {
+      console.error('Error updating activity status:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error al actualizar',
+        description: 'No se pudo cambiar el estado de la actividad.',
+      });
+    }
+  };
+
   const handleEditClick = (prospect: any) => {
     setSelectedClient(prospect);
     setIsEditDialogOpen(true);
@@ -526,9 +554,6 @@ export default function PipelinePage() {
 
                 const defaultTab = availableSummaries.length > 0 ? availableSummaries[availableSummaries.length - 1] : undefined;
 
-                const followUpActivity = prospect.activities?.find((act: any) => !act.completed);
-
-
                 return (
                   <TableRow key={prospect.id}>
                     <TableCell className="font-medium align-top w-[300px]">
@@ -581,6 +606,10 @@ export default function PipelinePage() {
                             >
                                 <Phone className="h-4 w-4" />
                             </a>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 ml-1" onClick={() => handleNewFollowUpClick(prospect)}>
+                                <ListPlus className="h-4 w-4 text-muted-foreground" />
+                                <span className="sr-only">Nuevo Seguimiento</span>
+                            </Button>
                             <div className={cn(
                                 "flex items-center gap-1.5 text-xs ml-auto pr-2",
                                  prospect.language ? "text-muted-foreground" : "text-muted-foreground/40"
@@ -642,7 +671,7 @@ export default function PipelinePage() {
                           })}
                       </div>
                        <div className="mt-4 pt-4 border-t border-dashed">
-                        {availableSummaries.length > 0 ? (
+                        {availableSummaries.length > 0 && (
                           <Tabs defaultValue={defaultTab} className="w-full">
                             <TabsList className="grid w-full" style={{gridTemplateColumns: `repeat(${availableSummaries.length}, minmax(0, 1fr))`}}>
                                 {availableSummaries.includes('info') && <TabsTrigger value="info" className="text-xs">Info. Enviada</TabsTrigger>}
@@ -666,34 +695,6 @@ export default function PipelinePage() {
                                             <li>Info. Empresa: <span className="font-semibold">{prospect.opportunity.sentCompanyInfo ? '✓ Sí' : '✗ No'}</span></li>
                                             <li>Fotos/Videos: <span className="font-semibold">{prospect.opportunity.sentMedia ? '✓ Sí' : '✗ No'}</span></li>
                                         </ul>
-                                         {followUpActivity && (
-                                            <>
-                                                <div className="my-2 border-t border-dashed" />
-                                                <div className="space-y-1.5">
-                                                    <p className="font-bold text-foreground">SEGUIMIENTO AGENDADO</p>
-                                                    <div>
-                                                        <p>Próximo Contacto: <span className="font-semibold">{followUpActivity.dueDate ? format(new Date(followUpActivity.dueDate), "PP 'a las' p", { locale: es }) : 'No especificado'}</span></p>
-                                                        <p>Tipo: <span className="font-semibold">{followUpActivity.type}</span></p>
-                                                    </div>
-                                                    {followUpActivity.contactChannels && followUpActivity.contactChannels.length > 0 && (
-                                                        <div>
-                                                            <p>Vías de Contacto:</p>
-                                                            <div className="flex flex-wrap gap-1 mt-1">
-                                                                {followUpActivity.contactChannels.map((channel: string) => (
-                                                                    <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {followUpActivity.description && (
-                                                        <div>
-                                                            <p>Observaciones:</p>
-                                                            <p className="font-semibold italic">"{followUpActivity.description}"</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </>
-                                        )}
                                     </div>
                                 )}
                             </TabsContent>
@@ -763,9 +764,45 @@ export default function PipelinePage() {
                                 )}
                             </TabsContent>
                           </Tabs>
-                        ) : (
-                            <div className="py-4 text-xs text-center text-muted-foreground">No hay resúmenes para mostrar.</div>
                         )}
+                        <Collapsible className="mt-2">
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" className="w-full justify-start text-xs h-8">
+                                    <History className="h-4 w-4 mr-2" />
+                                    Historial de Seguimiento ({prospect.activities.length})
+                                </Button>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="px-3 pb-2 space-y-2">
+                                {prospect.activities.length > 0 ? prospect.activities.map((act: any) => (
+                                    <div key={act.id} className="p-2 border rounded-md bg-background/50 text-xs">
+                                        <div className="flex items-start gap-3">
+                                            <Checkbox 
+                                                id={`activity-${act.id}`}
+                                                className="mt-0.5"
+                                                checked={act.completed}
+                                                onCheckedChange={(checked) => handleToggleActivityComplete(act.id, !!checked)}
+                                            />
+                                            <div className={cn("grid gap-1 w-full", act.completed && "line-through text-muted-foreground")}>
+                                                <div className="flex items-center justify-between">
+                                                     <span className="font-bold text-foreground">{act.type} {act.dueDate ? ` - ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
+                                                      <span className="text-xs text-muted-foreground">{format(new Date(act.createdDate), "dd/MM/yy")}</span>
+                                                </div>
+                                                {act.description && <p className="italic">"{act.description}"</p>}
+                                                {act.contactChannels && act.contactChannels.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                        {act.contactChannels.map((channel: string) => (
+                                                            <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )) : (
+                                     <div className="py-4 text-xs text-center text-muted-foreground">No hay seguimientos registrados.</div>
+                                )}
+                            </CollapsibleContent>
+                        </Collapsible>
                         </div>
                     </TableCell>
                     <TableCell className="text-right align-top">
@@ -797,7 +834,6 @@ export default function PipelinePage() {
             }}
             onConfirm={handleInfoSentConfirm}
             opportunity={currentProspect.opportunity}
-            activity={currentProspect.activities?.find((act: any) => !act.completed)}
             isSubmitting={isSubmitting}
         />
       )}
@@ -837,6 +873,18 @@ export default function PipelinePage() {
             onConfirm={handleClosingConfirm}
             opportunity={currentProspect.opportunity}
             isSubmitting={isSubmitting}
+        />
+      )}
+      {currentProspect && (
+        <FollowUpDialog
+            open={isFollowUpDialogOpen}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) setCurrentProspect(null);
+              setIsFollowUpDialogOpen(isOpen);
+            }}
+            onConfirm={handleFollowUpSubmit}
+            isSubmitting={isSubmitting}
+            prospectName={currentProspect.clientName}
         />
       )}
       {selectedClient && (
