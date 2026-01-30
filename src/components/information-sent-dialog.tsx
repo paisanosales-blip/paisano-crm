@@ -106,7 +106,7 @@ export function InformationSentDialog({
       <DialogContent
         className="sm:max-w-lg"
         onPointerDownOutside={(e) => {
-            const target = e.target as HTMLElement;
+            const target = e.originalEvent.target as HTMLElement;
             if (target.closest('[data-radix-popper-content-wrapper]') || target.closest('.rdp')) {
                 e.preventDefault();
             }

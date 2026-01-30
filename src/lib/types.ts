@@ -59,7 +59,7 @@ export type Quotation = {
 export type Activity = {
   id: string;
   entityId: string; // Could be clientId or opportunityId
-  type: 'Llamada' | 'Correo' | 'Reunión' | 'Nota';
+  type: 'Llamada' | 'Correo' | 'Reunión' | 'Nota' | 'Mensaje';
   notes: string;
   date: string;
   followUpDate?: string;

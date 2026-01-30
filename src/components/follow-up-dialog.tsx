@@ -26,6 +26,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
+
 
 const contactChannelItems = [
   'WhatsApp', 'Messenger', 'Llamada', 'Mensaje de Texto', 'Correo Electronico'
@@ -58,6 +60,7 @@ export function FollowUpDialog({
 }: FollowUpDialogProps) {
 
   const isEditing = !!activity;
+  const { toast } = useToast();
   const initialChannelsState = contactChannelItems.reduce((acc, channel) => {
     acc[channel] = false;
     return acc;
@@ -93,6 +96,25 @@ export function FollowUpDialog({
   };
 
   const handleConfirm = () => {
+    // If it's a new activity (not editing), and it's a scheduled task (not just a note), then date and type are required.
+    if (!isEditing && nextContactType && nextContactType !== 'Nota' && !nextContactDate) {
+      toast({
+        variant: 'destructive',
+        title: 'Fecha Requerida',
+        description: 'Por favor, seleccione una fecha para agendar el próximo contacto.',
+      });
+      return;
+    }
+    // If a date is selected, a specific type (not 'Nota') must also be selected.
+    if (nextContactDate && (!nextContactType || nextContactType === 'Nota')) {
+      toast({
+        variant: 'destructive',
+        title: 'Tipo de Contacto Requerido',
+        description: 'Por favor, seleccione un tipo de contacto (Llamada, Mensaje, Correo) cuando agende una fecha.',
+      });
+      return;
+    }
+
     const payload: FollowUpSubmitPayload = {
       id: activity?.id,
       observations,
@@ -108,7 +130,7 @@ export function FollowUpDialog({
       <DialogContent
         className="sm:max-w-xl"
         onPointerDownOutside={(e) => {
-            const target = e.target as HTMLElement;
+            const target = e.originalEvent.target as HTMLElement;
             if (target.closest('[data-radix-popper-content-wrapper]') || target.closest('.rdp')) {
                 e.preventDefault();
             }
