@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const checklistItems = [
   { id: 'sentPrices', label: '¿SE ENVIARON PRECIOS?' },
@@ -32,6 +33,11 @@ const checklistItems = [
   { id: 'sentCompanyInfo', label: '¿INFORMACION DE LA EMPRESA?' },
   { id: 'sentMedia', label: '¿FOTOS O VIDEOS?' },
 ];
+
+const contactChannelItems = [
+  'WhatsApp', 'Messenger', 'Llamada', 'Mensaje de Texto', 'Correo Electronico'
+];
+
 
 export type ChecklistState = {
   sentPrices: boolean;
@@ -42,6 +48,7 @@ export type ChecklistState = {
 
 export interface InfoSentConfirmPayload extends ChecklistState {
   observations: string;
+  contactChannels: { [key: string]: boolean };
   nextContactDate?: Date;
   nextContactType: string;
 }
@@ -65,6 +72,13 @@ export function InformationSentDialog({
     sentCompanyInfo: false,
     sentMedia: false,
   });
+
+  const initialChannelsState = contactChannelItems.reduce((acc, channel) => {
+    acc[channel] = false;
+    return acc;
+  }, {} as { [key: string]: boolean });
+
+  const [contactChannels, setContactChannels] = useState(initialChannelsState);
   const [observations, setObservations] = useState('');
   const [nextContactDate, setNextContactDate] = useState<Date>();
   const [nextContactType, setNextContactType] = useState('');
@@ -73,11 +87,16 @@ export function InformationSentDialog({
     setChecklist((prev) => ({ ...prev, [id]: checked }));
   };
 
+  const handleChannelChange = (channel: string, checked: boolean) => {
+    setContactChannels((prev) => ({ ...prev, [channel]: checked }));
+  };
+
   const handleConfirm = () => {
     if (isConfirmDisabled) return;
     onConfirm({
       ...checklist,
       observations,
+      contactChannels,
       nextContactDate,
       nextContactType,
     });
@@ -88,6 +107,7 @@ export function InformationSentDialog({
       sentCompanyInfo: false,
       sentMedia: false,
     });
+    setContactChannels(initialChannelsState);
     setObservations('');
     setNextContactDate(undefined);
     setNextContactType('');
@@ -125,6 +145,24 @@ export function InformationSentDialog({
                 />
               </div>
             ))}
+          </div>
+
+          <div className="grid gap-2">
+             <Label className="font-medium text-sm text-muted-foreground">VÍA DE CONTACTO</Label>
+            <div className="grid grid-cols-2 gap-2 rounded-lg border p-3 shadow-sm">
+              {contactChannelItems.map((channel) => (
+                <div key={channel} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={channel}
+                    checked={contactChannels[channel]}
+                    onCheckedChange={(checked) => handleChannelChange(channel, !!checked)}
+                  />
+                  <Label htmlFor={channel} className="text-sm font-medium capitalize">
+                    {channel}
+                  </Label>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="grid gap-2">

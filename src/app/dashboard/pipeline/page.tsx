@@ -128,19 +128,24 @@ export default function PipelinePage() {
         return;
     }
 
-    const { observations, nextContactDate, nextContactType, ...checklist } = payload;
+    const { observations, nextContactDate, nextContactType, contactChannels, ...checklist } = payload;
     
     // 1. Update Opportunity stage with checklist data
     handleStageChange(currentOpportunity.id, 'Envió de Información', checklist);
 
     // 2. Create a new Activity for the follow-up
     if (nextContactDate && nextContactType && observations) {
+        const selectedChannels = Object.entries(contactChannels)
+            .filter(([, value]) => value)
+            .map(([key]) => key);
+
         const activityData = {
             leadId: currentOpportunity.leadId,
             sellerId: user.uid,
             sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
             type: nextContactType,
             description: observations,
+            contactChannels: selectedChannels,
             dueDate: nextContactDate.toISOString(),
             completed: false,
             createdDate: new Date().toISOString(),

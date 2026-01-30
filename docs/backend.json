@@ -300,6 +300,13 @@
           "type": "string",
           "description": "Description of the activity."
         },
+        "contactChannels": {
+          "type": "array",
+          "description": "The channels used for the contact (e.g., WhatsApp, Messenger, Call).",
+          "items": {
+            "type": "string"
+          }
+        },
         "dueDate": {
           "type": "string",
           "description": "Date the activity is due.",

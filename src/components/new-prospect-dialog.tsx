@@ -347,6 +347,7 @@ export function NewProspectDialog() {
                       <SelectContent>
                         <SelectItem value="Español">ESPAÑOL</SelectItem>
                         <SelectItem value="Inglés">INGLÉS</SelectItem>
+                        <SelectItem value="Bilingüe">BILINGÜE</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
