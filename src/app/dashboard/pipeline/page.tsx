@@ -8,12 +8,10 @@ import {
   useDoc,
   useCollection,
   useMemoFirebase,
-  addDocumentNonBlocking,
   useStorage,
 } from '@/firebase';
-import { collection, doc, query, where } from 'firebase/firestore';
+import { collection, doc, query, where, addDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { cn } from '@/lib/utils';
 
 import type { OpportunityStage, ClientClassification } from '@/lib/types';
@@ -101,39 +99,40 @@ export default function PipelinePage() {
   const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
 
-  const handleStageChange = (opportunityId: string, newStage: OpportunityStage, checklistData?: ChecklistState, reload: boolean = false) => {
+  const handleStageChange = async (opportunityId: string, newStage: OpportunityStage, reload: boolean = false) => {
     if (!firestore) return;
     const opportunityRef = doc(firestore, 'opportunities', opportunityId);
     
-    const updateData: any = { stage: newStage };
-    if (checklistData) {
-        updateData.sentPrices = checklistData.sentPrices;
-        updateData.sentTechnicalInfo = checklistData.sentTechnicalInfo;
-        updateData.sentCompanyInfo = checklistData.sentCompanyInfo;
-        updateData.sentMedia = checklistData.sentMedia;
-    }
-
-    updateDocumentNonBlocking(opportunityRef, updateData);
-    toast({ title: 'Éxito', description: `Prospecto movido a: ${newStage}` });
-    if (reload) {
+    try {
+      await updateDoc(opportunityRef, { stage: newStage });
+      toast({ title: 'Éxito', description: `Prospecto movido a: ${newStage}` });
+      if (reload) {
         setTimeout(() => {
-            window.location.reload();
+          window.location.reload();
         }, 500);
+      }
+    } catch (error) {
+      console.error(`Error moving prospect to ${newStage}:`, error);
+      toast({
+        variant: 'destructive',
+        title: 'Error al actualizar etapa',
+        description: `No se pudo mover el prospecto a: ${newStage}`,
+      });
     }
   };
 
-  const requestStageChange = (opportunity: { id: string; name: string; stage: OpportunityStage; leadId: string; }, newStage: OpportunityStage) => {
+  const requestStageChange = async (opportunity: { id: string; name: string; stage: OpportunityStage; leadId: string; }, newStage: OpportunityStage) => {
     setCurrentOpportunity(opportunity);
     if (opportunity.stage === 'Primer contacto' && newStage === 'Envió de Información') {
         setInfoSentDialogOpen(true);
     } else if (opportunity.stage === 'Envió de Información' && newStage === 'Envió de Cotización') {
         setQuotationUploadOpen(true);
     } else {
-        handleStageChange(opportunity.id, newStage, undefined, true);
+        await handleStageChange(opportunity.id, newStage, true);
     }
   };
 
-  const handleInfoSentConfirm = (payload: InfoSentConfirmPayload) => {
+  const handleInfoSentConfirm = async (payload: InfoSentConfirmPayload) => {
     if (!currentOpportunity || !firestore || !user || !userProfile) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
@@ -141,37 +140,55 @@ export default function PipelinePage() {
 
     const { observations, nextContactDate, nextContactType, contactChannels, ...checklist } = payload;
     
-    // 1. Update Opportunity stage with checklist data
-    handleStageChange(currentOpportunity.id, 'Envió de Información', checklist);
+    try {
+      // 1. Update Opportunity stage with checklist data
+      const opportunityRef = doc(firestore, 'opportunities', currentOpportunity.id);
+      const updateData: any = { stage: 'Envió de Información' };
+      if (checklist) {
+        updateData.sentPrices = checklist.sentPrices;
+        updateData.sentTechnicalInfo = checklist.sentTechnicalInfo;
+        updateData.sentCompanyInfo = checklist.sentCompanyInfo;
+        updateData.sentMedia = checklist.sentMedia;
+      }
+      await updateDoc(opportunityRef, updateData);
+      toast({ title: 'Éxito', description: `Prospecto movido a: Envió de Información` });
 
-    // 2. Create a new Activity for the follow-up
-    if (nextContactDate && nextContactType && observations) {
+      // 2. Create a new Activity for the follow-up
+      if (nextContactDate && nextContactType && observations) {
         const selectedChannels = Object.entries(contactChannels)
-            .filter(([, value]) => value)
-            .map(([key]) => key);
+          .filter(([, value]) => value)
+          .map(([key]) => key);
 
         const activityData = {
-            leadId: currentOpportunity.leadId,
-            sellerId: user.uid,
-            sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
-            type: nextContactType,
-            description: observations,
-            contactChannels: selectedChannels,
-            dueDate: nextContactDate.toISOString(),
-            completed: false,
-            createdDate: new Date().toISOString(),
+          leadId: currentOpportunity.leadId,
+          sellerId: user.uid,
+          sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+          type: nextContactType,
+          description: observations,
+          contactChannels: selectedChannels,
+          dueDate: nextContactDate.toISOString(),
+          completed: false,
+          createdDate: new Date().toISOString(),
         };
         
-        addDocumentNonBlocking(collection(firestore, 'activities'), activityData);
+        await addDoc(collection(firestore, 'activities'), activityData);
         
         toast({ title: 'Actividad Creada', description: `Próximo contacto para ${currentOpportunity.name} agendado.` });
-    }
+      }
 
-    setInfoSentDialogOpen(false);
-    setCurrentOpportunity(null);
-    setTimeout(() => {
+      setInfoSentDialogOpen(false);
+      setCurrentOpportunity(null);
+      setTimeout(() => {
         window.location.reload();
-    }, 500);
+      }, 500);
+    } catch (error) {
+      console.error('Error in handleInfoSentConfirm:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
+      });
+    }
   };
   
   const handleQuotationUpload = async (values: QuotationFormValues) => {
@@ -206,11 +223,11 @@ export default function PipelinePage() {
         createdDate: new Date().toISOString(),
       };
       
-      addDocumentNonBlocking(collection(firestore, 'quotations'), quotationData);
+      await addDoc(collection(firestore, 'quotations'), quotationData);
 
       // 3. Update Opportunity stage
       const opportunityRef = doc(firestore, 'opportunities', currentOpportunity.id);
-      updateDocumentNonBlocking(opportunityRef, {
+      await updateDoc(opportunityRef, {
         stage: 'Envió de Cotización',
       });
       
@@ -221,7 +238,6 @@ export default function PipelinePage() {
       
       setQuotationUploadOpen(false);
       setCurrentOpportunity(null);
-      setIsUploadingQuotation(false);
 
       setTimeout(() => {
           window.location.reload();
@@ -234,7 +250,8 @@ export default function PipelinePage() {
         title: 'Error al cargar cotización',
         description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
       });
-      setIsUploadingQuotation(false);
+    } finally {
+        setIsUploadingQuotation(false);
     }
   };
 
@@ -312,7 +329,7 @@ export default function PipelinePage() {
                     <TableCell className="font-medium align-top w-[300px]">
                         <div className="font-semibold">{prospect.clientName}</div>
                         <div className="text-sm text-muted-foreground">{prospect.contactPerson}</div>
-                        <div className="text-xs text-muted-foreground mt-1 normal-case">{prospect.email || 'N/A'}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{prospect.email || 'N/A'}</div>
                         <div className="text-xs text-muted-foreground">{prospect.phone || 'N/A'}</div>
                         
                         <div className="flex items-center gap-2.5 mt-2">
