@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useStorage, useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useStorage, useFirestore, useUser, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, doc, updateDoc } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
@@ -103,11 +103,11 @@ export function QuotationUploadDialog({
         createdDate: new Date().toISOString(),
       };
       
-      await addDoc(collection(firestore, 'quotations'), quotationData);
+      addDocumentNonBlocking(collection(firestore, 'quotations'), quotationData);
 
       // 3. Update Opportunity stage
       const opportunityRef = doc(firestore, 'opportunities', opportunityId);
-      await updateDoc(opportunityRef, {
+      updateDocumentNonBlocking(opportunityRef, {
         stage: 'Envió de Cotización',
       });
       
