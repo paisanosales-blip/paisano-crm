@@ -20,15 +20,10 @@ service cloud.firestore {
     // User Profiles
     // =====================================================================
     match /users/{userId} {
-      // A manager can get any profile, a user can get their own. Safe to use isManager() here for a single 'get'.
       allow get: if isManager() || request.auth.uid == userId;
-      // Any signed-in user can list all users to populate the manager's dropdown.
       allow list: if isSignedIn();
-      // A user can only create their own profile document.
       allow create: if request.auth.uid == userId;
-      // A manager can update any profile, a user can update their own.
       allow update: if isManager() || request.auth.uid == userId;
-      // Only a manager can delete another user.
       allow delete: if isManager() && request.auth.uid != userId;
     }
 
@@ -36,44 +31,41 @@ service cloud.firestore {
     // Business Data Collections (Leads, Opportunities, etc.)
     // =====================================================================
     match /leads/{leadId} {
-      // READ: Allow any signed-in user. The app's queries MUST provide
-      // the actual filtering for sellers (e.g., `where('sellerId', '==', uid)`).
-      // This is the only way to allow managers to perform broad queries without
-      // violating the "no get() in list rules" constraint.
-      allow read: if isSignedIn();
-
-      // WRITE: Rules are more restrictive and can use isManager() safely because
-      // these are single-document operations.
-      allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
-      allow update: if isSignedIn() && (isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
-      allow delete: if isSignedIn() && (isManager() || resource.data.sellerId == request.auth.uid);
+      // For 'list' operations, we allow any signed-in user to attempt a query.
+      // The security is then enforced by the queries in the application code,
+      // which MUST include `where('sellerId', '==', request.auth.uid)` for non-managers.
+      // This permissive rule is necessary to allow 'manager' users to query across all sellers.
+      allow list: if isSignedIn();
+      
+      // For single-document reads ('get') and writes ('update', 'delete'), we can enforce ownership.
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      
+      // A user can create a lead if they set themselves as the seller.
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      
+      // A manager can update anything. A seller can update their own doc, but cannot change the owner.
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId);
     }
     
     match /opportunities/{opportunityId} {
-      // READ: Allow any signed-in user.
-      allow read: if isSignedIn();
-      // WRITE: Secure write rules.
-      allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
-      allow update: if isSignedIn() && (isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
-      allow delete: if isSignedIn() && (isManager() || resource.data.sellerId == request.auth.uid);
+      allow list: if isSignedIn();
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId);
     }
 
     match /quotations/{quotationId} {
-      // READ: Allow any signed-in user.
-      allow read: if isSignedIn();
-      // WRITE: Secure write rules.
-      allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
-      allow update: if isSignedIn() && (isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
-      allow delete: if isSignedIn() && (isManager() || resource.data.sellerId == request.auth.uid);
+      allow list: if isSignedIn();
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId);
     }
 
     match /activities/{activityId} {
-      // READ: Allow any signed-in user.
-      allow read: if isSignedIn();
-      // WRITE: Secure write rules.
-      allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
-      allow update: if isSignedIn() && (isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
-      allow delete: if isSignedIn() && (isManager() || resource.data.sellerId == request.auth.uid);
+      allow list: if isSignedIn();
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId);
     }
   }
 }
