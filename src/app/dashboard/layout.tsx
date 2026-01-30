@@ -16,9 +16,9 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { PaisanoLogo } from '@/components/icons';
 import { DashboardHeader } from '@/components/dashboard-header';
 import { Skeleton } from '@/components/ui/skeleton';
+import { IconSwitcher } from '@/components/icon-switcher';
 
 export default function DashboardLayout({
   children,
@@ -52,10 +52,12 @@ export default function DashboardLayout({
     <SidebarProvider>
       <Sidebar>
         <SidebarHeader>
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <PaisanoLogo className="h-8 w-8 text-primary" />
-            <span className="text-xl font-semibold text-white font-headline">Paisano</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <IconSwitcher className="h-8 w-8 text-primary" />
+            <Link href="/dashboard">
+              <span className="text-xl font-semibold text-white font-headline">PAISANO TRAILER</span>
+            </Link>
+          </div>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
