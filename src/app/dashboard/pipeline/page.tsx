@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -16,6 +16,7 @@ import { collection, doc, query, where, addDoc, updateDoc, deleteDoc } from 'fir
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { cn } from '@/lib/utils';
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import * as AccordionPrimitive from "@radix-ui/react-accordion";
 
 
 import type { OpportunityStage, ClientClassification, Opportunity } from '@/lib/types';
@@ -643,22 +644,23 @@ export default function PipelinePage() {
                                     <Accordion type="single" collapsible className="w-full" defaultValue={prospect.activities[0]?.id}>
                                       {prospect.activities.map((act: any) => (
                                         <AccordionItem value={act.id} key={act.id} className="border-b-0">
-                                          <AccordionTrigger className="p-2 text-xs hover:no-underline rounded-md [&[data-state=open]]:bg-muted/50">
-                                            <div className="flex items-center gap-3 w-full">
-                                              <Checkbox
+                                          <AccordionPrimitive.Header className="flex w-full items-center p-2 text-xs rounded-md data-[state=open]:bg-muted/50 hover:bg-muted/50">
+                                            <Checkbox
                                                 id={`activity-check-${act.id}`}
                                                 checked={act.completed}
                                                 onCheckedChange={(checked) => handleToggleActivityComplete(act.id, !!checked)}
-                                                onClick={(e) => e.stopPropagation()} // Prevent accordion from toggling
-                                              />
-                                              <div className={cn("grid gap-0.5 text-left", act.completed && "line-through text-muted-foreground")}>
-                                                <span className="font-bold text-foreground">{act.type} {act.dueDate ? `- ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
-                                                <span className="text-xs text-muted-foreground">Creado: {format(new Date(act.createdDate), "dd/MM/yy")}</span>
-                                              </div>
-                                            </div>
-                                          </AccordionTrigger>
+                                                className="mr-3"
+                                            />
+                                            <AccordionPrimitive.Trigger className="flex flex-1 items-center justify-between text-left">
+                                                <div className={cn("grid gap-0.5", act.completed && "line-through text-muted-foreground")}>
+                                                    <span className="font-bold text-foreground">{act.type} {act.dueDate ? `- ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
+                                                    <span className="text-xs text-muted-foreground">Creado: {format(new Date(act.createdDate), "dd/MM/yy")}</span>
+                                                </div>
+                                                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 data-[state=open]:rotate-180" />
+                                            </AccordionPrimitive.Trigger>
+                                          </AccordionPrimitive.Header>
                                           <AccordionContent className="pb-2 pt-0 pl-4 pr-2">
-                                            <div className="pl-6 border-l-2 ml-2 py-2">
+                                            <div className="pl-10 border-l-2 ml-4 py-2">
                                               {act.description && <p className="italic mb-2 text-muted-foreground">"{act.description}"</p>}
                                               {act.contactChannels && act.contactChannels.length > 0 && (
                                                 <div className="flex flex-wrap gap-1 mt-1">
