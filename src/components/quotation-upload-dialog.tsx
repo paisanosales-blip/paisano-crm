@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { UploadCloud } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import type { Quotation } from '@/lib/types';
 
 
@@ -41,6 +42,7 @@ interface QuotationUploadDialogProps {
   opportunityName: string;
   quotation?: Quotation | null;
   isSubmitting: boolean;
+  uploadProgress: number;
 }
 
 export function QuotationUploadDialog({
@@ -50,6 +52,7 @@ export function QuotationUploadDialog({
   opportunityName,
   quotation,
   isSubmitting,
+  uploadProgress,
 }: QuotationUploadDialogProps) {
   const isEditing = !!quotation;
   
@@ -179,12 +182,15 @@ export function QuotationUploadDialog({
                 </FormItem>
               )}
             />
+            
+            {isSubmitting && <Progress value={uploadProgress} className="w-full mt-2" />}
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Confirmar y Mover')}
+                {isSubmitting ? `Guardando... ${Math.round(uploadProgress)}%` : (isEditing ? 'Guardar Cambios' : 'Confirmar y Mover')}
               </Button>
             </DialogFooter>
           </form>

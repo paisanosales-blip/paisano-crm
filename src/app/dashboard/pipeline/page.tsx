@@ -11,7 +11,7 @@ import {
   useStorage,
 } from '@/firebase';
 import { collection, doc, query, where, addDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { cn } from '@/lib/utils';
 
 import type { OpportunityStage, ClientClassification, Opportunity } from '@/lib/types';
@@ -64,6 +64,7 @@ export default function PipelinePage() {
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
   const [currentProspect, setCurrentProspect] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
 
@@ -212,16 +213,40 @@ export default function PipelinePage() {
     }
 
     setIsSubmitting(true);
+    setUploadProgress(0);
 
     try {
       const isEditing = !!currentProspect.quotation;
       let pdfUrl = isEditing ? currentProspect.quotation.pdfUrl : '';
 
+      // Only upload if a new PDF is provided
       if (values.pdf) {
         const pdfFile = values.pdf;
         const storageRef = ref(storage, `quotations/${currentProspect.opportunity.id}/${pdfFile.name}`);
-        const uploadResult = await uploadBytes(storageRef, pdfFile);
-        pdfUrl = await getDownloadURL(uploadResult.ref);
+        const uploadTask = uploadBytesResumable(storageRef, pdfFile);
+
+        // Wrap upload in a promise to await its completion
+        pdfUrl = await new Promise<string>((resolve, reject) => {
+          uploadTask.on(
+            'state_changed',
+            (snapshot) => {
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setUploadProgress(progress);
+            },
+            (error) => {
+              // This will be caught by the outer catch block
+              reject(error);
+            },
+            async () => {
+              try {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                resolve(downloadURL);
+              } catch (error) {
+                reject(error);
+              }
+            }
+          );
+        });
       }
 
       if (!pdfUrl) {
@@ -233,8 +258,10 @@ export default function PipelinePage() {
          await updateDoc(quotationRef, {
              value: values.value,
              currency: values.currency,
-             pdfUrl: pdfUrl,
+             pdfUrl: pdfUrl, // update with new URL if new file was uploaded
              version: String(Number(currentProspect.quotation.version || 1) + (values.pdf ? 1 : 0)),
+             status: 'Enviada', // Always set to sent on edit/upload
+             createdDate: new Date().toISOString(), // Update date on new version
          });
       } else {
         const quotationData = {
@@ -251,6 +278,7 @@ export default function PipelinePage() {
         await addDoc(collection(firestore, 'quotations'), quotationData);
       }
 
+      // Update opportunity stage if needed
       const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
       if (currentProspect.opportunity.stage === 'Envió de Información') {
         await updateDoc(opportunityRef, { stage: 'Envió de Cotización' });
@@ -266,11 +294,17 @@ export default function PipelinePage() {
 
     } catch (error) {
       console.error('Error uploading quotation:', error);
-      toast({ variant: 'destructive', title: 'Error al cargar cotización', description: String(error) || 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.' });
+      toast({ 
+        variant: 'destructive', 
+        title: 'Error al cargar cotización', 
+        description: 'No se pudo subir el archivo. Verifique los permisos de Storage (CORS) e inténtelo de nuevo.'
+      });
     } finally {
         setIsSubmitting(false);
+        setUploadProgress(0);
     }
   };
+
 
   const handleEditClick = (prospect: any) => {
     setSelectedClient(prospect);
@@ -506,8 +540,8 @@ export default function PipelinePage() {
         <InformationSentDialog
             open={infoSentDialogOpen}
             onOpenChange={(isOpen) => {
-              setInfoSentDialogOpen(isOpen);
               if (!isOpen) setCurrentProspect(null);
+              setInfoSentDialogOpen(isOpen);
             }}
             onConfirm={handleInfoSentConfirm}
             opportunity={currentProspect.opportunity}
@@ -518,13 +552,14 @@ export default function PipelinePage() {
         <QuotationUploadDialog
             open={quotationUploadOpen}
             onOpenChange={(isOpen) => {
-              setQuotationUploadOpen(isOpen);
               if (!isOpen) setCurrentProspect(null);
+              setQuotationUploadOpen(isOpen);
             }}
             onConfirm={handleQuotationUpload}
             opportunityName={currentProspect.clientName}
             quotation={currentProspect.quotation}
             isSubmitting={isSubmitting}
+            uploadProgress={uploadProgress}
         />
       )}
       {selectedClient && (
