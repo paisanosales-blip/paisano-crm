@@ -150,7 +150,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.prospectosActivos}</div>
-                            <p className="text-xs text-muted-foreground">En contacto o informados</p>
+                            <p className="text-xs text-muted-foreground">Oportunidades en 'Primer contacto' o 'Info. Enviada'</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -160,7 +160,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.clientesPotenciales}</div>
-                            <p className="text-xs text-muted-foreground">Con cotización o negociación</p>
+                            <p className="text-xs text-muted-foreground">Oportunidades en 'Cotización' o 'Negociación'</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -170,7 +170,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">+{dashboardStats.clientesGanados}</div>
-                            <p className="text-xs text-muted-foreground">Oportunidades ganadas este mes</p>
+                            <p className="text-xs text-muted-foreground">Oportunidades en 'Cierre de venta'</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -180,7 +180,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dashboardStats.ingresosTotales)}</div>
-                            <p className="text-xs text-muted-foreground">De ventas cerradas este mes</p>
+                            <p className="text-xs text-muted-foreground">De oportunidades en 'Cierre de venta'</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -190,7 +190,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.tasaDeConversion}%</div>
-                            <p className="text-xs text-muted-foreground">De prospectos a clientes</p>
+                            <p className="text-xs text-muted-foreground">Clientes nuevos / Oportunidades totales</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -210,7 +210,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.clientesNoAtendidos}</div>
-                            <p className="text-xs text-muted-foreground">En primer contacto</p>
+                            <p className="text-xs text-muted-foreground">Oportunidades en etapa 'Primer contacto'</p>
                         </CardContent>
                     </Card>
                 </div>
