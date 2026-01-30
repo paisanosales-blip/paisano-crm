@@ -140,7 +140,7 @@ export const cities: { [key: string]: string[] } = {
   SC: ['Charleston', 'Columbia', 'North Charleston', 'Mount Pleasant', 'Rock Hill'],
   SD: ['Sioux Falls', 'Rapid City', 'Aberdeen', 'Brookings', 'Watertown'],
   TN: ['Nashville', 'Memphis', 'Knoxville', 'Chattanooga', 'Clarksville'],
-  TX: ['Houston', 'San Antonio', 'Dallas', 'Austin', 'Fort Worth', 'El Paso', 'Arlington'],
+  TX: ['Andrews', 'Arlington', 'Austin', 'Dallas', 'El Paso', 'Fort Stockton', 'Fort Worth', 'Houston', 'Midland', 'Monahans', 'Odessa', 'Pecos', 'San Antonio', 'Seminole'],
   UT: ['Salt Lake City', 'West Valley City', 'Provo', 'West Jordan', 'Orem'],
   VT: ['Burlington', 'Essex', 'South Burlington', 'Colchester', 'Rutland'],
   VA: ['Virginia Beach', 'Norfolk', 'Chesapeake', 'Richmond', 'Newport News'],
