@@ -9,8 +9,10 @@ import {
   useCollection,
   useMemoFirebase,
   addDocumentNonBlocking,
+  useStorage,
 } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 import type { OpportunityStage, ClientClassification } from '@/lib/types';
@@ -42,7 +44,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { NewProspectDialog } from '@/components/new-prospect-dialog';
 import { InformationSentDialog, type InfoSentConfirmPayload, type ChecklistState } from '@/components/information-sent-dialog';
-import { QuotationUploadDialog } from '@/components/quotation-upload-dialog';
+import { QuotationUploadDialog, type QuotationFormValues } from '@/components/quotation-upload-dialog';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -60,11 +62,13 @@ export default function PipelinePage() {
   const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
   const [currentOpportunity, setCurrentOpportunity] = useState<{ id: string; name: string; stage: OpportunityStage, leadId: string; } | null>(null);
+  const [isUploadingQuotation, setIsUploadingQuotation] = useState(false);
 
   const { toast } = useToast();
 
   const { user, isUserLoading: isUserAuthLoading } = useUser();
   const firestore = useFirestore();
+  const storage = useStorage();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -146,9 +150,65 @@ export default function PipelinePage() {
     setCurrentOpportunity(null);
   };
   
-  const handleQuotationUploadConfirm = () => {
-    setQuotationUploadOpen(false);
-    setCurrentOpportunity(null);
+  const handleQuotationUpload = async (values: QuotationFormValues) => {
+    if (!firestore || !storage || !user || !userProfile || !currentOpportunity) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo conectar con Firebase.',
+      });
+      return;
+    }
+
+    setIsUploadingQuotation(true);
+
+    try {
+      // 1. Upload PDF to Firebase Storage
+      const pdfFile = values.pdf;
+      const storageRef = ref(storage, `quotations/${currentOpportunity.id}/${pdfFile.name}`);
+      const uploadResult = await uploadBytes(storageRef, pdfFile);
+      const pdfUrl = await getDownloadURL(uploadResult.ref);
+
+      // 2. Create Quotation document in Firestore
+      const quotationData = {
+        opportunityId: currentOpportunity.id,
+        sellerId: user.uid,
+        sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+        pdfUrl,
+        value: values.value,
+        currency: values.currency,
+        version: '1', // Start with version 1
+        status: 'Enviada',
+        createdDate: new Date().toISOString(),
+      };
+      
+      addDocumentNonBlocking(collection(firestore, 'quotations'), quotationData);
+
+      // 3. Update Opportunity stage
+      const opportunityRef = doc(firestore, 'opportunities', currentOpportunity.id);
+      updateDocumentNonBlocking(opportunityRef, {
+        stage: 'Envió de Cotización',
+      });
+      
+      toast({
+        title: '¡Cotización Enviada!',
+        description: `La cotización para ${currentOpportunity.name} ha sido cargada y el prospecto movido.`,
+      });
+
+      // 4. Close dialog and reset state
+      setQuotationUploadOpen(false);
+      setCurrentOpportunity(null);
+
+    } catch (error) {
+      console.error('Error uploading quotation:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error al cargar cotización',
+        description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
+      });
+    } finally {
+      setIsUploadingQuotation(false);
+    }
   };
 
 
@@ -283,9 +343,9 @@ export default function PipelinePage() {
         <QuotationUploadDialog
             open={quotationUploadOpen}
             onOpenChange={setQuotationUploadOpen}
-            onConfirm={handleQuotationUploadConfirm}
+            onConfirm={handleQuotationUpload}
             opportunityName={currentOpportunity.name}
-            opportunityId={currentOpportunity.id}
+            isUploading={isUploadingQuotation}
         />
       )}
     </div>

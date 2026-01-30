@@ -1,13 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useStorage, useFirestore, useUser, useDoc, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, doc } from 'firebase/firestore';
-import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -34,14 +29,14 @@ const quotationSchema = z.object({
     pdf: z.instanceof(File).refine(file => file?.size > 0, 'Se requiere un archivo PDF.'),
 });
 
-type QuotationFormValues = z.infer<typeof quotationSchema>;
+export type QuotationFormValues = z.infer<typeof quotationSchema>;
 
 interface QuotationUploadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: (values: QuotationFormValues) => void;
   opportunityName: string;
-  opportunityId: string;
+  isUploading: boolean;
 }
 
 export function QuotationUploadDialog({
@@ -49,20 +44,8 @@ export function QuotationUploadDialog({
   onOpenChange,
   onConfirm,
   opportunityName,
-  opportunityId,
+  isUploading,
 }: QuotationUploadDialogProps) {
-  const { toast } = useToast();
-  const firestore = useFirestore();
-  const storage = useStorage();
-  const { user } = useUser();
-  const [isUploading, setIsUploading] = useState(false);
-
-  const userProfileRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-  const { data: userProfile } = useDoc(userProfileRef);
-
   const form = useForm<QuotationFormValues>({
     resolver: zodResolver(quotationSchema),
     defaultValues: {
@@ -71,67 +54,16 @@ export function QuotationUploadDialog({
     },
   });
 
-  async function onSubmit(values: QuotationFormValues) {
-    if (!firestore || !storage || !user || !userProfile) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo conectar con Firebase.',
-      });
-      return;
-    }
-
-    setIsUploading(true);
-
-    try {
-      // 1. Upload PDF to Firebase Storage
-      const pdfFile = values.pdf;
-      const storageRef = ref(storage, `quotations/${opportunityId}/${pdfFile.name}`);
-      const uploadResult = await uploadBytes(storageRef, pdfFile);
-      const pdfUrl = await getDownloadURL(uploadResult.ref);
-
-      // 2. Create Quotation document in Firestore
-      const quotationData = {
-        opportunityId,
-        sellerId: user.uid,
-        sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
-        pdfUrl,
-        value: values.value,
-        currency: values.currency,
-        version: '1', // Start with version 1
-        status: 'Enviada',
-        createdDate: new Date().toISOString(),
-      };
-      
-      addDocumentNonBlocking(collection(firestore, 'quotations'), quotationData);
-
-      // 3. Update Opportunity stage
-      const opportunityRef = doc(firestore, 'opportunities', opportunityId);
-      updateDocumentNonBlocking(opportunityRef, {
-        stage: 'Envió de Cotización',
-      });
-      
-      toast({
-        title: '¡Cotización Enviada!',
-        description: `La cotización para ${opportunityName} ha sido cargada y el prospecto movido.`,
-      });
-
-      onConfirm();
-      form.reset();
-      onOpenChange(false);
-
-    } catch (error) {
-      console.error('Error uploading quotation:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al cargar cotización',
-        description:
-          'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
-      });
-    } finally {
-      setIsUploading(false);
-    }
+  function onSubmit(values: QuotationFormValues) {
+    onConfirm(values);
   }
+
+  // Reset form when dialog opens
+  React.useEffect(() => {
+    if (open) {
+      form.reset();
+    }
+  }, [open, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -209,7 +141,7 @@ export function QuotationUploadDialog({
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
                 Cancelar
               </Button>
               <Button type="submit" disabled={isUploading}>
