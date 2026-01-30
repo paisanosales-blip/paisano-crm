@@ -20,7 +20,7 @@ service cloud.firestore {
 
     function isAdmin() {
       let userData = getUserData();
-      return isSignedIn() && userData != null && userData.role == 'Admin';
+      return isSignedIn() && userData != null && (userData.role == 'Admin' || userData.role == 'admin');
     }
 
     function isManager() {
@@ -37,14 +37,13 @@ service cloud.firestore {
       allow list: if isSignedIn();
       allow create: if isSignedIn() && isOwner(userId);
       // Any signed-in user can update any other user's profile, including their role.
-      // The UI prevents a user from changing their own role.
       allow update: if isSignedIn();
       allow delete: if isAdmin() && request.auth.uid != userId;
     }
 
     match /leads/{leadId} {
       allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn() && resource.data.sellerId == request.auth.uid;
+      allow list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
@@ -52,7 +51,7 @@ service cloud.firestore {
     
     match /opportunities/{opportunityId} {
       allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn() && resource.data.sellerId == request.auth.uid;
+      allow list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
@@ -60,7 +59,7 @@ service cloud.firestore {
 
     match /quotations/{quotationId} {
       allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn() && resource.data.sellerId == request.auth.uid;
+      allow list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
@@ -68,7 +67,7 @@ service cloud.firestore {
 
     match /activities/{activityId} {
       allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn() && resource.data.sellerId == request.auth.uid;
+      allow list: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
