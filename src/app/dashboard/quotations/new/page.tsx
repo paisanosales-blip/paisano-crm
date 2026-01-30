@@ -116,7 +116,7 @@ export default function NewQuotationPage() {
     if (logoUrl) {
         try {
             const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
-            doc.addImage(logoUrl, format.toUpperCase(), margin, 15, 50, 25);
+            doc.addImage(logoUrl, format.toUpperCase(), margin, 15, 70, 35);
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
         }
@@ -136,9 +136,9 @@ export default function NewQuotationPage() {
     // Decorative Separator
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
-    doc.line(margin, 45, docWidth - margin, 45);
+    doc.line(margin, 55, docWidth - margin, 55);
 
-    finalY = 55;
+    finalY = 65;
 
     // --- INFO SECTION ---
     const infoStartY = finalY;
