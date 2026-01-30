@@ -23,11 +23,13 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { UploadCloud } from 'lucide-react';
+import type { Quotation } from '@/lib/types';
+
 
 const quotationSchema = z.object({
     value: z.coerce.number().min(1, 'El valor es requerido.'),
     currency: z.string().min(2, 'La moneda es requerida.').default('USD'),
-    pdf: z.instanceof(File).refine(file => file?.size > 0, 'Se requiere un archivo PDF.'),
+    pdf: z.instanceof(File).optional(),
 });
 
 export type QuotationFormValues = z.infer<typeof quotationSchema>;
@@ -37,6 +39,7 @@ interface QuotationUploadDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: (values: QuotationFormValues) => void;
   opportunityName: string;
+  quotation?: Quotation | null;
   isUploading: boolean;
 }
 
@@ -45,34 +48,63 @@ export function QuotationUploadDialog({
   onOpenChange,
   onConfirm,
   opportunityName,
+  quotation,
   isUploading,
 }: QuotationUploadDialogProps) {
+  const isEditing = !!quotation;
+  
+  const finalQuotationSchema = isEditing
+    ? quotationSchema
+    : quotationSchema.refine((data) => data.pdf, {
+        message: 'Se requiere un archivo PDF.',
+        path: ['pdf'],
+      });
+
+
   const form = useForm<QuotationFormValues>({
-    resolver: zodResolver(quotationSchema),
+    resolver: zodResolver(finalQuotationSchema),
     defaultValues: {
       value: 0,
       currency: 'USD',
     },
   });
 
+  const { formState: { errors }, watch } = form;
+  const pdfValue = watch('pdf');
+
+
+  React.useEffect(() => {
+    if (open) {
+      if (isEditing && quotation) {
+        form.reset({
+          value: quotation.value,
+          currency: quotation.currency,
+          pdf: undefined,
+        });
+      } else {
+        form.reset({
+          value: 0,
+          currency: 'USD',
+          pdf: undefined,
+        });
+      }
+    }
+  }, [open, isEditing, quotation, form]);
+
   function onSubmit(values: QuotationFormValues) {
     onConfirm(values);
   }
-
-  // Reset form when dialog opens
-  React.useEffect(() => {
-    if (open) {
-      form.reset();
-    }
-  }, [open, form]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Cargar Cotización para {opportunityName}</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar' : 'Cargar'} Cotización para {opportunityName}</DialogTitle>
           <DialogDescription>
-            Complete los detalles y cargue el archivo PDF para mover el prospecto a la etapa de "Envió de Cotización".
+            {isEditing 
+                ? 'Actualice los detalles de la cotización. Puede cargar un nuevo PDF para reemplazar el existente.' 
+                : 'Complete los detalles y cargue el archivo PDF para mover el prospecto a la etapa de "Envió de Cotización".'
+            }
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -109,7 +141,7 @@ export function QuotationUploadDialog({
             <FormField
               control={form.control}
               name="pdf"
-              render={({ field: { onChange, value, ...rest } }) => (
+              render={({ field: { onChange, ...rest } }) => (
                 <FormItem>
                   <FormLabel>Archivo PDF de la Cotización</FormLabel>
                   <FormControl>
@@ -133,7 +165,12 @@ export function QuotationUploadDialog({
                                 <p className="pl-1">o arrastre y suelte</p>
                             </div>
                             <p className="text-xs text-muted-foreground">PDF hasta 10MB</p>
-                             {value?.name && <p className="text-xs font-semibold text-foreground">{value.name}</p>}
+                            {isEditing && !pdfValue?.name && quotation?.pdfUrl && (
+                                <p className="text-xs font-semibold text-foreground mt-1">
+                                    Archivo actual: <a href={quotation.pdfUrl} target="_blank" rel="noopener noreferrer" className="underline">Ver PDF</a>
+                                </p>
+                            )}
+                             {pdfValue?.name && <p className="text-xs font-semibold text-foreground">{pdfValue.name}</p>}
                         </div>
                     </div>
                   </FormControl>
@@ -146,7 +183,7 @@ export function QuotationUploadDialog({
                 Cancelar
               </Button>
               <Button type="submit" disabled={isUploading}>
-                {isUploading ? 'Cargando...' : 'Confirmar y Mover'}
+                {isUploading ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Confirmar y Mover')}
               </Button>
             </DialogFooter>
           </form>

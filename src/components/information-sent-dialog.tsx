@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import type { Opportunity } from '@/lib/types';
 
 const checklistItems = [
   { id: 'sentPrices', label: '¿SE ENVIARON PRECIOS?' },
@@ -57,14 +58,14 @@ interface InformationSentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (payload: InfoSentConfirmPayload) => void;
-  opportunityName: string;
+  opportunity: Opportunity;
 }
 
 export function InformationSentDialog({
   open,
   onOpenChange,
   onConfirm,
-  opportunityName,
+  opportunity,
 }: InformationSentDialogProps) {
   const [checklist, setChecklist] = useState<ChecklistState>({
     sentPrices: false,
@@ -83,6 +84,24 @@ export function InformationSentDialog({
   const [nextContactDate, setNextContactDate] = useState<Date>();
   const [nextContactType, setNextContactType] = useState('');
 
+  const isEditing = opportunity?.stage !== 'Primer contacto';
+
+  useEffect(() => {
+    if (open && opportunity) {
+        setChecklist({
+            sentPrices: opportunity.sentPrices || false,
+            sentTechnicalInfo: opportunity.sentTechnicalInfo || false,
+            sentCompanyInfo: opportunity.sentCompanyInfo || false,
+            sentMedia: opportunity.sentMedia || false,
+        });
+        setContactChannels(initialChannelsState);
+        setObservations('');
+        setNextContactDate(undefined);
+        setNextContactType('');
+    }
+  }, [open, opportunity]);
+
+
   const handleSwitchChange = (id: keyof ChecklistState, checked: boolean) => {
     setChecklist((prev) => ({ ...prev, [id]: checked }));
   };
@@ -100,29 +119,17 @@ export function InformationSentDialog({
       nextContactDate,
       nextContactType,
     });
-    // Reset state on close
-    setChecklist({
-      sentPrices: false,
-      sentTechnicalInfo: false,
-      sentCompanyInfo: false,
-      sentMedia: false,
-    });
-    setContactChannels(initialChannelsState);
-    setObservations('');
-    setNextContactDate(undefined);
-    setNextContactType('');
-    onOpenChange(false);
   };
   
-  const isConfirmDisabled = !nextContactDate || !nextContactType || !observations;
+  const isConfirmDisabled = !isEditing && (!nextContactDate || !nextContactType || !observations);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Confirmar Envío de Información</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar' : 'Confirmar'} Envío de Información</DialogTitle>
           <DialogDescription>
-            Para mover a "{opportunityName}" a la siguiente etapa, por favor confirme qué información se ha enviado y registre el seguimiento.
+             Para {isEditing ? 'actualizar la información de' : 'mover a'} "{opportunity.name}" a la siguiente etapa, por favor confirme qué información se ha enviado y registre el seguimiento.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4">
@@ -176,7 +183,7 @@ export function InformationSentDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label className="font-medium text-sm text-muted-foreground">PRÓXIMO CONTACTO</Label>
+            <Label className="font-medium text-sm text-muted-foreground">PRÓXIMO CONTACTO (OPCIONAL AL EDITAR)</Label>
             <div className="grid grid-cols-2 gap-2">
               <Popover>
                 <PopoverTrigger asChild>
@@ -222,7 +229,7 @@ export function InformationSentDialog({
             Cancelar
           </Button>
           <Button onClick={handleConfirm} disabled={isConfirmDisabled}>
-            Confirmar y Mover
+            {isEditing ? 'Guardar Cambios' : 'Confirmar y Mover'}
           </Button>
         </DialogFooter>
       </DialogContent>

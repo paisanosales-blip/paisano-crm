@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil } from 'lucide-react';
 import {
   useUser,
   useFirestore,
@@ -14,7 +14,7 @@ import { collection, doc, query, where, addDoc, updateDoc } from 'firebase/fires
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { cn } from '@/lib/utils';
 
-import type { OpportunityStage, ClientClassification } from '@/lib/types';
+import type { OpportunityStage, ClientClassification, Opportunity } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -43,7 +43,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { NewProspectDialog } from '@/components/new-prospect-dialog';
-import { InformationSentDialog, type InfoSentConfirmPayload, type ChecklistState } from '@/components/information-sent-dialog';
+import { InformationSentDialog, type InfoSentConfirmPayload } from '@/components/information-sent-dialog';
 import { QuotationUploadDialog, type QuotationFormValues } from '@/components/quotation-upload-dialog';
 import { EditClientDialog } from '@/components/edit-client-dialog';
 
@@ -62,7 +62,7 @@ export default function PipelinePage() {
   const [filterStage, setFilterStage] = useState<OpportunityStage | 'Todos'>('Todos');
   const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
-  const [currentOpportunity, setCurrentOpportunity] = useState<{ id: string; name: string; stage: OpportunityStage, leadId: string; } | null>(null);
+  const [currentProspect, setCurrentProspect] = useState<any | null>(null);
   const [isUploadingQuotation, setIsUploadingQuotation] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
@@ -121,19 +121,29 @@ export default function PipelinePage() {
     }
   };
 
-  const requestStageChange = async (opportunity: { id: string; name: string; stage: OpportunityStage; leadId: string; }, newStage: OpportunityStage) => {
-    setCurrentOpportunity(opportunity);
-    if (opportunity.stage === 'Primer contacto' && newStage === 'Envió de Información') {
+  const requestStageChange = async (prospect: any, newStage: OpportunityStage) => {
+    setCurrentProspect(prospect);
+    if (prospect.opportunity.stage === 'Primer contacto' && newStage === 'Envió de Información') {
         setInfoSentDialogOpen(true);
-    } else if (opportunity.stage === 'Envió de Información' && newStage === 'Envió de Cotización') {
+    } else if (prospect.opportunity.stage === 'Envió de Información' && newStage === 'Envió de Cotización') {
         setQuotationUploadOpen(true);
     } else {
-        await handleStageChange(opportunity.id, newStage, true);
+        await handleStageChange(prospect.opportunity.id, newStage, true);
     }
   };
 
+  const handleEditInfoSent = (prospect: any) => {
+      setCurrentProspect(prospect);
+      setInfoSentDialogOpen(true);
+  };
+
+  const handleEditQuotation = (prospect: any) => {
+      setCurrentProspect(prospect);
+      setQuotationUploadOpen(true);
+  };
+
   const handleInfoSentConfirm = async (payload: InfoSentConfirmPayload) => {
-    if (!currentOpportunity || !firestore || !user || !userProfile) {
+    if (!currentProspect || !firestore || !user || !userProfile) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
     }
@@ -142,25 +152,22 @@ export default function PipelinePage() {
     
     try {
       // 1. Update Opportunity stage with checklist data
-      const opportunityRef = doc(firestore, 'opportunities', currentOpportunity.id);
-      const updateData: any = { stage: 'Envió de Información' };
-      if (checklist) {
-        updateData.sentPrices = checklist.sentPrices;
-        updateData.sentTechnicalInfo = checklist.sentTechnicalInfo;
-        updateData.sentCompanyInfo = checklist.sentCompanyInfo;
-        updateData.sentMedia = checklist.sentMedia;
-      }
+      const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
+      const updateData: any = { 
+        stage: 'Envió de Información',
+        ...checklist,
+      };
       await updateDoc(opportunityRef, updateData);
       toast({ title: 'Éxito', description: `Prospecto movido a: Envió de Información` });
 
-      // 2. Create a new Activity for the follow-up
+      // 2. Create a new Activity for the follow-up if provided
       if (nextContactDate && nextContactType && observations) {
         const selectedChannels = Object.entries(contactChannels)
           .filter(([, value]) => value)
           .map(([key]) => key);
 
         const activityData = {
-          leadId: currentOpportunity.leadId,
+          leadId: currentProspect.id,
           sellerId: user.uid,
           sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
           type: nextContactType,
@@ -173,11 +180,11 @@ export default function PipelinePage() {
         
         await addDoc(collection(firestore, 'activities'), activityData);
         
-        toast({ title: 'Actividad Creada', description: `Próximo contacto para ${currentOpportunity.name} agendado.` });
+        toast({ title: 'Actividad Creada', description: `Próximo contacto para ${currentProspect.clientName} agendado.` });
       }
 
       setInfoSentDialogOpen(false);
-      setCurrentOpportunity(null);
+      setCurrentProspect(null);
       setTimeout(() => {
         window.location.reload();
       }, 500);
@@ -192,64 +199,69 @@ export default function PipelinePage() {
   };
   
   const handleQuotationUpload = async (values: QuotationFormValues) => {
-    if (!firestore || !storage || !user || !userProfile || !currentOpportunity) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo conectar con Firebase.',
-      });
+    if (!firestore || !storage || !user || !userProfile || !currentProspect) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo conectar con Firebase.' });
       return;
     }
 
     setIsUploadingQuotation(true);
 
     try {
-      // 1. Upload PDF to Firebase Storage
-      const pdfFile = values.pdf;
-      const storageRef = ref(storage, `quotations/${currentOpportunity.id}/${pdfFile.name}`);
-      const uploadResult = await uploadBytes(storageRef, pdfFile);
-      const pdfUrl = await getDownloadURL(uploadResult.ref);
+      const isEditing = !!currentProspect.quotation;
+      let pdfUrl = isEditing ? currentProspect.quotation.pdfUrl : '';
 
-      // 2. Create Quotation document in Firestore
-      const quotationData = {
-        opportunityId: currentOpportunity.id,
-        sellerId: user.uid,
-        sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
-        pdfUrl,
-        value: values.value,
-        currency: values.currency,
-        version: '1', // Start with version 1
-        status: 'Enviada',
-        createdDate: new Date().toISOString(),
-      };
-      
-      await addDoc(collection(firestore, 'quotations'), quotationData);
+      if (values.pdf) {
+        const pdfFile = values.pdf;
+        const storageRef = ref(storage, `quotations/${currentProspect.opportunity.id}/${pdfFile.name}`);
+        const uploadResult = await uploadBytes(storageRef, pdfFile);
+        pdfUrl = await getDownloadURL(uploadResult.ref);
+      }
 
-      // 3. Update Opportunity stage
-      const opportunityRef = doc(firestore, 'opportunities', currentOpportunity.id);
-      await updateDoc(opportunityRef, {
-        stage: 'Envió de Cotización',
-      });
+      if (!pdfUrl) {
+          throw new Error('Se requiere un archivo PDF.');
+      }
+
+      if (isEditing) {
+         const quotationRef = doc(firestore, 'quotations', currentProspect.quotation.id);
+         await updateDoc(quotationRef, {
+             value: values.value,
+             currency: values.currency,
+             pdfUrl: pdfUrl,
+             version: String(Number(currentProspect.quotation.version || 1) + (values.pdf ? 1 : 0)),
+         });
+      } else {
+        const quotationData = {
+            opportunityId: currentProspect.opportunity.id,
+            sellerId: user.uid,
+            sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+            pdfUrl,
+            value: values.value,
+            currency: values.currency,
+            version: '1',
+            status: 'Enviada',
+            createdDate: new Date().toISOString(),
+        };
+        await addDoc(collection(firestore, 'quotations'), quotationData);
+      }
+
+      const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
+      if (currentProspect.opportunity.stage === 'Envió de Información') {
+        await updateDoc(opportunityRef, { stage: 'Envió de Cotización' });
+      }
       
       toast({
-        title: '¡Cotización Enviada!',
-        description: `La cotización para ${currentOpportunity.name} ha sido cargada y el prospecto movido.`,
+        title: `¡Cotización ${isEditing ? 'Actualizada' : 'Enviada'}!`,
+        description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
       });
       
       setQuotationUploadOpen(false);
-      setCurrentOpportunity(null);
+      setCurrentProspect(null);
 
-      setTimeout(() => {
-          window.location.reload();
-      }, 500);
+      setTimeout(() => { window.location.reload(); }, 500);
 
     } catch (error) {
       console.error('Error uploading quotation:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al cargar cotización',
-        description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
-      });
+      toast({ variant: 'destructive', title: 'Error al cargar cotización', description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.' });
     } finally {
         setIsUploadingQuotation(false);
     }
@@ -266,7 +278,6 @@ export default function PipelinePage() {
     if (!leads || !opportunities || !quotations) return [];
     return (leads as any[]).map(lead => {
       const opportunity = (opportunities as any[]).find(op => op.leadId === lead.id);
-       // Find the most recent quotation for the opportunity
       const opportunityQuotations = (quotations as any[])
         .filter(q => q.opportunityId === opportunity?.id)
         .sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
@@ -399,10 +410,7 @@ export default function PipelinePage() {
                           return (
                             <React.Fragment key={stage}>
                               <div
-                                onClick={() => isNext && requestStageChange(
-                                    { id: prospect.opportunity.id, name: prospect.clientName, stage: prospect.opportunity.stage, leadId: prospect.id },
-                                    stage
-                                )}
+                                onClick={() => isNext && requestStageChange(prospect, stage)}
                                 className={cn(
                                     'flex flex-col items-center gap-1 text-center transition-opacity w-28',
                                     isNext ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
@@ -430,9 +438,15 @@ export default function PipelinePage() {
                       </div>
                        {prospect.opportunity.stage !== 'Primer contacto' && (
                         <div className="mt-4 pt-4 border-t border-dashed space-y-2 text-xs text-muted-foreground">
-                            {prospect.opportunity.stage !== 'Primer contacto' && prospect.opportunity.sentPrices !== undefined && (
+                            {prospect.opportunity.sentPrices !== undefined && (
                               <div className="p-2 border rounded-md bg-background/50">
-                                  <p className="font-bold text-foreground">RESUMEN: ENVIÓ DE INFORMACIÓN</p>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <p className="font-bold text-foreground">RESUMEN: ENVIÓ DE INFORMACIÓN</p>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditInfoSent(prospect)}>
+                                        <Pencil className="h-3 w-3 text-muted-foreground" />
+                                        <span className="sr-only">Editar información enviada</span>
+                                    </Button>
+                                  </div>
                                   <ul className="mt-1 space-y-1">
                                       <li>Precios Enviados: <span className="font-semibold">{prospect.opportunity.sentPrices ? '✓ Sí' : '✗ No'}</span></li>
                                       <li>Info. Técnica: <span className="font-semibold">{prospect.opportunity.sentTechnicalInfo ? '✓ Sí' : '✗ No'}</span></li>
@@ -441,9 +455,15 @@ export default function PipelinePage() {
                                   </ul>
                               </div>
                             )}
-                            {prospect.opportunity.stage !== 'Primer contacto' && prospect.opportunity.stage !== 'Envió de Información' && prospect.quotation && (
+                            {prospect.quotation && (
                                 <div className="p-2 border rounded-md bg-background/50">
-                                    <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
+                                    <div className="flex items-center justify-between">
+                                        <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditQuotation(prospect)}>
+                                            <Pencil className="h-3 w-3 text-muted-foreground" />
+                                            <span className="sr-only">Editar cotización</span>
+                                        </Button>
+                                    </div>
                                     <div className="flex items-center justify-between mt-1">
                                         <span className="font-semibold">Valor: {new Intl.NumberFormat('en-US', { style: 'currency', currency: prospect.quotation.currency }).format(prospect.quotation.value)}</span>
                                         <Button asChild variant="outline" size="sm" className="h-7">
@@ -477,26 +497,33 @@ export default function PipelinePage() {
           </Table>
         </CardContent>
       </Card>
-      {currentOpportunity && (
+      {currentProspect && (
         <InformationSentDialog
             open={infoSentDialogOpen}
-            onOpenChange={setInfoSentDialogOpen}
+            onOpenChange={(isOpen) => {
+              setInfoSentDialogOpen(isOpen);
+              if (!isOpen) setCurrentProspect(null);
+            }}
             onConfirm={handleInfoSentConfirm}
-            opportunityName={currentOpportunity.name}
+            opportunity={currentProspect.opportunity}
         />
       )}
-       {currentOpportunity && (
+       {currentProspect && (
         <QuotationUploadDialog
             open={quotationUploadOpen}
-            onOpenChange={setQuotationUploadOpen}
+            onOpenChange={(isOpen) => {
+              setQuotationUploadOpen(isOpen);
+              if (!isOpen) setCurrentProspect(null);
+            }}
             onConfirm={handleQuotationUpload}
-            opportunityName={currentOpportunity.name}
+            opportunityName={currentProspect.clientName}
+            quotation={currentProspect.quotation}
             isUploading={isUploadingQuotation}
         />
       )}
       {selectedClient && (
         <EditClientDialog
-          key={selectedClient.id} // Re-mount the component when client changes
+          key={selectedClient.id}
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
           client={selectedClient}
