@@ -48,6 +48,7 @@ import { QuotationUploadDialog, type QuotationFormValues } from '@/components/qu
 import { EditClientDialog } from '@/components/edit-client-dialog';
 import { NegotiationDialog, type NegotiationConfirmPayload } from '@/components/negotiation-dialog';
 import { ClosingDialog, type ClosingConfirmPayload } from '@/components/closing-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -477,6 +478,16 @@ export default function PipelinePage() {
                 if (!prospect.opportunity) return null;
                 const classification = getClassification(prospect.opportunity.stage);
                 
+                const availableSummaries = [
+                  prospect.opportunity.sentPrices !== undefined ? 'info' : null,
+                  prospect.quotation ? 'quot' : null,
+                  prospect.opportunity.acceptedPrice !== undefined ? 'neg' : null,
+                  prospect.opportunity.clientMadeDownPayment !== undefined ? 'close' : null,
+                ].filter(Boolean) as string[];
+
+                const defaultTab = availableSummaries.length > 0 ? availableSummaries[availableSummaries.length - 1] : undefined;
+
+
                 return (
                   <TableRow key={prospect.id}>
                     <TableCell className="font-medium align-top w-[300px]">
@@ -579,83 +590,103 @@ export default function PipelinePage() {
                           )
                         })}
                       </div>
-                       <div className="mt-4 pt-4 border-t border-dashed space-y-2 text-xs text-muted-foreground">
-                            {prospect.opportunity.sentPrices !== undefined && (
-                              <div className="p-2 border rounded-md bg-background/50">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <p className="font-bold text-foreground">RESUMEN: ENVIÓ DE INFORMACIÓN</p>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditInfoSent(prospect)}>
-                                        <Pencil className="h-3 w-3 text-muted-foreground" />
-                                        <span className="sr-only">Editar información enviada</span>
-                                    </Button>
-                                  </div>
-                                  <ul className="mt-1 space-y-1">
-                                      <li>Precios Enviados: <span className="font-semibold">{prospect.opportunity.sentPrices ? '✓ Sí' : '✗ No'}</span></li>
-                                      <li>Info. Técnica: <span className="font-semibold">{prospect.opportunity.sentTechnicalInfo ? '✓ Sí' : '✗ No'}</span></li>
-                                      <li>Info. Empresa: <span className="font-semibold">{prospect.opportunity.sentCompanyInfo ? '✓ Sí' : '✗ No'}</span></li>
-                                      <li>Fotos/Videos: <span className="font-semibold">{prospect.opportunity.sentMedia ? '✓ Sí' : '✗ No'}</span></li>
-                                  </ul>
-                              </div>
-                            )}
-                            {prospect.quotation && (
-                                <div className="p-2 mt-2 border rounded-md bg-background/50">
-                                    <div className="flex items-center justify-between">
-                                        <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditQuotation(prospect)}>
-                                            <Pencil className="h-3 w-3 text-muted-foreground" />
-                                            <span className="sr-only">Editar cotización</span>
-                                        </Button>
+                       <div className="mt-4 pt-4 border-t border-dashed">
+                        {availableSummaries.length > 0 ? (
+                          <Tabs defaultValue={defaultTab} className="w-full">
+                            <TabsList className="grid w-full" style={{gridTemplateColumns: `repeat(${availableSummaries.length}, minmax(0, 1fr))`}}>
+                                {availableSummaries.includes('info') && <TabsTrigger value="info" className="text-xs">Info. Enviada</TabsTrigger>}
+                                {availableSummaries.includes('quot') && <TabsTrigger value="quot" className="text-xs">Cotización</TabsTrigger>}
+                                {availableSummaries.includes('neg') && <TabsTrigger value="neg" className="text-xs">Negociación</TabsTrigger>}
+                                {availableSummaries.includes('close') && <TabsTrigger value="close" className="text-xs">Cierre</TabsTrigger>}
+                            </TabsList>
+                            <TabsContent value="info">
+                                {prospect.opportunity.sentPrices !== undefined && (
+                                    <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <p className="font-bold text-foreground">RESUMEN: ENVIÓ DE INFORMACIÓN</p>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditInfoSent(prospect)}>
+                                                <Pencil className="h-3 w-3 text-muted-foreground" />
+                                                <span className="sr-only">Editar información enviada</span>
+                                            </Button>
+                                        </div>
+                                        <ul className="mt-1 space-y-1">
+                                            <li>Precios Enviados: <span className="font-semibold">{prospect.opportunity.sentPrices ? '✓ Sí' : '✗ No'}</span></li>
+                                            <li>Info. Técnica: <span className="font-semibold">{prospect.opportunity.sentTechnicalInfo ? '✓ Sí' : '✗ No'}</span></li>
+                                            <li>Info. Empresa: <span className="font-semibold">{prospect.opportunity.sentCompanyInfo ? '✓ Sí' : '✗ No'}</span></li>
+                                            <li>Fotos/Videos: <span className="font-semibold">{prospect.opportunity.sentMedia ? '✓ Sí' : '✗ No'}</span></li>
+                                        </ul>
                                     </div>
-                                    <div className="flex items-center justify-between mt-1">
-                                        <span className="font-semibold">Valor: {new Intl.NumberFormat('en-US', { style: 'currency', currency: prospect.quotation.currency }).format(prospect.quotation.value)}</span>
-                                        <Button asChild variant="outline" size="sm" className="h-7">
-                                            <a href={prospect.quotation.pdfUrl} target="_blank" rel="noopener noreferrer">
-                                                <FileDown className="w-3 h-3 mr-1.5" /> Ver PDF
-                                            </a>
-                                        </Button>
+                                )}
+                            </TabsContent>
+                             <TabsContent value="quot">
+                                {prospect.quotation && (
+                                    <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
+                                        <div className="flex items-center justify-between">
+                                            <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditQuotation(prospect)}>
+                                                <Pencil className="h-3 w-3 text-muted-foreground" />
+                                                <span className="sr-only">Editar cotización</span>
+                                            </Button>
+                                        </div>
+                                        <div className="flex items-center justify-between mt-1">
+                                            <span className="font-semibold">Valor: {new Intl.NumberFormat('en-US', { style: 'currency', currency: prospect.quotation.currency }).format(prospect.quotation.value)}</span>
+                                            <Button asChild variant="outline" size="sm" className="h-7">
+                                                <a href={prospect.quotation.pdfUrl} target="_blank" rel="noopener noreferrer">
+                                                    <FileDown className="w-3 h-3 mr-1.5" /> Ver PDF
+                                                </a>
+                                            </Button>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                            {prospect.opportunity.acceptedPrice !== undefined && (
-                                <div className="p-2 mt-2 border rounded-md bg-background/50">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <p className="font-bold text-foreground">RESUMEN: NEGOCIACIÓN</p>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditNegotiation(prospect)}>
-                                            <Pencil className="h-3 w-3 text-muted-foreground" />
-                                            <span className="sr-only">Editar negociación</span>
-                                        </Button>
+                                )}
+                            </TabsContent>
+                             <TabsContent value="neg">
+                                {prospect.opportunity.acceptedPrice !== undefined && (
+                                    <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <p className="font-bold text-foreground">RESUMEN: NEGOCIACIÓN</p>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditNegotiation(prospect)}>
+                                                <Pencil className="h-3 w-3 text-muted-foreground" />
+                                                <span className="sr-only">Editar negociación</span>
+                                            </Button>
+                                        </div>
+                                        <ul className="mt-1 space-y-1">
+                                            <li>Precio Aceptado: <span className="font-semibold">{prospect.opportunity.acceptedPrice ? '✓ Sí' : '✗ No'}</span></li>
+                                            <li>Flete Cotizado: <span className="font-semibold">{prospect.opportunity.quotedFreight ? '✓ Sí' : '✗ No'}</span></li>
+                                            <li>Solicita Descuento: <span className="font-semibold">{prospect.opportunity.requestsDiscount ? '✓ Sí' : '✗ No'}</span></li>
+                                            {prospect.opportunity.agreedDeliveryTime && (
+                                                <li>Tiempo Entrega: <span className="font-semibold">{prospect.opportunity.agreedDeliveryTime} {prospect.opportunity.agreedDeliveryTime === 1 ? 'semana' : 'semanas'}</span></li>
+                                            )}
+                                            {prospect.opportunity.negotiationNotes && (
+                                                <li>Notas: <span className="font-semibold italic">{prospect.opportunity.negotiationNotes}</span></li>
+                                            )}
+                                        </ul>
                                     </div>
-                                    <ul className="mt-1 space-y-1">
-                                        <li>Precio Aceptado: <span className="font-semibold">{prospect.opportunity.acceptedPrice ? '✓ Sí' : '✗ No'}</span></li>
-                                        <li>Flete Cotizado: <span className="font-semibold">{prospect.opportunity.quotedFreight ? '✓ Sí' : '✗ No'}</span></li>
-                                        <li>Solicita Descuento: <span className="font-semibold">{prospect.opportunity.requestsDiscount ? '✓ Sí' : '✗ No'}</span></li>
-                                        {prospect.opportunity.agreedDeliveryTime && (
-                                            <li>Tiempo Entrega: <span className="font-semibold">{prospect.opportunity.agreedDeliveryTime} {prospect.opportunity.agreedDeliveryTime === 1 ? 'semana' : 'semanas'}</span></li>
-                                        )}
-                                        {prospect.opportunity.negotiationNotes && (
-                                            <li>Notas: <span className="font-semibold italic">{prospect.opportunity.negotiationNotes}</span></li>
-                                        )}
-                                    </ul>
-                                </div>
-                            )}
-                            {prospect.opportunity.clientMadeDownPayment !== undefined && (
-                                <div className="p-2 mt-2 border rounded-md bg-background/50">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <p className="font-bold text-foreground">RESUMEN: CIERRE DE VENTA</p>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditClosing(prospect)}>
-                                            <Pencil className="h-3 w-3 text-muted-foreground" />
-                                            <span className="sr-only">Editar cierre de venta</span>
-                                        </Button>
+                                )}
+                            </TabsContent>
+                            <TabsContent value="close">
+                                {prospect.opportunity.clientMadeDownPayment !== undefined && (
+                                    <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <p className="font-bold text-foreground">RESUMEN: CIERRE DE VENTA</p>
+                                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditClosing(prospect)}>
+                                                <Pencil className="h-3 w-3 text-muted-foreground" />
+                                                <span className="sr-only">Editar cierre de venta</span>
+                                            </Button>
+                                        </div>
+                                        <ul className="mt-1 space-y-1">
+                                            <li>Anticipo Realizado: <span className="font-semibold">{prospect.opportunity.clientMadeDownPayment ? '✓ Sí' : '✗ No'}</span></li>
+                                            <li>Tiempo Entrega Confirmado: <span className="font-semibold">{prospect.opportunity.deliveryTimeConfirmed ? '✓ Sí' : '✗ No'}</span></li>
+                                            {prospect.opportunity.closingNotes && (
+                                                <li>Notas: <span className="font-semibold italic">{prospect.opportunity.closingNotes}</span></li>
+                                            )}
+                                        </ul>
                                     </div>
-                                    <ul className="mt-1 space-y-1">
-                                        <li>Anticipo Realizado: <span className="font-semibold">{prospect.opportunity.clientMadeDownPayment ? '✓ Sí' : '✗ No'}</span></li>
-                                        <li>Tiempo Entrega Confirmado: <span className="font-semibold">{prospect.opportunity.deliveryTimeConfirmed ? '✓ Sí' : '✗ No'}</span></li>
-                                        {prospect.opportunity.closingNotes && (
-                                            <li>Notas: <span className="font-semibold italic">{prospect.opportunity.closingNotes}</span></li>
-                                        )}
-                                    </ul>
-                                </div>
-                            )}
+                                )}
+                            </TabsContent>
+                          </Tabs>
+                        ) : (
+                            <div className="py-4 text-xs text-center text-muted-foreground">No hay resúmenes para mostrar.</div>
+                        )}
                         </div>
                     </TableCell>
                     <TableCell className="text-right align-top">
