@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MoreVertical, FileDown } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe } from 'lucide-react';
 import {
   useUser,
   useFirestore,
@@ -14,6 +14,7 @@ import {
 import { collection, doc, query, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { cn } from '@/lib/utils';
 
 import type { OpportunityStage, ClientClassification } from '@/lib/types';
 
@@ -263,7 +264,7 @@ export default function PipelinePage() {
         <CardHeader><CardTitle>Seguimiento de Prospectos</CardTitle><CardDescription>Administra el ciclo de vida de tus clientes, desde el primer contacto hasta el cierre.</CardDescription></CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2 mb-4">
-            {allStagesForFilter.map((stage) => ( <Button key={stage} variant={filterStage === stage ? 'default' : 'outline'} onClick={() => setFilterStage(stage)} className="text-xs h-8">{stage}</Button> ))}
+            {allStagesForFilter.map((stage) => ( <Button key={stage} variant={filterStage === stage ? 'default' : 'outline'} onClick={() => setFilterStage(stage)} className="text-xs h-8">{stage}</Button>))}
           </div>
           <Table>
             <TableHeader><TableRow><TableHead>Prospecto</TableHead><TableHead>Clasificación</TableHead><TableHead>Etapa Actual</TableHead><TableHead className="text-right">Acciones</TableHead></TableRow></TableHeader>
@@ -287,16 +288,60 @@ export default function PipelinePage() {
                 const currentIndex = stages.indexOf(prospect.opportunity.stage);
                 return (
                   <TableRow key={prospect.id}>
-                    <TableCell className="font-medium align-top">
+                    <TableCell className="font-medium align-top w-[250px]">
                         <div className="font-semibold">{prospect.clientName}</div>
                         <div className="text-sm text-muted-foreground">{prospect.contactPerson}</div>
-                        {(prospect.phone || prospect.email) && (
-                            <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
-                                {prospect.phone && <span>{prospect.phone}</span>}
-                                {prospect.phone && prospect.email && <span className="text-muted-foreground/50">|</span>}
-                                {prospect.email && <span>{prospect.email}</span>}
+                        
+                        <div className="flex items-center gap-2.5 mt-2">
+                            <a 
+                                href={prospect.phone ? `https://wa.me/${(prospect.country === 'US' ? '1' : '52')}${prospect.phone.replace(/\D/g, '')}` : '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => !prospect.phone && e.preventDefault()}
+                                className={cn(
+                                    "transition-colors",
+                                    prospect.phone 
+                                        ? "text-green-500 hover:text-green-600" 
+                                        : "text-muted-foreground/40 cursor-not-allowed"
+                                )}
+                                title={prospect.phone ? `WhatsApp: ${prospect.phone}` : 'No hay teléfono para WhatsApp'}
+                            >
+                                <MessageSquare className="h-4 w-4" />
+                            </a>
+                            <a 
+                                href={prospect.email ? `mailto:${prospect.email}` : '#'}
+                                onClick={(e) => !prospect.email && e.preventDefault()}
+                                className={cn(
+                                    "transition-colors",
+                                    prospect.email 
+                                        ? "text-blue-500 hover:text-blue-600" 
+                                        : "text-muted-foreground/40 cursor-not-allowed"
+                                )}
+                                title={prospect.email ? `Email: ${prospect.email}`: 'No hay email'}
+                            >
+                                <Mail className="h-4 w-4" />
+                            </a>
+                            <a 
+                                href={prospect.phone ? `tel:${prospect.phone}` : '#'}
+                                onClick={(e) => !prospect.phone && e.preventDefault()}
+                                className={cn(
+                                    "transition-colors",
+                                    prospect.phone 
+                                        ? "text-foreground/80 hover:text-foreground" 
+                                        : "text-muted-foreground/40 cursor-not-allowed"
+                                )}
+                                 title={prospect.phone ? `Llamar: ${prospect.phone}`: 'No hay teléfono'}
+                            >
+                                <Phone className="h-4 w-4" />
+                            </a>
+                            <div className={cn(
+                                "flex items-center gap-1.5 text-xs ml-auto pr-2",
+                                 prospect.language ? "text-muted-foreground" : "text-muted-foreground/40"
+                            )}>
+                                <Globe className="h-4 w-4" />
+                                <span>{prospect.language || 'N/A'}</span>
                             </div>
-                        )}
+                        </div>
                     </TableCell>
                     <TableCell><Badge variant="outline" className={`uppercase font-bold ${getBadgeClass(classification)}`}>{classification}</Badge></TableCell>
                     <TableCell>
@@ -343,7 +388,7 @@ export default function PipelinePage() {
                     )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu key={prospect.id}>
+                      <DropdownMenu key={`${prospect.id}-${currentIndex}`}>
                         <DropdownMenuTrigger asChild><Button size="icon" variant="ghost"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent>
                           {stages.map(stage => ( 
