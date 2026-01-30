@@ -166,9 +166,7 @@ export function NewProspectDialog() {
         description: `${values.clientName} ha sido agregado a tu flujo de ventas.`,
       });
       setOpen(false);
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
+      form.reset();
     } catch (error) {
       console.error('Error creating prospect:', error);
       toast({

@@ -63,7 +63,7 @@ export default function PipelinePage() {
   const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
   const [currentProspect, setCurrentProspect] = useState<any | null>(null);
-  const [isUploadingQuotation, setIsUploadingQuotation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
 
@@ -99,18 +99,13 @@ export default function PipelinePage() {
   const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
 
-  const handleStageChange = async (opportunityId: string, newStage: OpportunityStage, reload: boolean = false) => {
+  const handleStageChange = async (opportunityId: string, newStage: OpportunityStage) => {
     if (!firestore) return;
     const opportunityRef = doc(firestore, 'opportunities', opportunityId);
     
     try {
       await updateDoc(opportunityRef, { stage: newStage });
       toast({ title: 'Éxito', description: `Prospecto movido a: ${newStage}` });
-      if (reload) {
-        setTimeout(() => {
-          window.location.reload();
-        }, 500);
-      }
     } catch (error) {
       console.error(`Error moving prospect to ${newStage}:`, error);
       toast({
@@ -128,7 +123,7 @@ export default function PipelinePage() {
     } else if (prospect.opportunity.stage === 'Envió de Información' && newStage === 'Envió de Cotización') {
         setQuotationUploadOpen(true);
     } else {
-        await handleStageChange(prospect.opportunity.id, newStage, true);
+        await handleStageChange(prospect.opportunity.id, newStage);
     }
   };
 
@@ -148,17 +143,15 @@ export default function PipelinePage() {
         return;
     }
 
+    setIsSubmitting(true);
     const { observations, nextContactDate, nextContactType, contactChannels, ...checklist } = payload;
     
     try {
       // 1. Update Opportunity with checklist data
       const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
       
-      const updateData: any = { 
-        ...checklist,
-      };
+      const updateData: any = { ...checklist };
 
-      // Only move the stage forward if it's the first time
       const isStageChange = currentProspect.opportunity.stage === 'Primer contacto';
       if (isStageChange) {
         updateData.stage = 'Envió de Información';
@@ -175,10 +168,11 @@ export default function PipelinePage() {
 
 
       // 2. Create a new Activity for the follow-up if provided
-      if (nextContactDate && nextContactType && observations) {
-        const selectedChannels = Object.entries(contactChannels)
+      const isFollowUpProvided = nextContactDate && nextContactType && observations;
+      if (isFollowUpProvided) {
+        const selectedChannels = contactChannels ? Object.entries(contactChannels)
           .filter(([, value]) => value)
-          .map(([key]) => key);
+          .map(([key]) => key) : [];
 
         const activityData = {
           leadId: currentProspect.id,
@@ -199,9 +193,6 @@ export default function PipelinePage() {
 
       setInfoSentDialogOpen(false);
       setCurrentProspect(null);
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
     } catch (error) {
       console.error('Error in handleInfoSentConfirm:', error);
       toast({
@@ -209,6 +200,8 @@ export default function PipelinePage() {
         title: 'Error',
         description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
       });
+    } finally {
+        setIsSubmitting(false);
     }
   };
   
@@ -218,7 +211,7 @@ export default function PipelinePage() {
       return;
     }
 
-    setIsUploadingQuotation(true);
+    setIsSubmitting(true);
 
     try {
       const isEditing = !!currentProspect.quotation;
@@ -271,13 +264,11 @@ export default function PipelinePage() {
       setQuotationUploadOpen(false);
       setCurrentProspect(null);
 
-      setTimeout(() => { window.location.reload(); }, 500);
-
     } catch (error) {
       console.error('Error uploading quotation:', error);
-      toast({ variant: 'destructive', title: 'Error al cargar cotización', description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.' });
+      toast({ variant: 'destructive', title: 'Error al cargar cotización', description: String(error) || 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.' });
     } finally {
-        setIsUploadingQuotation(false);
+        setIsSubmitting(false);
     }
   };
 
@@ -520,6 +511,7 @@ export default function PipelinePage() {
             }}
             onConfirm={handleInfoSentConfirm}
             opportunity={currentProspect.opportunity}
+            isSubmitting={isSubmitting}
         />
       )}
        {currentProspect && (
@@ -532,7 +524,7 @@ export default function PipelinePage() {
             onConfirm={handleQuotationUpload}
             opportunityName={currentProspect.clientName}
             quotation={currentProspect.quotation}
-            isUploading={isUploadingQuotation}
+            isSubmitting={isSubmitting}
         />
       )}
       {selectedClient && (

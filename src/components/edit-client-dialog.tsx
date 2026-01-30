@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 
 import {
   useFirestore,
-  updateDocumentNonBlocking
 } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { countries, states, cities } from '@/lib/geography';
@@ -134,16 +133,13 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
 
     try {
       const leadRef = doc(firestore, 'leads', client.id);
-      updateDocumentNonBlocking(leadRef, values);
+      await updateDoc(leadRef, values);
 
       toast({
         title: '¡Cliente Actualizado!',
         description: `${values.clientName} ha sido actualizado correctamente.`,
       });
       onOpenChange(false);
-      setTimeout(() => {
-          window.location.reload();
-      }, 500);
     } catch (error) {
       console.error('Error updating prospect:', error);
       toast({

@@ -40,7 +40,7 @@ interface QuotationUploadDialogProps {
   onConfirm: (values: QuotationFormValues) => void;
   opportunityName: string;
   quotation?: Quotation | null;
-  isUploading: boolean;
+  isSubmitting: boolean;
 }
 
 export function QuotationUploadDialog({
@@ -49,7 +49,7 @@ export function QuotationUploadDialog({
   onConfirm,
   opportunityName,
   quotation,
-  isUploading,
+  isSubmitting,
 }: QuotationUploadDialogProps) {
   const isEditing = !!quotation;
   
@@ -69,7 +69,7 @@ export function QuotationUploadDialog({
     },
   });
 
-  const { formState: { errors }, watch } = form;
+  const { watch } = form;
   const pdfValue = watch('pdf');
 
 
@@ -141,7 +141,7 @@ export function QuotationUploadDialog({
             <FormField
               control={form.control}
               name="pdf"
-              render={({ field: { onChange, ...rest } }) => (
+              render={({ field: { onChange } }) => (
                 <FormItem>
                   <FormLabel>Archivo PDF de la Cotización</FormLabel>
                   <FormControl>
@@ -160,6 +160,7 @@ export function QuotationUploadDialog({
                                     className="sr-only" 
                                     accept=".pdf"
                                     onChange={(e) => onChange(e.target.files?.[0])}
+                                    disabled={isSubmitting}
                                 />
                                 </label>
                                 <p className="pl-1">o arrastre y suelte</p>
@@ -179,11 +180,11 @@ export function QuotationUploadDialog({
               )}
             />
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isUploading}>
-                {isUploading ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Confirmar y Mover')}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Confirmar y Mover')}
               </Button>
             </DialogFooter>
           </form>
