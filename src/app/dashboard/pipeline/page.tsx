@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MoreVertical } from 'lucide-react';
+import { MoreVertical, FileDown } from 'lucide-react';
 import {
   useUser,
   useFirestore,
@@ -87,6 +87,12 @@ export default function PipelinePage() {
     return query(collection(firestore, 'opportunities'), where('sellerId', '==', user.uid));
   }, [firestore, user]);
   const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
+  
+  const quotationsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, 'quotations'), where('sellerId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
 
   const handleStageChange = (opportunityId: string, newStage: OpportunityStage, checklistData?: ChecklistState) => {
@@ -106,11 +112,10 @@ export default function PipelinePage() {
   };
 
   const requestStageChange = (opportunity: { id: string; name: string; stage: OpportunityStage; leadId: string; }, newStage: OpportunityStage) => {
+    setCurrentOpportunity(opportunity);
     if (opportunity.stage === 'Primer contacto' && newStage === 'Envió de Información') {
-        setCurrentOpportunity(opportunity);
         setInfoSentDialogOpen(true);
     } else if (opportunity.stage === 'Envió de Información' && newStage === 'Envió de Cotización') {
-        setCurrentOpportunity(opportunity);
         setQuotationUploadOpen(true);
     } else {
         handleStageChange(opportunity.id, newStage);
@@ -195,10 +200,6 @@ export default function PipelinePage() {
         description: `La cotización para ${currentOpportunity.name} ha sido cargada y el prospecto movido.`,
       });
 
-      // 4. Close dialog and reset state
-      setQuotationUploadOpen(false);
-      setCurrentOpportunity(null);
-
     } catch (error) {
       console.error('Error uploading quotation:', error);
       toast({
@@ -207,20 +208,29 @@ export default function PipelinePage() {
         description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
       });
     } finally {
+      // 4. Close dialog and reset state
       setIsUploadingQuotation(false);
+      setQuotationUploadOpen(false);
+      setCurrentOpportunity(null);
     }
   };
 
 
-  const isLoading = isUserAuthLoading || isProfileLoading || areLeadsLoading || areOppsLoading;
+  const isLoading = isUserAuthLoading || isProfileLoading || areLeadsLoading || areOppsLoading || areQuotsLoading;
 
   const clientProspects = React.useMemo(() => {
-    if (!leads || !opportunities) return [];
+    if (!leads || !opportunities || !quotations) return [];
     return (leads as any[]).map(lead => {
       const opportunity = (opportunities as any[]).find(op => op.leadId === lead.id);
-      return { ...lead, opportunity };
+       // Find the most recent quotation for the opportunity
+      const opportunityQuotations = (quotations as any[])
+        .filter(q => q.opportunityId === opportunity?.id)
+        .sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
+      const quotation = opportunityQuotations[0] || null;
+      
+      return { ...lead, opportunity, quotation };
     }).filter(item => item.opportunity);
-  }, [leads, opportunities]);
+  }, [leads, opportunities, quotations]);
 
   const filteredProspects = clientProspects.filter(prospect => {
     if (filterStage === 'Todos') return true;
@@ -269,6 +279,7 @@ export default function PipelinePage() {
               )) : filteredProspects.length > 0 ? filteredProspects.map(prospect => {
                 if (!prospect.opportunity) return null;
                 const classification = getClassification(prospect.opportunity.stage);
+                const currentIndex = stages.indexOf(prospect.opportunity.stage);
                 return (
                   <TableRow key={prospect.id}>
                     <TableCell className="font-medium align-top">
@@ -286,7 +297,6 @@ export default function PipelinePage() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {stages.map((stage, index) => {
-                          const currentIndex = stages.indexOf(prospect.opportunity.stage);
                           const isCompleted = index < currentIndex;
                           const isCurrent = index === currentIndex;
                           return (
@@ -300,9 +310,35 @@ export default function PipelinePage() {
                           )
                         })}
                       </div>
+                       {currentIndex >= 1 && (
+                        <div className="mt-4 pt-4 border-t border-dashed space-y-2 text-xs text-muted-foreground">
+                            <div className="p-2 border rounded-md bg-background/50">
+                                <p className="font-bold text-foreground">RESUMEN: ENVIÓ DE INFORMACIÓN</p>
+                                <ul className="mt-1 space-y-1">
+                                    <li>Precios Enviados: <span className="font-semibold">{prospect.opportunity.sentPrices ? '✓ Sí' : '✗ No'}</span></li>
+                                    <li>Info. Técnica: <span className="font-semibold">{prospect.opportunity.sentTechnicalInfo ? '✓ Sí' : '✗ No'}</span></li>
+                                    <li>Info. Empresa: <span className="font-semibold">{prospect.opportunity.sentCompanyInfo ? '✓ Sí' : '✗ No'}</span></li>
+                                    <li>Fotos/Videos: <span className="font-semibold">{prospect.opportunity.sentMedia ? '✓ Sí' : '✗ No'}</span></li>
+                                </ul>
+                            </div>
+                            {currentIndex >= 2 && prospect.quotation && (
+                                <div className="p-2 border rounded-md bg-background/50">
+                                    <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
+                                    <div className="flex items-center justify-between mt-1">
+                                        <span className="font-semibold">Valor: {new Intl.NumberFormat('en-US', { style: 'currency', currency: prospect.quotation.currency }).format(prospect.quotation.value)}</span>
+                                        <Button asChild variant="outline" size="sm" className="h-7">
+                                            <a href={prospect.quotation.pdfUrl} target="_blank" rel="noopener noreferrer">
+                                                <FileDown className="w-3 h-3 mr-1.5" /> Ver PDF
+                                            </a>
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu key={prospect.opportunity.stage}>
+                      <DropdownMenu key={prospect.id}>
                         <DropdownMenuTrigger asChild><Button size="icon" variant="ghost"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent>
                           {stages.map(stage => ( 
