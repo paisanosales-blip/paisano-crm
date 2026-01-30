@@ -7,8 +7,9 @@ import {
   useCollection,
   useMemoFirebase,
   useDoc,
+  deleteDocumentNonBlocking,
 } from '@/firebase';
-import { collection, query, where, doc, getDocs, deleteDoc } from 'firebase/firestore';
+import { collection, query, where, doc, getDocs } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -121,36 +122,31 @@ export default function ClientsPage() {
       const oppsQuery = query(collection(firestore, 'opportunities'), where('leadId', '==', clientToDelete.id));
       const oppsSnapshot = await getDocs(oppsQuery);
       
-      const deletionPromises: Promise<void>[] = [];
-
       for (const oppDoc of oppsSnapshot.docs) {
         // For each opportunity, find and delete associated quotations
         const quotesQuery = query(collection(firestore, 'quotations'), where('opportunityId', '==', oppDoc.id));
         const quotesSnapshot = await getDocs(quotesQuery);
         quotesSnapshot.forEach(quoteDoc => {
-          deletionPromises.push(deleteDoc(doc(firestore, 'quotations', quoteDoc.id)));
+          deleteDocumentNonBlocking(doc(firestore, 'quotations', quoteDoc.id));
         });
 
-        // Add opportunity deletion to promise array
-        deletionPromises.push(deleteDoc(doc(firestore, 'opportunities', oppDoc.id)));
+        // Delete opportunity
+        deleteDocumentNonBlocking(doc(firestore, 'opportunities', oppDoc.id));
       }
 
       // Find and delete associated activities
       const activitiesQuery = query(collection(firestore, 'activities'), where('leadId', '==', clientToDelete.id));
       const activitiesSnapshot = await getDocs(activitiesQuery);
       activitiesSnapshot.docs.forEach(actDoc => {
-        deletionPromises.push(deleteDoc(doc(firestore, 'activities', actDoc.id)));
+        deleteDocumentNonBlocking(doc(firestore, 'activities', actDoc.id));
       });
       
       // Delete the lead itself
-      deletionPromises.push(deleteDoc(doc(firestore, 'leads', clientToDelete.id)));
-
-      // Wait for all deletions to complete
-      await Promise.all(deletionPromises);
+      deleteDocumentNonBlocking(doc(firestore, 'leads', clientToDelete.id));
 
       toast({
-        title: 'Cliente Eliminado',
-        description: `${clientToDelete.clientName} y todos sus datos asociados han sido eliminados.`,
+        title: 'Eliminación Iniciada',
+        description: `${clientToDelete.clientName} y sus datos asociados se están eliminando.`,
       });
 
     } catch (error) {
@@ -158,7 +154,7 @@ export default function ClientsPage() {
       toast({
         variant: 'destructive',
         title: 'Error al eliminar',
-        description: 'Ocurrió un problema al eliminar el cliente. Es posible que no tenga los permisos necesarios.',
+        description: 'Ocurrió un problema al leer los datos a eliminar. Es posible que no tenga los permisos necesarios.',
       });
     } finally {
       setIsDeleting(false);
