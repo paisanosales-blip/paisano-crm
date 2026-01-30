@@ -11,7 +11,7 @@ import {
   useStorage,
 } from '@/firebase';
 import { collection, doc, query, where, addDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { cn } from '@/lib/utils';
 
 import type { OpportunityStage, ClientClassification, Opportunity } from '@/lib/types';
@@ -219,31 +219,58 @@ export default function PipelinePage() {
       const isEditing = !!currentProspect.quotation;
       let pdfUrl = isEditing ? currentProspect.quotation.pdfUrl : '';
 
-      // Only upload if a new PDF is provided
+      // This is the core change: Go back to resumable uploads with better error handling
       if (values.pdf) {
         const pdfFile = values.pdf;
         const storageRef = ref(storage, `quotations/${currentProspect.opportunity.id}/${pdfFile.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, pdfFile);
 
-        setUploadProgress(10);
-        const uploadResult = await uploadBytes(storageRef, pdfFile);
-        
-        setUploadProgress(90);
-        pdfUrl = await getDownloadURL(uploadResult.ref);
+        // Use a promise to handle the upload task events
+        pdfUrl = await new Promise<string>((resolve, reject) => {
+          uploadTask.on(
+            'state_changed',
+            (snapshot) => {
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setUploadProgress(progress);
+            },
+            (error) => {
+              // This is the crucial error handler for the upload itself.
+              console.error("Error en la subida del archivo:", error);
+              // Enhance error message for CORS
+              let description = `Error al subir: ${error.message}`;
+              if (error.code === 'storage/unauthorized' || error.code === 'storage/unknown') {
+                description = 'Fallo al subir el archivo. Esto suele ser un problema de permisos CORS en el bucket de Storage. Por favor, asegúrese de que la configuración CORS es correcta.';
+              }
+              reject(new Error(description));
+            },
+            async () => {
+              // Upload completed successfully, now get the download URL.
+              try {
+                const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                resolve(downloadURL);
+              } catch (urlError) {
+                console.error("Error al obtener URL de descarga:", urlError);
+                reject(new Error('El archivo se subió, pero no se pudo obtener la URL.'));
+              }
+            }
+          );
+        });
       }
 
       if (!pdfUrl) {
-          throw new Error('Se requiere un archivo PDF.');
+          throw new Error('Se requiere un archivo PDF y no se pudo obtener la URL.');
       }
-
+      
+      // The rest of the logic: saving the URL to Firestore
       if (isEditing) {
          const quotationRef = doc(firestore, 'quotations', currentProspect.quotation.id);
          await updateDoc(quotationRef, {
              value: values.value,
              currency: values.currency,
-             pdfUrl: pdfUrl, // update with new URL if new file was uploaded
+             pdfUrl: pdfUrl,
              version: String(Number(currentProspect.quotation.version || 1) + (values.pdf ? 1 : 0)),
-             status: 'Enviada', // Always set to sent on edit/upload
-             createdDate: new Date().toISOString(), // Update date on new version
+             status: 'Enviada',
+             createdDate: new Date().toISOString(),
          });
       } else {
         const quotationData = {
@@ -260,13 +287,10 @@ export default function PipelinePage() {
         await addDoc(collection(firestore, 'quotations'), quotationData);
       }
 
-      // Update opportunity stage if needed
       const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
       if (currentProspect.opportunity.stage === 'Envió de Información') {
         await updateDoc(opportunityRef, { stage: 'Envió de Cotización' });
       }
-      
-      setUploadProgress(100);
 
       toast({
         title: `¡Cotización ${isEditing ? 'Actualizada' : 'Enviada'}!`,
@@ -281,7 +305,7 @@ export default function PipelinePage() {
       toast({ 
         variant: 'destructive', 
         title: 'Error al Guardar', 
-        description: `Ocurrió un error durante la subida o el guardado: ${error.message}`
+        description: error.message || 'Ocurrió un problema durante la subida o el guardado.'
       });
     } finally {
         setIsSubmitting(false);
