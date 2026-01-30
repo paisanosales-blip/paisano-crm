@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import type { ChartConfig } from '@/components/ui/chart';
 import React from 'react';
 import { Skeleton } from './ui/skeleton';
+import { getClassification } from '@/lib/types';
 
-const salesByRegionConfig = {
-    sales: { label: 'Ventas' },
+const potentialClientsByRegionConfig = {
+    clients: { label: 'Clientes Potenciales' },
     Norte: { label: 'Norte', color: 'hsl(var(--chart-1))' },
     Centro: { label: 'Centro', color: 'hsl(var(--chart-2))' },
     Sur: { label: 'Sur', color: 'hsl(var(--chart-3))' },
@@ -41,22 +42,22 @@ interface DashboardChartsProps {
 
 export function DashboardCharts({ opportunities, leads, isLoading }: DashboardChartsProps) {
 
-    const salesByRegionData = React.useMemo(() => {
+    const potentialClientsByRegionData = React.useMemo(() => {
         if (!opportunities || !leads) return [];
 
         const leadsMap = new Map(leads.map(lead => [lead.id, lead]));
-        const salesByRegion = opportunities
-            .filter(opp => opp.stage === 'Cierre de venta' && opp.value > 0)
+        const clientsByRegion = opportunities
+            .filter(opp => getClassification(opp.stage) === 'CLIENTE POTENCIAL')
             .reduce((acc, opp) => {
                 const lead = leadsMap.get(opp.leadId);
                 const region = lead?.region || 'Otro';
-                acc[region] = (acc[region] || 0) + opp.value;
+                acc[region] = (acc[region] || 0) + 1;
                 return acc;
             }, {} as Record<string, number>);
 
-        return Object.entries(salesByRegion).map(([region, sales]) => ({
+        return Object.entries(clientsByRegion).map(([region, clients]) => ({
             region,
-            sales,
+            clients,
             fill: `var(--color-${region})`,
         }));
     }, [opportunities, leads]);
@@ -109,15 +110,15 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
     <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-7">
         <Card className="lg:col-span-3">
             <CardHeader>
-                <CardTitle>Ventas por Región</CardTitle>
-                <CardDescription>Un vistazo al rendimiento de ventas en diferentes regiones.</CardDescription>
+                <CardTitle>Clientes Potenciales por Región</CardTitle>
+                <CardDescription>Distribución de oportunidades en cotización o negociación.</CardDescription>
             </CardHeader>
             <CardContent className="pl-2">
-                 {salesByRegionData.length > 0 ? (
-                    <ChartContainer config={salesByRegionConfig} className="h-[300px] w-full">
+                 {potentialClientsByRegionData.length > 0 ? (
+                    <ChartContainer config={potentialClientsByRegionConfig} className="h-[300px] w-full">
                         <BarChart
                             accessibilityLayer
-                            data={salesByRegionData}
+                            data={potentialClientsByRegionData}
                             layout="vertical"
                             margin={{ left: 10 }}
                         >
@@ -128,19 +129,19 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                                 tickLine={false}
                                 axisLine={false}
                                 tickMargin={10}
-                                tickFormatter={(value) => salesByRegionConfig[value as keyof typeof salesByRegionConfig]?.label || value}
+                                tickFormatter={(value) => potentialClientsByRegionConfig[value as keyof typeof potentialClientsByRegionConfig]?.label || value}
                             />
-                            <XAxis dataKey="sales" type="number" hide />
+                            <XAxis dataKey="clients" type="number" hide />
                             <ChartTooltip
                                 cursor={false}
                                 content={<ChartTooltipContent indicator="dot" />}
                             />
-                            <Bar dataKey="sales" radius={4} />
+                            <Bar dataKey="clients" radius={4} />
                         </BarChart>
                     </ChartContainer>
                  ) : (
                     <div className="h-[300px] w-full flex items-center justify-center text-muted-foreground">
-                        No hay datos de ventas para mostrar.
+                        No hay clientes potenciales para mostrar.
                     </div>
                  )}
             </CardContent>
