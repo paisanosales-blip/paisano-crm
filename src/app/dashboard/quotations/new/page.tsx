@@ -112,7 +112,7 @@ export default function NewQuotationPage() {
     const RED = '#8B0000';
     const BLACK = '#000000';
 
-    // --- HEADER WITH CURVE ---
+    // --- HEADER ---
     if (logoUrl) {
         try {
             const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
@@ -133,13 +133,10 @@ export default function NewQuotationPage() {
     doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, 32, { align: 'right' });
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, 36, { align: 'right' });
 
-    // Decorative curve
+    // Decorative Separator
     doc.setDrawColor(RED);
-    doc.setLineWidth(1.5);
+    doc.setLineWidth(0.8);
     doc.line(margin, 45, docWidth - margin, 45);
-    doc.setDrawColor(BLACK);
-    doc.setLineWidth(0.5);
-    doc.line(margin, 46, docWidth - margin, 46);
 
     finalY = 55;
 
@@ -223,9 +220,15 @@ export default function NewQuotationPage() {
     doc.text('FREIGHT:', docWidth - 70, totalsY + 7, { align: 'right' });
     doc.text(`$${freight.toFixed(2)}`, docWidth - margin, totalsY + 7, { align: 'right' });
     
+    doc.setDrawColor(BLACK);
+    doc.setLineWidth(0.2);
+    doc.line(docWidth - 80, totalsY + 11, docWidth - margin, totalsY + 11);
+
     doc.setFontSize(12);
-    doc.text('TOTAL:', docWidth - 70, totalsY + 15, { align: 'right' });
-    doc.text(`$${total.toFixed(2)}`, docWidth - margin, totalsY + 15, { align: 'right' });
+    doc.setTextColor(RED);
+    doc.text('TOTAL:', docWidth - 70, totalsY + 16, { align: 'right' });
+    doc.setTextColor(BLACK);
+    doc.text(`$${total.toFixed(2)}`, docWidth - margin, totalsY + 16, { align: 'right' });
     
     let currentY = totalsY + 30;
 
@@ -264,24 +267,30 @@ export default function NewQuotationPage() {
         
         if (isLastPage) {
             let sigY = footerY - 30;
-            if (currentY > sigY) sigY = currentY + 15;
+            // Add a new page if the content + signature block will overflow
+            if (currentY > sigY && i === (doc as any).internal.getCurrentPageInfo().pageNumber) {
+                doc.addPage();
+                // Redefine page count as we have added a new page
+                const newPageCount = doc.internal.getNumberOfPages();
+                doc.setPage(newPageCount);
+                currentY = margin; 
+                sigY = pageHeight - 55;
+            }
             
             doc.line(margin, sigY, docWidth / 2 - margin, sigY);
             doc.setFontSize(9);
             doc.text('APPROVAL SIGNATURE', margin, sigY + 5);
         }
 
-        // Footer line
-        doc.setDrawColor(BLACK);
+        doc.setDrawColor(RED);
         doc.setLineWidth(0.5);
         doc.line(margin, footerY, docWidth - margin, footerY);
 
-        // Footer text
         doc.setFontSize(9);
         doc.setTextColor(100);
         const footerText = `PAISANOSALES@GMAIL.COM | 915 408 7478 | WWW.PAISANOTRAILER.COM`;
         doc.text(footerText, docWidth / 2, footerY + 8, { align: 'center' });
-        doc.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerY + 8, { align: 'right' });
+        doc.text(`PAGE ${i} OF ${doc.internal.getNumberOfPages()}`, docWidth - margin, footerY + 8, { align: 'right' });
     }
 
     doc.save(`QUOTATION-${selectedClient.clientName.replace(/\s/g, '_')}-${quotationDetails.number}.pdf`);
