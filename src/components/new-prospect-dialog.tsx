@@ -60,7 +60,18 @@ const prospectSchema = z
     city: z.string().min(1, 'La ciudad es requerida.'),
     contactMethod: z.string().min(1, 'La forma de contacto es requerida.'),
     language: z.string().min(1, 'El idioma es requerido.'),
-    website: z.string().url({ message: 'URL de sitio web inválida.' }).optional().or(z.literal('')),
+    website: z.preprocess(
+      (val) => {
+        if (typeof val !== 'string' || !val) {
+          return val;
+        }
+        if (!val.startsWith('http://') && !val.startsWith('https://')) {
+          return `https://${val}`;
+        }
+        return val;
+      },
+      z.string().url({ message: 'URL de sitio web inválida.' }).optional().or(z.literal(''))
+    ),
     phone: z.string().optional(),
     email: z.string().email({ message: 'Correo electrónico inválido.' }).optional().or(z.literal('')),
   })
@@ -272,7 +283,7 @@ export function NewProspectDialog() {
                   control={form.control}
                   name="city"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem key={selectedState}>
                       <FormLabel>CIUDAD</FormLabel>
                       {selectedState && availableCities.length > 0 ? (
                         <Select onValueChange={field.onChange} value={field.value} >
@@ -352,7 +363,7 @@ export function NewProspectDialog() {
                   <FormItem>
                     <FormLabel>PÁGINA WEB</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://ejemplo.com" {...field} />
+                      <Input placeholder="ejemplo.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
