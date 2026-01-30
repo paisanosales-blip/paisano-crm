@@ -3,9 +3,10 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Home, GanttChartSquare, Users, FileText } from 'lucide-react';
+import { Home, GanttChartSquare, Users, FileText, Shield } from 'lucide-react';
+import { doc } from 'firebase/firestore';
 
-import { useUser } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import {
   SidebarProvider,
   Sidebar,
@@ -27,6 +28,14 @@ export default function DashboardLayout({
 }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const firestore = useFirestore();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -34,7 +43,9 @@ export default function DashboardLayout({
     }
   }, [user, isUserLoading, router]);
 
-  if (isUserLoading || !user) {
+  const isLoading = isUserLoading || (user && isProfileLoading);
+
+  if (isLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="flex items-center space-x-4">
@@ -93,6 +104,16 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            {userProfile?.role === 'Admin' && (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Usuarios">
+                  <Link href="/dashboard/users">
+                    <Shield />
+                    <span>Usuarios</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarContent>
       </Sidebar>

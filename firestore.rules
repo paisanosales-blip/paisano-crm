@@ -33,10 +33,11 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isSignedIn() && (isOwner(userId) || isAdminOrManager());
+      allow get: if isSignedIn() && (isOwner(userId) || isAdminOrManager());
+      allow list: if isSignedIn() && (isAdmin() || isManager());
       allow create: if isSignedIn() && isOwner(userId);
-      // Allow users to update their own profile, but not change their role.
-      allow update: if isSignedIn() && isOwner(userId) && request.resource.data.role == resource.data.role;
+      // Admins can update any user. Users can update their own profile, but not change their role.
+      allow update: if isSignedIn() && (isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role));
       allow delete: if isAdmin() && request.auth.uid != userId; // Admins can delete other users, but not themselves.
     }
 
