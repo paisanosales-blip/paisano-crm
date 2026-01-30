@@ -1,6 +1,11 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Home, GanttChartSquare, Users, FileText } from 'lucide-react';
 
+import { useUser } from '@/firebase';
 import {
   SidebarProvider,
   Sidebar,
@@ -13,12 +18,36 @@ import {
 } from '@/components/ui/sidebar';
 import { PaisanoLogo } from '@/components/icons';
 import { DashboardHeader } from '@/components/dashboard-header';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { user, isUserLoading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="flex items-center space-x-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-[250px]" />
+            <Skeleton className="h-4 w-[200px]" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <Sidebar>

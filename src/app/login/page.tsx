@@ -1,11 +1,76 @@
+'use client';
+
+import { useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useAuth, useUser } from '@/firebase';
+import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { PaisanoLogo } from '@/components/icons';
+import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const loginSchema = z.object({
+  email: z.string().email({ message: 'Correo electrónico inválido.' }),
+  password: z.string().min(1, { message: 'La contraseña es requerida.' }),
+});
 
 export default function LoginPage() {
+  const auth = useAuth();
+  const router = useRouter();
+  const { toast } = useToast();
+  const { user, isUserLoading, userError } = useUser();
+
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.replace('/dashboard');
+    }
+  }, [user, isUserLoading, router]);
+
+  useEffect(() => {
+    if (userError) {
+      toast({
+        variant: 'destructive',
+        title: 'Error al iniciar sesión',
+        description: 'Credenciales inválidas. Por favor, inténtelo de nuevo.',
+      });
+    }
+  }, [userError, toast]);
+
+  function onSubmit(values: z.infer<typeof loginSchema>) {
+    initiateEmailSignIn(auth, values.email, values.password);
+  }
+  
+  if (isUserLoading || (!isUserLoading && user)) {
+    return (
+       <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Skeleton className="h-12 w-12 rounded-full" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-[250px]" />
+            <Skeleton className="h-4 w-[200px]" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-sm">
@@ -17,24 +82,44 @@ export default function LoginPage() {
           <CardDescription>Ingrese su correo para iniciar sesión en su cuenta</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Correo electrónico</Label>
-              <Input id="email" type="email" placeholder="m@example.com" required />
-            </div>
-            <div className="grid gap-2">
-              <div className="flex items-center">
-                <Label htmlFor="password">Contraseña</Label>
-                <Link href="#" className="ml-auto inline-block text-sm underline">
-                  ¿Olvidó su contraseña?
-                </Link>
-              </div>
-              <Input id="password" type="password" required />
-            </div>
-            <Button type="submit" className="w-full" asChild>
-                <Link href="/dashboard">Iniciar sesión</Link>
-            </Button>
-          </form>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="email">Correo electrónico</Label>
+                    <FormControl>
+                      <Input id="email" type="email" placeholder="m@example.com" required {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center">
+                      <Label htmlFor="password">Contraseña</Label>
+                      <Link href="#" className="ml-auto inline-block text-sm underline">
+                        ¿Olvidó su contraseña?
+                      </Link>
+                    </div>
+                    <FormControl>
+                      <Input id="password" type="password" required {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              </Button>
+            </form>
+          </Form>
           <div className="mt-4 text-center text-sm">
             ¿No tiene una cuenta?{' '}
             <Link href="/register" className="underline">

@@ -1,6 +1,9 @@
 'use client'
-import Link from 'next/link';
+import { useMemo } from 'react';
 import { Search } from 'lucide-react';
+import { doc } from 'firebase/firestore';
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,14 +15,32 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { users } from '@/lib/data';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function DashboardHeader() {
-  const currentUser = users[2]; // Mock: using Seller Juan
-  const userImage = PlaceHolderImages.find(img => img.id === currentUser.avatarUrl);
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const { user, isUserLoading: isAuthLoading } = useUser();
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
+  const handleSignOut = () => {
+    auth.signOut();
+  };
+
+  const getInitials = (firstName?: string, lastName?: string) => {
+    if (!firstName) return '...';
+    return `${firstName.charAt(0)}${lastName ? lastName.charAt(0) : ''}`.toUpperCase();
+  };
+
+  const isLoading = isAuthLoading || (user && isProfileLoading);
+  const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}`.trim() : user?.email;
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30">
@@ -36,27 +57,30 @@ export function DashboardHeader() {
           </div>
         </form>
       </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="secondary" size="icon" className="rounded-full">
-             <Avatar className="h-8 w-8">
-                <AvatarImage src={userImage?.imageUrl} alt={currentUser.name} />
-                <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <span className="sr-only">Menú de usuario</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>{currentUser.name}</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>Configuración</DropdownMenuItem>
-          <DropdownMenuItem>Soporte</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link href="/login">Cerrar sesión</Link>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {isLoading ? (
+        <Skeleton className="h-8 w-8 rounded-full" />
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="secondary" size="icon" className="rounded-full">
+               <Avatar className="h-8 w-8">
+                  <AvatarFallback>{getInitials(userProfile?.firstName, userProfile?.lastName)}</AvatarFallback>
+              </Avatar>
+              <span className="sr-only">Menú de usuario</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>Configuración</DropdownMenuItem>
+            <DropdownMenuItem>Soporte</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              Cerrar sesión
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </header>
   );
 }
