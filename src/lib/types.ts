@@ -19,6 +19,13 @@ export type OpportunityStage = 'Primer contacto' | 'Envió de Información' | 'E
 
 export type ClientClassification = 'PROSPECTO' | 'CLIENTE POTENCIAL' | 'CLIENTE';
 
+export const getClassification = (stage: OpportunityStage): ClientClassification => {
+    if (stage === 'Primer contacto' || stage === 'Envió de Información') return 'PROSPECTO';
+    if (stage === 'Envió de Cotización' || stage === 'Negociación') return 'CLIENTE POTENCIAL';
+    if (stage === 'Cierre de venta') return 'CLIENTE';
+    return 'PROSPECTO';
+};
+
 export type Opportunity = {
   id: string;
   name: string;
