@@ -41,28 +41,32 @@ service cloud.firestore {
     }
 
     match /leads/{leadId} {
-      allow read: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
+      allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.sellerId == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
     }
     
     match /opportunities/{opportunityId} {
-      allow read: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
+      allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.sellerId == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
     }
 
     match /quotations/{quotationId} {
-      allow read: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
+      allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.sellerId == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
     }
 
     match /activities/{activityId} {
-      allow read: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
+      allow get: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
+      allow list: if isSignedIn() && resource.data.sellerId == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isAdminOrManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isAdminOrManager() || resource.data.sellerId == request.auth.uid);
