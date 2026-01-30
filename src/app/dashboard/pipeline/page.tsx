@@ -73,6 +73,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FollowUpDialog, type FollowUpSubmitPayload } from '@/components/follow-up-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -95,6 +96,7 @@ const getClassification = (stage: OpportunityStage): ClientClassification => {
 
 export default function PipelinePage() {
   const [filterStage, setFilterStage] = useState<OpportunityStage | 'Todos'>('Todos');
+  const [selectedUserId, setSelectedUserId] = useState<string>('me');
   const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
   const [negotiationDialogOpen, setNegotiationDialogOpen] = useState(false);
@@ -124,28 +126,78 @@ export default function PipelinePage() {
   }, [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore || userProfile?.role !== 'manager') return null;
+    return query(collection(firestore, 'users'));
+  }, [firestore, userProfile]);
+  const { data: allUsers, isLoading: areUsersLoading } = useCollection(usersQuery);
+
   const leadsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(firestore, 'leads'), where('sellerId', '==', user.uid));
-  }, [firestore, user]);
+    if (!user || !userProfile) return null;
+    const baseCollection = collection(firestore, 'leads');
+    const isManager = userProfile.role === 'manager';
+
+    if (isManager) {
+        if (selectedUserId === 'all') {
+            return query(baseCollection);
+        }
+        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+        return query(baseCollection, where('sellerId', '==', userIdToFilter));
+    }
+    
+    return query(baseCollection, where('sellerId', '==', user.uid));
+  }, [firestore, user, userProfile, selectedUserId]);
   const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
 
   const opportunitiesQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(firestore, 'opportunities'), where('sellerId', '==', user.uid));
-  }, [firestore, user]);
+    if (!user || !userProfile) return null;
+    const baseCollection = collection(firestore, 'opportunities');
+    const isManager = userProfile.role === 'manager';
+
+    if (isManager) {
+        if (selectedUserId === 'all') {
+            return query(baseCollection);
+        }
+        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+        return query(baseCollection, where('sellerId', '==', userIdToFilter));
+    }
+    
+    return query(baseCollection, where('sellerId', '==', user.uid));
+  }, [firestore, user, userProfile, selectedUserId]);
   const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
   
   const quotationsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(firestore, 'quotations'), where('sellerId', '==', user.uid));
-  }, [firestore, user]);
+    if (!user || !userProfile) return null;
+    const baseCollection = collection(firestore, 'quotations');
+    const isManager = userProfile.role === 'manager';
+
+    if (isManager) {
+        if (selectedUserId === 'all') {
+            return query(baseCollection);
+        }
+        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+        return query(baseCollection, where('sellerId', '==', userIdToFilter));
+    }
+    
+    return query(baseCollection, where('sellerId', '==', user.uid));
+  }, [firestore, user, userProfile, selectedUserId]);
   const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
   const activitiesQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(firestore, 'activities'), where('sellerId', '==', user.uid));
-  }, [firestore, user]);
+    if (!user || !userProfile) return null;
+    const baseCollection = collection(firestore, 'activities');
+    const isManager = userProfile.role === 'manager';
+
+    if (isManager) {
+        if (selectedUserId === 'all') {
+            return query(baseCollection);
+        }
+        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+        return query(baseCollection, where('sellerId', '==', userIdToFilter));
+    }
+    
+    return query(baseCollection, where('sellerId', '==', user.uid));
+  }, [firestore, user, userProfile, selectedUserId]);
   const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
 
 
@@ -524,7 +576,7 @@ export default function PipelinePage() {
       setIsFollowUpDialogOpen(true);
   };
 
-  const isLoading = isUserAuthLoading || isProfileLoading || areLeadsLoading || areOppsLoading || areQuotsLoading || areActivitiesLoading;
+  const isLoading = isUserAuthLoading || isProfileLoading || areLeadsLoading || areOppsLoading || areQuotsLoading || areActivitiesLoading || areUsersLoading;
 
   const clientProspects = React.useMemo(() => {
     if (!leads || !opportunities || !quotations || !activities) return [];
@@ -563,7 +615,25 @@ export default function PipelinePage() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-headline font-bold">Flujo de Ventas</h1>
-        <NewProspectDialog />
+        <div className="flex items-center gap-4">
+          {userProfile?.role === 'manager' && (
+              <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
+                  <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Seleccionar vendedor..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="me">Mis Prospectos</SelectItem>
+                      <SelectItem value="all">Todos los Prospectos</SelectItem>
+                      {allUsers?.filter(u => u.id !== user?.uid).map((u: any) => (
+                          <SelectItem key={u.id} value={u.id}>
+                              {`${u.firstName} ${u.lastName}`}
+                          </SelectItem>
+                      ))}
+                  </SelectContent>
+              </Select>
+          )}
+          <NewProspectDialog />
+        </div>
       </div>
       <Card>
         <CardHeader><CardTitle>Seguimiento de Prospectos</CardTitle><CardDescription>Administra el ciclo de vida de tus clientes, desde el primer contacto hasta el cierre.</CardDescription></CardHeader>
