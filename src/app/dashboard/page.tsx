@@ -66,28 +66,40 @@ export default function DashboardPage() {
     
     const isLoading = isUserAuthLoading || areOppsLoading || areLeadsLoading || areQuotsLoading || areUsersLoading;
 
-    const { filteredOpportunities, filteredLeads, filteredQuotations } = useMemo(() => {
+    const { monthlyData } = useMemo(() => {
         const start = startOfMonth(currentMonth);
         const end = endOfMonth(currentMonth);
+
+        const opportunitiesCreatedInMonth = (allOpportunities || []).filter(item => {
+            const itemDate = new Date(item.createdDate);
+            return isWithinInterval(itemDate, { start, end });
+        });
+
+        const quotationsCreatedInMonth = (allQuotations || []).filter(item => {
+            const itemDate = new Date(item.createdDate);
+            return isWithinInterval(itemDate, { start, end });
+        });
         
-        const filterByDate = (items: any[]) => {
-            if (!items) return [];
-            return items.filter(item => {
-                const itemDate = new Date(item.createdDate);
-                return isWithinInterval(itemDate, { start, end });
-            });
-        };
+        const opportunitiesClosedInMonth = (allOpportunities || []).filter(item => {
+            if (!item.closingDate || item.stage !== 'Cierre de venta') return false;
+            const itemDate = new Date(item.closingDate);
+            return isWithinInterval(itemDate, { start, end });
+        });
 
         return {
-            filteredOpportunities: filterByDate(allOpportunities || []),
-            filteredLeads: filterByDate(allLeads || []),
-            filteredQuotations: filterByDate(allQuotations || []),
+            monthlyData: {
+                opportunities: opportunitiesCreatedInMonth,
+                quotations: quotationsCreatedInMonth,
+                closedOpportunities: opportunitiesClosedInMonth,
+            }
         }
 
-    }, [currentMonth, allOpportunities, allLeads, allQuotations]);
+    }, [currentMonth, allOpportunities, allQuotations]);
 
     const dashboardStats = React.useMemo(() => {
-        if (!filteredOpportunities) {
+        const { opportunities, quotations, closedOpportunities } = monthlyData;
+
+        if (!opportunities || !quotations || !closedOpportunities) {
             return {
                 prospectosActivos: 0,
                 clientesPotenciales: 0,
@@ -99,44 +111,42 @@ export default function DashboardPage() {
             };
         }
         
-        let prospectosActivos = 0;
-        let clientesPotenciales = 0;
-        let clientesGanados = 0;
-        let ingresosTotales = 0;
-        let clientesNoAtendidos = 0;
+        let nuevosProspectos = 0;
+        let nuevosClientesPotenciales = 0;
+        let prospectosNoAtendidos = 0;
         
-        filteredOpportunities.forEach((opp: any) => {
+        opportunities.forEach((opp: any) => {
             const classification = getClassification(opp.stage);
             switch (classification) {
                 case 'PROSPECTO':
-                    prospectosActivos++;
+                    nuevosProspectos++;
                     if (opp.stage === 'Primer contacto') {
-                        clientesNoAtendidos++;
+                        prospectosNoAtendidos++;
                     }
                     break;
                 case 'CLIENTE POTENCIAL':
-                    clientesPotenciales++;
-                    break;
-                case 'CLIENTE':
-                    clientesGanados++;
-                    ingresosTotales += opp.value || 0;
+                    nuevosClientesPotenciales++;
                     break;
             }
         });
 
-        const totalOportunidades = filteredOpportunities.length;
-        const tasaDeConversion = totalOportunidades > 0 ? (clientesGanados / totalOportunidades) * 100 : 0;
+        const clientesGanados = closedOpportunities.length;
+        const ingresosTotales = closedOpportunities.reduce((acc: number, opp: any) => acc + (opp.value || 0), 0);
+        
+        const totalNewOpportunities = opportunities.length;
+        const tasaDeConversion = totalNewOpportunities > 0 ? (clientesGanados / totalNewOpportunities) * 100 : 0;
 
         return {
-            prospectosActivos,
-            clientesPotenciales,
+            prospectosActivos: nuevosProspectos,
+            clientesPotenciales: nuevosClientesPotenciales,
             clientesGanados,
             tasaDeConversion: parseFloat(tasaDeConversion.toFixed(1)),
             ingresosTotales,
-            clientesNoAtendidos,
-            cotizacionesHechas: filteredQuotations.length,
+            clientesNoAtendidos: prospectosNoAtendidos,
+            cotizacionesHechas: quotations.length,
         };
-    }, [filteredOpportunities, filteredQuotations]);
+    }, [monthlyData]);
+
 
     const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
     const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
@@ -181,22 +191,22 @@ export default function DashboardPage() {
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                      <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Prospectos Activos</CardTitle>
+                            <CardTitle className="text-sm font-medium">Nuevos Prospectos</CardTitle>
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.prospectosActivos}</div>
-                            <p className="text-xs text-muted-foreground">Oportunidades en 'Primer contacto' o 'Info. Enviada'</p>
+                            <p className="text-xs text-muted-foreground">Oportunidades creadas en el mes.</p>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Clientes Potenciales</CardTitle>
+                            <CardTitle className="text-sm font-medium">Nuevos Clientes Potenciales</CardTitle>
                             <Target className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.clientesPotenciales}</div>
-                            <p className="text-xs text-muted-foreground">Oportunidades en 'Cotización' o 'Negociación'</p>
+                            <p className="text-xs text-muted-foreground">Nuevas oportunidades en cotización o negociación.</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -206,7 +216,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">+{dashboardStats.clientesGanados}</div>
-                            <p className="text-xs text-muted-foreground">Oportunidades en 'Cierre de venta'</p>
+                            <p className="text-xs text-muted-foreground">Oportunidades cerradas como ganadas en el mes.</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -216,7 +226,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dashboardStats.ingresosTotales)}</div>
-                            <p className="text-xs text-muted-foreground">De oportunidades en 'Cierre de venta'</p>
+                            <p className="text-xs text-muted-foreground">De oportunidades cerradas en el mes.</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -226,7 +236,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.tasaDeConversion}%</div>
-                            <p className="text-xs text-muted-foreground">Clientes nuevos / Oportunidades totales</p>
+                            <p className="text-xs text-muted-foreground">Nuevos clientes / Nuevas oportunidades del mes.</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -236,7 +246,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.cotizacionesHechas}</div>
-                            <p className="text-xs text-muted-foreground">Generadas este mes</p>
+                            <p className="text-xs text-muted-foreground">Generadas este mes.</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -246,7 +256,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.clientesNoAtendidos}</div>
-                            <p className="text-xs text-muted-foreground">Oportunidades en etapa 'Primer contacto'</p>
+                            <p className="text-xs text-muted-foreground">Nuevas oportunidades que siguen en 'Primer contacto'.</p>
                         </CardContent>
                     </Card>
                 </div>
