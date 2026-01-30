@@ -36,7 +36,7 @@ service cloud.firestore {
       allow get: if isSignedIn() && (isOwner(userId) || isAdminOrManager());
       allow list: if isSignedIn() && (isAdmin() || isManager());
       allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && (isAdmin() || isOwner(userId));
+      allow update: if isSignedIn() && (isAdmin() || (isOwner(userId) && !('role' in request.resource.data)));
       allow delete: if isAdmin() && request.auth.uid != userId; // Admins can delete other users, but not themselves.
     }
 
