@@ -321,7 +321,9 @@ export default function PipelinePage() {
                                 <MessageSquare className="h-4 w-4" />
                             </a>
                             <a 
-                                href={prospect.email ? `mailto:${prospect.email}` : '#'}
+                                href={prospect.email ? `https://mail.google.com/mail/?view=cm&fs=1&to=${prospect.email}` : '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 onClick={(e) => !prospect.email && e.preventDefault()}
                                 className={cn(
                                     "transition-colors",

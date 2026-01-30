@@ -118,7 +118,9 @@ export default function ClientsPage() {
                           <div className="font-medium">{client.contactPerson}</div>
                           <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                             <a
-                              href={client.email ? `mailto:${client.email}` : '#'}
+                              href={client.email ? `https://mail.google.com/mail/?view=cm&fs=1&to=${client.email}` : '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               onClick={(e) => !client.email && e.preventDefault()}
                               className={cn("flex items-center gap-1", client.email ? "hover:text-primary" : "cursor-not-allowed text-muted-foreground/50")}
                             >
