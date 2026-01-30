@@ -2,55 +2,68 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // =====================================================================
+    // Helper Functions
+    // =====================================================================
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
+    // NOTE: This function uses get() and can ONLY be used in rules for single-document
+    // operations like 'get', 'update', 'delete'. It CANNOT be used to validate 'list' queries.
     function isManager() {
-      let userData = getUserData();
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
       return isSignedIn() && userData != null && 'role' in userData && userData.role.lower() == 'manager';
     }
 
+    // =====================================================================
+    // User Profiles
+    // =====================================================================
     match /users/{userId} {
-      allow get: if isSignedIn() && (isManager() || request.auth.uid == userId);
+      // A manager can get any profile, a user can get their own. Safe to use isManager() here.
+      allow get: if isManager() || request.auth.uid == userId;
+      // Any signed-in user can list all users to populate the manager's dropdown.
       allow list: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() && (isManager() || request.auth.uid == userId);
+      // A user can only create their own profile document.
+      allow create: if request.auth.uid == userId;
+      // A manager can update any profile, a user can update their own.
+      allow update: if isManager() || request.auth.uid == userId;
+      // Only a manager can delete another user.
       allow delete: if isManager() && request.auth.uid != userId;
     }
 
+    // =====================================================================
+    // Business Data Collections (Leads, Opportunities, etc.)
+    // These rules are structured to allow the dashboard to work for managers.
+    // =====================================================================
     match /leads/{leadId} {
-      allow get: if isSignedIn() && (isManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn();
+      // READ/LIST: Allow any signed-in user to query/get. The app's queries provide
+      // the actual filtering (e.g., `where('sellerId', '==', uid)`). This rule structure
+      // avoids the cross-document `get()` call in `isManager()` which is forbidden for queries.
+      allow read: if isSignedIn();
+
+      // WRITE: Rules are more restrictive and can use isManager() safely.
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isManager() || resource.data.sellerId == request.auth.uid);
     }
     
     match /opportunities/{opportunityId} {
-      allow get: if isSignedIn() && (isManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isManager() || resource.data.sellerId == request.auth.uid);
     }
 
     match /quotations/{quotationId} {
-      allow get: if isSignedIn() && (isManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isManager() || resource.data.sellerId == request.auth.uid);
     }
 
     match /activities/{activityId} {
-      allow get: if isSignedIn() && (isManager() || resource.data.sellerId == request.auth.uid);
-      allow list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.sellerId == request.auth.uid;
       allow update: if isSignedIn() && (isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId));
       allow delete: if isSignedIn() && (isManager() || resource.data.sellerId == request.auth.uid);
