@@ -119,11 +119,11 @@ export default function NewQuotationPage() {
     const LIGHT_GRAY = '#F5F5F5';
 
     // --- HEADER ---
+    const headerY = 5;
     if (logoUrl) {
         try {
             const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
-            // Use 0 for height to maintain aspect ratio
-            doc.addImage(logoUrl, format.toUpperCase(), margin, 10, 90, 0); 
+            doc.addImage(logoUrl, format.toUpperCase(), margin, headerY, 90, 0); 
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
         }
@@ -132,25 +132,26 @@ export default function NewQuotationPage() {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(BLACK);
-    doc.text('PAISANO TRAILER', docWidth - margin, 10, { align: 'right', baseline: 'top' });
+    doc.text('PAISANO TRAILER', docWidth - margin, headerY, { align: 'right', baseline: 'top' });
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, 25, { align: 'right' });
-    doc.text('CHIH. MEX, CP 31978', docWidth - margin, 29, { align: 'right' });
-    doc.text('RFC: SPA150217AM3', docWidth - margin, 33, { align: 'right' });
+    doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, headerY + 15, { align: 'right' });
+    doc.text('CHIH. MEX, CP 31978', docWidth - margin, headerY + 19, { align: 'right' });
+    doc.text('RFC: SPA150217AM3', docWidth - margin, headerY + 23, { align: 'right' });
 
 
     // Decorative Separator
+    const separatorY = headerY + 30;
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
-    doc.line(margin, 40, docWidth - margin, 40);
+    doc.line(margin, separatorY, docWidth - margin, separatorY);
     doc.setDrawColor(BLACK);
     doc.setLineWidth(0.3);
-    doc.line(margin, 41.5, docWidth - margin, 41.5);
+    doc.line(margin, separatorY + 1.5, docWidth - margin, separatorY + 1.5);
 
-    finalY = 52;
+    finalY = separatorY + 12;
 
     // --- QUOTATION DETAILS ---
     const quoteDetailsX = docWidth - margin;
@@ -165,7 +166,7 @@ export default function NewQuotationPage() {
     doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, finalY + 6, { align: 'right' });
     doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, finalY + 12, { align: 'right' });
 
-    finalY += 12 + 10; // Block height + space after
+    finalY += 12 + 10;
 
 
     // --- INFO SECTION ---
@@ -173,12 +174,10 @@ export default function NewQuotationPage() {
     const rightColX = docWidth / 2 + 10;
     const infoBoxHeight = 28;
 
-    // Add background boxes
     doc.setFillColor(LIGHT_GRAY);
     doc.rect(margin, infoStartY - 2, (docWidth / 2) - margin - 5, infoBoxHeight, 'F');
     doc.rect(rightColX, infoStartY - 2, (docWidth / 2) - margin - 10, infoBoxHeight, 'F');
     
-    // Salesperson Info
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(BLACK);
@@ -190,7 +189,6 @@ export default function NewQuotationPage() {
         if (userProfile.email) doc.text(userProfile.email.toUpperCase(), margin + 3, infoStartY + 15);
     }
 
-    // Client Info
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text('BUYER:', rightColX + 3, infoStartY + 4);
@@ -200,7 +198,7 @@ export default function NewQuotationPage() {
     doc.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 15);
     if(selectedClient.email) doc.text(selectedClient.email.toUpperCase(), rightColX + 3, infoStartY + 20);
 
-    finalY = infoStartY + infoBoxHeight + 8; // Optimized space
+    finalY = infoStartY + infoBoxHeight + 8;
 
     // --- PRODUCTS TABLE ---
     const tableColumn = ["DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"];
@@ -229,18 +227,16 @@ export default function NewQuotationPage() {
     let currentY = (doc as any).autoTable.previous.finalY;
     
     // --- TOTALS ---
-    const totalsY = currentY + 6; // Optimized space
+    const totalsY = currentY + 6;
     let lineY = totalsY;
     doc.setFontSize(11);
     
-    // Subtotal
     doc.setFont('helvetica', 'bold');
     doc.text('SUBTOTAL:', docWidth - 70, lineY, { align: 'right' });
     doc.setFont('helvetica', 'normal');
     doc.text(`$${subtotal.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
     lineY += 7;
 
-    // Freight
     if (freight > 0) {
       doc.setFont('helvetica', 'bold');
       const freightText = `FREIGHT TO: ${freightTo.toUpperCase()}:`;
@@ -250,8 +246,7 @@ export default function NewQuotationPage() {
       lineY += 7;
     }
 
-    // Total
-    const totalY = lineY + 2; // Optimized space
+    const totalY = lineY + 2;
     doc.setDrawColor(BLACK);
     doc.setLineWidth(0.2);
     doc.line(docWidth - 80, totalY, docWidth - margin, totalY);
@@ -269,7 +264,7 @@ export default function NewQuotationPage() {
       const lines = doc.splitTextToSize(content.toUpperCase(), docWidth - (margin * 2));
       const sectionHeight = (lines.length * (fontSize / 2.5)) + 8;
       
-      if (currentY + sectionHeight > pageHeight - 35) { // Check space
+      if (currentY + sectionHeight > pageHeight - 45) {
         doc.addPage();
         currentY = margin;
       } else {
@@ -294,7 +289,7 @@ export default function NewQuotationPage() {
     
     // --- APPROVAL SIGNATURE ---
     const signatureHeight = 25;
-    if (currentY + signatureHeight > pageHeight - 35) { // Check space for signature
+    if (currentY + signatureHeight > pageHeight - 35) {
         doc.addPage();
         currentY = margin;
     }
