@@ -267,24 +267,38 @@ export default function NewQuotationPage() {
     currentY = lineY;
     doc.setTextColor(BLACK);
 
-    currentY += 12;
-
     const addSection = (title: string, content: string, fontSize: number) => {
+      doc.setFontSize(fontSize);
+      // Get line height based on current font size (fontSize * 1.15 in pts)
+      const lineHeight = doc.getLineHeight();
       const lines = doc.splitTextToSize(content.toUpperCase(), docWidth - (margin * 2));
-      const sectionHeight = (lines.length * (fontSize / 2.5)) + 8;
       
-      if (currentY + sectionHeight > pageHeight - 45) {
+      // Calculate the total height this section will occupy.
+      // Height of title (1 line) + height of content (N lines) + a small gap (4pt).
+      const sectionHeight = lineHeight + 4 + (lines.length * lineHeight);
+
+      // Check if there is enough space on the current page.
+      if (currentY + sectionHeight > pageHeight - 45) { // 45 for footer area
         doc.addPage();
         currentY = margin;
       }
       
+      // --- Draw the section ---
+      // Title
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(fontSize);
       doc.text(title.toUpperCase(), margin, currentY);
+
+      // Content
       doc.setFont('helvetica', 'normal');
-      doc.text(lines, margin, currentY + 4);
-      currentY += (lines.length * (fontSize / 2.5));
+      doc.setFontSize(fontSize);
+      doc.text(lines, margin, currentY + lineHeight + 4); // Start content below title with a gap
+      
+      // Update currentY to be at the end of the drawn section.
+      currentY += sectionHeight;
     };
+
+    currentY += 12; // Add space before terms and conditions
 
     if (quotationDetails.terms) {
       addSection('TERMS AND CONDITIONS', quotationDetails.terms, 8);
