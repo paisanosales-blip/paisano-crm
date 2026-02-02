@@ -127,6 +127,10 @@
           "type": "string",
           "description": "Date the lead was created.",
           "format": "date-time"
+        },
+        "tag": {
+          "type": "string",
+          "description": "A descriptive tag for quick visual identification in the UI (e.g., danger, warning, success)."
         }
       },
       "required": [
@@ -612,3 +616,5 @@
     "reasoning": "The Firestore structure is designed to facilitate a secure and scalable Paisano Sales Hub application, adhering to the core design principles of Authorization Independence, Clarity of Intent, DBAC (Database-Based Access Control), and QAPs (Rules are not Filters). It leverages Structural Segregation, Access Modeling, and Data Clarity to ensure maintainability and security.\n\n**Authorization Independence:** Denormalization is heavily used to ensure authorization rules do not rely on `get()` calls. For example, the `UserProfile`'s role is not determined by looking up another document, but instead stored directly within the `UserProfile` document. Similarly, for leads, the `sellerId` is denormalized, which is crucial for read operations and avoids complex rule evaluations.\n\n**Structural Segregation:**  The structure separates user profiles from other data, storing them in `/users/{userId}/profile`. Leads are stored in the `/leads/{leadId}` collection and include the denormalized `sellerId`, enabling efficient querying of leads owned by a specific seller and simplifying security rules.\n\n**Access Modeling:** Path-based ownership is implemented for user profiles (`/users/{userId}/profile`). Leads and other collaborative data leverage denormalized fields (`sellerId` for leads) to simplify access control.\n\n**QAPs Support:** The structure enables secure `list` operations. Because the `sellerId` is denormalized into the `Lead` document, rules can efficiently filter and authorize reads based on the requesting user's ID without performing costly `get()` operations. Similarly, managers can list all leads due to their roles.\n\n**Invariants:** The structure supports the integrity of data relationships through explicit field references (`leadId` in `Opportunity`, `opportunityId` in `Quotation`). Timestamps (`createdDate`) are included to enable ordering and audit trails."
   }
 }
+
+    

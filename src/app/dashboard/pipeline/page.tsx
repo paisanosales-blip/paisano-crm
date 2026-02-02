@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Tag } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -57,6 +57,11 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -655,6 +660,16 @@ export default function PipelinePage() {
       setIsFollowUpDialogOpen(true);
   };
 
+  const handleSetTag = (leadId: string, tag: 'danger' | 'warning' | 'success' | null) => {
+    if (!firestore) return;
+    const leadRef = doc(firestore, 'leads', leadId);
+    updateDocumentNonBlocking(leadRef, { tag });
+    toast({
+        title: 'Etiqueta Actualizada',
+        description: `El prospecto ha sido etiquetado.`,
+    });
+  };
+
   const isLoading = isUserAuthLoading || isProfileLoading || areLeadsLoading || areOppsLoading || areQuotsLoading || areActivitiesLoading || areUsersLoading;
 
   const clientProspects = React.useMemo(() => {
@@ -762,8 +777,15 @@ export default function PipelinePage() {
 
             const quotationFollowUp = prospect.activities.find((act: any) => act.quotationId && prospect.quotation && act.quotationId === prospect.quotation.id);
 
+            const tagClasses = {
+                danger: 'border-l-red-500',
+                warning: 'border-l-yellow-500',
+                success: 'border-l-green-500',
+            };
+            const tagClass = prospect.tag ? tagClasses[prospect.tag as keyof typeof tagClasses] : '';
+
             return (
-              <Card key={prospect.id} className="border-2">
+              <Card key={prospect.id} className={cn("border-2 border-l-4", tagClass || 'border-l-transparent')}>
                 <CardHeader className="flex flex-row items-start justify-between">
                   <div>
                     <CardTitle className="text-xl">{prospect.clientName}</CardTitle>
@@ -774,6 +796,30 @@ export default function PipelinePage() {
                       <DropdownMenuContent>
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                         <DropdownMenuItem onSelect={() => handleEditClick(prospect)}>Editar</DropdownMenuItem>
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger>
+                              <Tag className="mr-2 h-4 w-4" />
+                              <span>Etiquetar</span>
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuPortal>
+                              <DropdownMenuSubContent>
+                                  <DropdownMenuItem onSelect={() => handleSetTag(prospect.id, 'danger')}>
+                                      <div className="w-2 h-2 rounded-full bg-red-500 mr-2"></div> Rojo (Sin respuesta)
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onSelect={() => handleSetTag(prospect.id, 'warning')}>
+                                      <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2"></div> Amarillo (Seguimiento)
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onSelect={() => handleSetTag(prospect.id, 'success')}>
+                                      <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div> Verde (Buen prospecto)
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onSelect={() => handleSetTag(prospect.id, null)}>
+                                      Quitar Etiqueta
+                                  </DropdownMenuItem>
+                              </DropdownMenuSubContent>
+                          </DropdownMenuPortal>
+                        </DropdownMenuSub>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onSelect={() => requestStageChange(prospect, 'Financiamiento Externo')}>
                             <Landmark className="mr-2 h-4 w-4" />
                             <span>Financiamiento Externo</span>
@@ -1267,3 +1313,5 @@ export default function PipelinePage() {
     </>
   );
 }
+
+    
