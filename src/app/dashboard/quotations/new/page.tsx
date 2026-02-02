@@ -332,7 +332,7 @@ export default function NewQuotationPage() {
       
       doc.setFont('helvetica', 'bold');
       doc.text(title.toUpperCase(), margin, currentY);
-      currentY += lineHeight + 2;
+      currentY += lineHeight;
 
       doc.setFont('helvetica', 'normal');
       doc.text(lines, margin, currentY);
