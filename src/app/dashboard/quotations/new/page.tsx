@@ -122,7 +122,7 @@ export default function NewQuotationPage() {
   const total = useMemo(() => {
     const productsTotal = subtotal;
     if (isIndividualFreight) {
-      const individualFreightsTotal = items.reduce((acc, item) => acc + (item.individualFreight || 0), 0);
+      const individualFreightsTotal = items.reduce((acc, item) => acc + (item.individualFreight || 0) * item.quantity, 0);
       return productsTotal + individualFreightsTotal;
     }
     return productsTotal + freight;
@@ -159,8 +159,7 @@ export default function NewQuotationPage() {
         const img = new Image();
         img.src = logoUrl;
         const imgWidth = 90;
-        const imgHeight = img.height * (imgWidth / img.width);
-        doc.addImage(logoUrl, format.toUpperCase(), margin, headerY, imgWidth, imgHeight, undefined, 'NONE');
+        doc.addImage(logoUrl, format.toUpperCase(), margin, headerY, imgWidth, 0, undefined, 'NONE');
       } catch (e) {
         console.error("Error adding logo image to PDF:", e);
       }
@@ -240,18 +239,19 @@ export default function NewQuotationPage() {
 
     // --- PRODUCTS TABLE ---
     const tableHead = isIndividualFreight
-        ? [["DESCRIPTION", "QTY", "UNIT PRICE", "FREIGHT", "TOTAL"]]
+        ? [["DESCRIPTION", "QTY", "UNIT PRICE", "UNIT FREIGHT", "TOTAL"]]
         : [["DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"]];
     
     const tableBody = items.map(item => {
         const itemTotal = item.quantity * item.price;
         if (isIndividualFreight) {
+            const totalFreightForItem = item.individualFreight * item.quantity;
             return [
                 item.description.toUpperCase(),
                 item.quantity,
                 `$${item.price.toFixed(2)}`,
                 `$${item.individualFreight.toFixed(2)}`,
-                `$${(itemTotal + item.individualFreight).toFixed(2)}`
+                `$${(itemTotal + totalFreightForItem).toFixed(2)}`
             ];
         }
         return [
@@ -287,7 +287,7 @@ export default function NewQuotationPage() {
     lineY += 7;
 
     if (isIndividualFreight) {
-      const totalIndividualFreight = items.reduce((acc, item) => acc + item.individualFreight, 0);
+      const totalIndividualFreight = items.reduce((acc, item) => acc + (item.individualFreight || 0) * item.quantity, 0);
       if (totalIndividualFreight > 0) {
         doc.setFont('helvetica', 'bold');
         doc.text('TOTAL FREIGHT:', docWidth - 70, lineY, { align: 'right' });
@@ -315,17 +315,15 @@ export default function NewQuotationPage() {
     doc.setTextColor(RED);
     doc.text(`$${total.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
     
-    currentY = lineY;
+    currentY = lineY + 12;
     doc.setTextColor(BLACK);
 
-    currentY += 12;
-
-    const addSection = (title: string, content: string, fontSize: number) => {
+    const addSection = (title: string, content: string) => {
       if (!content) return;
-      doc.setFontSize(fontSize);
-      const lineHeight = doc.getLineHeight();
+      doc.setFontSize(8);
+      const lineHeight = doc.getLineHeight() / doc.internal.scaleFactor;
       const lines = doc.splitTextToSize(content.toUpperCase(), docWidth - (margin * 2));
-      const sectionHeight = lineHeight + (lines.length * lineHeight);
+      const sectionHeight = lines.length * lineHeight;
 
       if (currentY + sectionHeight > pageHeight - 45) { // 45 for footer area
         doc.addPage();
@@ -333,19 +331,17 @@ export default function NewQuotationPage() {
       }
       
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(fontSize);
       doc.text(title.toUpperCase(), margin, currentY);
-      currentY += lineHeight;
+      currentY += lineHeight + 2;
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(fontSize);
-      doc.text(lines, margin, currentY + 4);
+      doc.text(lines, margin, currentY);
       
-      currentY += (lines.length * lineHeight) + 4;
+      currentY += sectionHeight;
     };
 
-    addSection('TERMS AND CONDITIONS', quotationDetails.terms, 8);
-    addSection('ADDITIONAL NOTES', quotationDetails.notes, 8);
+    addSection('TERMS AND CONDITIONS', quotationDetails.terms);
+    addSection('ADDITIONAL NOTES', quotationDetails.notes);
     
     // --- APPROVAL SIGNATURE ---
     const signatureHeight = 25;
@@ -503,7 +499,10 @@ export default function NewQuotationPage() {
                                     </TableCell>
                                   )}
                                   <TableCell className="font-medium">
-                                      ${(item.quantity * item.price).toFixed(2)}
+                                    ${(isIndividualFreight 
+                                          ? ((item.quantity * item.price) + (item.quantity * item.individualFreight)) 
+                                          : (item.quantity * item.price)
+                                      ).toFixed(2)}
                                   </TableCell>
                                   <TableCell>
                                       <Button variant="ghost" size="icon" onClick={() => removeItem(index)}>
@@ -553,7 +552,7 @@ export default function NewQuotationPage() {
                       {isIndividualFreight && (
                         <div className="flex justify-between items-center font-medium">
                             <p>TOTAL FREIGHT:</p>
-                            <p>${items.reduce((acc, item) => acc + item.individualFreight, 0).toFixed(2)}</p>
+                            <p>${items.reduce((acc, item) => acc + (item.individualFreight * item.quantity), 0).toFixed(2)}</p>
                         </div>
                       )}
                       <div className="flex justify-between items-center text-lg font-bold">
