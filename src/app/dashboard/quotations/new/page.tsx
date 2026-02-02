@@ -60,7 +60,7 @@ export default function NewQuotationPage() {
   const [quotationDetails, setQuotationDetails] = useState<QuotationDetails>({
     number: `QT-${Date.now().toString().slice(-6)}`,
     validity: '30 DAYS',
-    terms: 'PAYMENT TERMS: 50% DOWN PAYMENT, 50% UPON DELIVERY.\nPRICES DO NOT INCLUDE VAT.\nDELIVERY TIMES ARE SUBJECT TO CHANGE WITHOUT PRIOR NOTICE.',
+    terms: 'PAYMENT TERMS: 10% DOWN PAYMENT, 90% UPON DELIVERY.\nPRICES DO NOT INCLUDE VAT.\nDELIVERY TIMES ARE SUBJECT TO CHANGE WITHOUT PRIOR NOTICE.',
     notes: 'THANK YOU FOR YOUR PREFERENCE.',
   });
 
@@ -117,7 +117,7 @@ export default function NewQuotationPage() {
     if (logoUrl) {
         try {
             const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
-            doc.addImage(logoUrl, format.toUpperCase(), margin, 15, 70, 35);
+            doc.addImage(logoUrl, format.toUpperCase(), margin, 15, 80, 40);
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
         }
@@ -139,12 +139,12 @@ export default function NewQuotationPage() {
     // Decorative Separator
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
-    doc.line(margin, 55, docWidth - margin, 55);
+    doc.line(margin, 60, docWidth - margin, 60);
     doc.setDrawColor(BLACK);
     doc.setLineWidth(0.3);
-    doc.line(margin, 56.5, docWidth - margin, 56.5);
+    doc.line(margin, 61.5, docWidth - margin, 61.5);
 
-    finalY = 65;
+    finalY = 70;
 
     // --- INFO SECTION ---
     const infoStartY = finalY;
@@ -190,7 +190,7 @@ export default function NewQuotationPage() {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.text(quotationDetails.number.toUpperCase(), quoteDetailsX, finalY + infoBoxHeight + 10, { align: 'right' });
-    doc.text(new Date().toLocaleDateString('en-US').toUpperCase(), quoteDetailsX, finalY + infoBoxHeight + 16, { align: 'right' });
+    doc.text(new Date().toLocaleDateString('en-GB').toUpperCase(), quoteDetailsX, finalY + infoBoxHeight + 16, { align: 'right' });
     doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, finalY + infoBoxHeight + 22, { align: 'right' });
 
     finalY = finalY + infoBoxHeight + 35;
@@ -240,7 +240,7 @@ export default function NewQuotationPage() {
     
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(RED);
-    doc.text(`$${total.toFixed(2)}`, docWidth - margin, totalsY + 21, { align: 'right' });
+    doc.text(`$${total.toFixed(2)} DOLLARS`, docWidth - margin, totalsY + 21, { align: 'right' });
     
     let currentY = totalsY + 35;
     doc.setTextColor(BLACK);
