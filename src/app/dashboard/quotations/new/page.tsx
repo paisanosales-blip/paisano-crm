@@ -143,15 +143,15 @@ export default function NewQuotationPage() {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, headerY + 15, { align: 'right' });
-    doc.text('CHIH. MEX, CP 31978', docWidth - margin, headerY + 19, { align: 'right' });
-    doc.text('RFC: SPA150217AM3', docWidth - margin, headerY + 23, { align: 'right' });
+    doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, headerY + 7, { align: 'right' });
+    doc.text('CHIH. MEX, CP 31978', docWidth - margin, headerY + 11, { align: 'right' });
+    doc.text('RFC: SPA150217AM3', docWidth - margin, headerY + 15, { align: 'right' });
 
     const logoBottom = headerY + imgHeight;
-    const textBottom = headerY + 23;
+    const textBottom = headerY + 15;
     const headerBottom = Math.max(logoBottom, textBottom);
     
-    currentY = headerBottom + 4;
+    currentY = headerBottom + 2;
 
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
