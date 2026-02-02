@@ -119,7 +119,8 @@ export default function NewQuotationPage() {
     const LIGHT_GRAY = '#F5F5F5';
 
     // --- HEADER ---
-    const headerY = -5;
+    const headerY = -5; // Logo vertical position frozen at -5
+    const textHeaderY = 5; // Text block vertical position at +5
     let imgHeight = 0;
 
     if (logoUrl) {
@@ -138,13 +139,13 @@ export default function NewQuotationPage() {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(BLACK);
-    doc.text('PAISANO TRAILER', docWidth - margin, headerY, { align: 'right', baseline: 'top' });
+    doc.text('PAISANO TRAILER', docWidth - margin, textHeaderY, { align: 'right', baseline: 'top' });
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(100);
 
-    const addressY = headerY + 8;
+    const addressY = textHeaderY + 8;
     const addressLineSpacing = 4;
     doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
@@ -154,7 +155,7 @@ export default function NewQuotationPage() {
     const textBottom = addressY + addressLineSpacing * 2 + 2; // +2 for font height approximation
     const headerBottom = Math.max(logoBottom, textBottom);
     
-    currentY = headerBottom + 4; // Minimal space after header
+    currentY = headerBottom + 2; // Minimal space after header
 
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
