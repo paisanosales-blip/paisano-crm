@@ -153,15 +153,14 @@ export default function NewQuotationPage() {
     finalY = 62; // Increased space after separator
 
     // --- QUOTATION DETAILS ---
+    const quoteDetailsX = docWidth - margin;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    const quoteDetailsX = docWidth - margin;
     doc.text('QUOTATION #:', quoteDetailsX - 45, finalY, { align: 'left' });
     doc.text('DATE:', quoteDetailsX - 45, finalY + 6, { align: 'left' });
     doc.text('VALIDITY:', quoteDetailsX - 45, finalY + 12, { align: 'left' });
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
     doc.text(quotationDetails.number.toUpperCase(), quoteDetailsX, finalY, { align: 'right' });
     doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, finalY + 6, { align: 'right' });
     doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, finalY + 12, { align: 'right' });
@@ -263,15 +262,43 @@ export default function NewQuotationPage() {
     doc.setTextColor(RED);
     doc.text(`$${total.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
     
-    currentY = lineY + 10;
+    currentY = lineY;
     doc.setTextColor(BLACK);
 
+    const addSection = (title: string, content: string, fontSize: number) => {
+      const lines = doc.splitTextToSize(content.toUpperCase(), docWidth - (margin * 2));
+      const sectionHeight = (lines.length * (fontSize / 2.5)) + 8;
+      
+      if (currentY + sectionHeight > pageHeight - 35) { // Check space
+        doc.addPage();
+        currentY = margin;
+      } else {
+        currentY += 10;
+      }
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(fontSize);
+      doc.text(title.toUpperCase(), margin, currentY);
+      currentY += 4;
+      doc.setFont('helvetica', 'normal');
+      doc.text(lines, margin, currentY);
+      currentY += (lines.length * (fontSize / 2.5));
+    };
+
+    if (quotationDetails.notes) {
+      addSection('ADDITIONAL NOTES', quotationDetails.notes, 8);
+    }
+    if (quotationDetails.terms) {
+      addSection('TERMS AND CONDITIONS', quotationDetails.terms, 8);
+    }
+    
     // --- APPROVAL SIGNATURE ---
-    if (currentY > pageHeight - 60) { // Check if space for signature
+    const signatureHeight = 25;
+    if (currentY + signatureHeight > pageHeight - 35) { // Check space for signature
         doc.addPage();
         currentY = margin;
     }
-    currentY += 20; // Add space before signature
+    currentY += 20;
     
     const sigWidth = 80;
     const sigXStart = (docWidth - sigWidth) / 2;
@@ -279,9 +306,9 @@ export default function NewQuotationPage() {
     doc.setFontSize(9);
     doc.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
     
-    let pageCount = (doc as any).internal.getNumberOfPages();
     
     // --- FOOTER ---
+    let pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         const footerY = pageHeight - 25;
@@ -295,31 +322,6 @@ export default function NewQuotationPage() {
         const footerText = `PAISANOSALES@GMAIL.COM | 915 408 7478 | WWW.PAISANOTRAILER.COM`;
         doc.text(footerText, docWidth / 2, footerY + 8, { align: 'center' });
         doc.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerY + 8, { align: 'right' });
-    }
-
-    // --- TERMS, NOTES ---
-    if (quotationDetails.notes) {
-       if (currentY > pageHeight - 35) { doc.addPage(); currentY = margin; }
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.text('ADDITIONAL NOTES', margin, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      const notesLines = doc.splitTextToSize(quotationDetails.notes.toUpperCase(), docWidth - (margin * 2));
-      doc.text(notesLines, margin, currentY + 4);
-      currentY += (notesLines.length * 3.5) + 6; // Optimized space
-    }
-
-    if (quotationDetails.terms) {
-      if (currentY > pageHeight - 35) { doc.addPage(); currentY = margin; }
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.text('TERMS AND CONDITIONS', margin, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      const termsLines = doc.splitTextToSize(quotationDetails.terms.toUpperCase(), docWidth - (margin * 2));
-      doc.text(termsLines, margin, currentY + 4);
-      currentY += (termsLines.length * 3.5) + 6; // Optimized space
     }
 
     doc.save(`QUOTATION-${selectedClient.clientName.replace(/\s/g, '_')}-${quotationDetails.number}.pdf`);
