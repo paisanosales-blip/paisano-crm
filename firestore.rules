@@ -67,5 +67,12 @@ service cloud.firestore {
       allow create: if request.resource.data.sellerId == request.auth.uid;
       allow update: if isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId);
     }
+
+    match /products/{productId} {
+      allow list: if isSignedIn();
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && request.resource.data.sellerId == resource.data.sellerId);
+    }
   }
 }
