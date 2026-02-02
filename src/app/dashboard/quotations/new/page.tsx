@@ -119,8 +119,8 @@ export default function NewQuotationPage() {
     const LIGHT_GRAY = '#F5F5F5';
 
     // --- HEADER ---
-    const headerY = -5; // Logo vertical position frozen at -5
-    const textHeaderY = 5; // Text block vertical position at +5
+    const headerY = -5;
+    const textHeaderY = 10;
     let imgHeight = 0;
 
     if (logoUrl) {
@@ -152,10 +152,10 @@ export default function NewQuotationPage() {
     doc.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
 
     const logoBottom = headerY + imgHeight;
-    const textBottom = addressY + addressLineSpacing * 2 + 2; // +2 for font height approximation
+    const textBottom = addressY + addressLineSpacing * 2 + 2;
     const headerBottom = Math.max(logoBottom, textBottom);
     
-    currentY = headerBottom + 2; // Minimal space after header
+    currentY = headerBottom + 2;
 
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
