@@ -68,6 +68,7 @@ import { FollowUpDialog, type FollowUpSubmitPayload } from '@/components/follow-
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { QuotationGeneratorDialog } from '@/components/quotation-generator-dialog';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -95,6 +96,7 @@ export default function PipelinePage() {
   const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
   const [quotationChoiceOpen, setQuotationChoiceOpen] = useState(false);
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [negotiationDialogOpen, setNegotiationDialogOpen] = useState(false);
   const [closingDialogOpen, setClosingDialogOpen] = useState(false);
   const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
@@ -233,7 +235,7 @@ export default function PipelinePage() {
 
   const handleSelectCreateQuotation = () => {
     setQuotationChoiceOpen(false);
-    router.push('/dashboard/quotations/new');
+    setIsGeneratorOpen(true);
   };
 
   const handleSelectUploadQuotation = () => {
@@ -369,6 +371,7 @@ export default function PipelinePage() {
                 description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
             });
             setQuotationUploadOpen(false);
+            setIsGeneratorOpen(false);
             setIsPostQuotationFollowUpAlertOpen(true);
             setIsSubmitting(false);
             setUploadProgress(0);
@@ -409,6 +412,7 @@ export default function PipelinePage() {
                 });
 
                 setQuotationUploadOpen(false);
+                setIsGeneratorOpen(false);
                 setIsPostQuotationFollowUpAlertOpen(true);
                 setIsSubmitting(false);
                 setUploadProgress(0);
@@ -1078,6 +1082,15 @@ export default function PipelinePage() {
           quotation={currentProspect.quotation}
           isSubmitting={isSubmitting}
           uploadProgress={uploadProgress}
+      />
+    )}
+    {currentProspect && (
+      <QuotationGeneratorDialog
+          open={isGeneratorOpen}
+          onOpenChange={setIsGeneratorOpen}
+          prospect={currentProspect}
+          onConfirm={handleQuotationUpload}
+          isSubmitting={isSubmitting}
       />
     )}
     {currentProspect && (
