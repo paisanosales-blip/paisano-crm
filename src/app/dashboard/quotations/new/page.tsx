@@ -123,7 +123,7 @@ export default function NewQuotationPage() {
         try {
             const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
             // Use 0 for height to maintain aspect ratio
-            doc.addImage(logoUrl, format.toUpperCase(), margin, 15, 90, 0); 
+            doc.addImage(logoUrl, format.toUpperCase(), margin, 10, 90, 0); 
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
         }
@@ -132,25 +132,25 @@ export default function NewQuotationPage() {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(BLACK);
-    doc.text('PAISANO TRAILER', docWidth - margin, 15, { align: 'right', baseline: 'top' });
+    doc.text('PAISANO TRAILER', docWidth - margin, 10, { align: 'right', baseline: 'top' });
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(100);
-    doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, 30, { align: 'right' });
-    doc.text('CHIH. MEX, CP 31978', docWidth - margin, 34, { align: 'right' });
-    doc.text('RFC: SPA150217AM3', docWidth - margin, 38, { align: 'right' });
+    doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, 25, { align: 'right' });
+    doc.text('CHIH. MEX, CP 31978', docWidth - margin, 29, { align: 'right' });
+    doc.text('RFC: SPA150217AM3', docWidth - margin, 33, { align: 'right' });
 
 
     // Decorative Separator
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
-    doc.line(margin, 45, docWidth - margin, 45);
+    doc.line(margin, 40, docWidth - margin, 40);
     doc.setDrawColor(BLACK);
     doc.setLineWidth(0.3);
-    doc.line(margin, 46.5, docWidth - margin, 46.5);
+    doc.line(margin, 41.5, docWidth - margin, 41.5);
 
-    finalY = 57; // Increased space after separator
+    finalY = 52;
 
     // --- QUOTATION DETAILS ---
     const quoteDetailsX = docWidth - margin;
@@ -244,8 +244,10 @@ export default function NewQuotationPage() {
     if (freight > 0) {
       doc.setFont('helvetica', 'bold');
       const freightText = `FREIGHT TO: ${freightTo.toUpperCase()}:`;
-      doc.text(freightText, docWidth - margin, lineY, { align: 'right' });
+      doc.text(freightText, docWidth - 70, lineY, { align: 'right' });
       doc.setFont('helvetica', 'normal');
+      doc.text(`$${freight.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+      lineY += 7;
     }
 
     // Total
