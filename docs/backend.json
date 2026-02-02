@@ -464,6 +464,19 @@
         "currency",
         "createdAt"
       ]
+    },
+    "AppSettings": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AppSettings",
+      "type": "object",
+      "description": "Stores global settings for the application.",
+      "properties": {
+        "logoUrl": {
+          "type": "string",
+          "description": "URL of the application's global logo.",
+          "format": "uri"
+        }
+      }
     }
   },
   "auth": {
@@ -566,6 +579,22 @@
             {
               "name": "productId",
               "description": "The unique identifier of the product."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/settings/{settingId}",
+        "definition": {
+          "entityName": "AppSettings",
+          "schema": {
+            "$ref": "#/backend/entities/AppSettings"
+          },
+          "description": "Stores global application settings. For example, `settings/app` could hold the logo URL.",
+          "params": [
+            {
+              "name": "settingId",
+              "description": "The ID of the settings document (e.g., 'app')."
             }
           ]
         }

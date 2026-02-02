@@ -32,14 +32,14 @@ service firebase.storage {
      * @description Checks if the authenticated user has the 'Admin' role.
      */
     function isAdmin() {
-      return isSignedIn() && getUserData().role == 'Admin';
+      return isSignedIn() && getUserData().role.lower() == 'admin';
     }
 
     /**
      * @description Checks if the authenticated user has the 'Manager' role.
      */
     function isManager() {
-      return isSignedIn() && getUserData().role == 'Manager';
+      return isSignedIn() && getUserData().role.lower() == 'manager';
     }
 
     /**
@@ -85,6 +85,17 @@ service firebase.storage {
      */
     match /quotations/{opportunityId}/{allPaths=**} {
       allow read, write: if isSignedIn() && (isAdminOrManager() || isOpportunityOwner(opportunityId));
+    }
+
+    /**
+     * @description Rules for global app assets like logos.
+     * @path /app/{allPaths=**}
+     * @allow read: public
+     * @allow write: If user is a manager.
+     */
+    match /app/{allPaths=**} {
+      allow read: if true;
+      allow write: if isManager();
     }
   }
 }
