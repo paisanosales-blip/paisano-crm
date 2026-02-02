@@ -749,7 +749,7 @@ export default function PipelinePage() {
 
   const getCardBgClass = (classification: ClientClassification) => {
     switch (classification) {
-        case 'PROSPECTO': return 'bg-gray-50 dark:bg-gray-900/60';
+        case 'PROSPECTO': return 'bg-gray-100 dark:bg-gray-800/40';
         case 'CLIENTE POTENCIAL': return 'bg-blue-50 dark:bg-blue-950/40';
         case 'CLIENTE': return 'bg-green-50 dark:bg-green-950/40';
         case 'FINANCIAMIENTO': return 'bg-amber-50 dark:bg-amber-950/40';
@@ -1429,5 +1429,3 @@ export default function PipelinePage() {
     </>
   );
 }
-
-    
