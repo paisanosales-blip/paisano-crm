@@ -266,31 +266,6 @@ export default function NewQuotationPage() {
     currentY = lineY + 10;
     doc.setTextColor(BLACK);
 
-    // --- TERMS, NOTES ---
-    if (quotationDetails.notes) {
-       if (currentY > pageHeight - 35) { doc.addPage(); currentY = margin; }
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.text('ADDITIONAL NOTES', margin, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      const notesLines = doc.splitTextToSize(quotationDetails.notes.toUpperCase(), docWidth - (margin * 2));
-      doc.text(notesLines, margin, currentY + 4);
-      currentY += (notesLines.length * 3.5) + 6; // Optimized space
-    }
-
-    if (quotationDetails.terms) {
-      if (currentY > pageHeight - 35) { doc.addPage(); currentY = margin; }
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.text('TERMS AND CONDITIONS', margin, currentY);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      const termsLines = doc.splitTextToSize(quotationDetails.terms.toUpperCase(), docWidth - (margin * 2));
-      doc.text(termsLines, margin, currentY + 4);
-      currentY += (termsLines.length * 3.5) + 6; // Optimized space
-    }
-
     // --- APPROVAL SIGNATURE ---
     if (currentY > pageHeight - 60) { // Check if space for signature
         doc.addPage();
@@ -320,6 +295,31 @@ export default function NewQuotationPage() {
         const footerText = `PAISANOSALES@GMAIL.COM | 915 408 7478 | WWW.PAISANOTRAILER.COM`;
         doc.text(footerText, docWidth / 2, footerY + 8, { align: 'center' });
         doc.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerY + 8, { align: 'right' });
+    }
+
+    // --- TERMS, NOTES ---
+    if (quotationDetails.notes) {
+       if (currentY > pageHeight - 35) { doc.addPage(); currentY = margin; }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.text('ADDITIONAL NOTES', margin, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      const notesLines = doc.splitTextToSize(quotationDetails.notes.toUpperCase(), docWidth - (margin * 2));
+      doc.text(notesLines, margin, currentY + 4);
+      currentY += (notesLines.length * 3.5) + 6; // Optimized space
+    }
+
+    if (quotationDetails.terms) {
+      if (currentY > pageHeight - 35) { doc.addPage(); currentY = margin; }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.text('TERMS AND CONDITIONS', margin, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      const termsLines = doc.splitTextToSize(quotationDetails.terms.toUpperCase(), docWidth - (margin * 2));
+      doc.text(termsLines, margin, currentY + 4);
+      currentY += (termsLines.length * 3.5) + 6; // Optimized space
     }
 
     doc.save(`QUOTATION-${selectedClient.clientName.replace(/\s/g, '_')}-${quotationDetails.number}.pdf`);
