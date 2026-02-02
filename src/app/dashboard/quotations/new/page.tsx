@@ -119,7 +119,7 @@ export default function NewQuotationPage() {
     const LIGHT_GRAY = '#F5F5F5';
 
     // --- HEADER ---
-    const headerY = margin;
+    const headerY = 5;
     if (logoUrl) {
         try {
             const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
@@ -280,11 +280,11 @@ export default function NewQuotationPage() {
       currentY += (lines.length * (fontSize / 2.5));
     };
 
-    if (quotationDetails.notes) {
-      addSection('ADDITIONAL NOTES', quotationDetails.notes, 8);
-    }
     if (quotationDetails.terms) {
       addSection('TERMS AND CONDITIONS', quotationDetails.terms, 8);
+    }
+    if (quotationDetails.notes) {
+      addSection('ADDITIONAL NOTES', quotationDetails.notes, 8);
     }
     
     // --- APPROVAL SIGNATURE ---
