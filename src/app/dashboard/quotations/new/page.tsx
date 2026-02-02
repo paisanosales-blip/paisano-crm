@@ -283,7 +283,7 @@ export default function NewQuotationPage() {
       doc.text(title.toUpperCase(), margin, currentY);
       doc.setFont('helvetica', 'normal');
       doc.text(lines, margin, currentY + 4);
-      currentY += (lines.length * (fontSize / 2.5)) + 4;
+      currentY += (lines.length * (fontSize / 2.5));
     };
 
     if (quotationDetails.terms) {
