@@ -747,6 +747,16 @@ export default function PipelinePage() {
     }
   };
 
+  const getCardBgClass = (classification: ClientClassification) => {
+    switch (classification) {
+        case 'PROSPECTO': return 'bg-gray-50 dark:bg-gray-900/60';
+        case 'CLIENTE POTENCIAL': return 'bg-blue-50 dark:bg-blue-950/40';
+        case 'CLIENTE': return 'bg-green-50 dark:bg-green-950/40';
+        case 'FINANCIAMIENTO': return 'bg-amber-50 dark:bg-amber-950/40';
+        default: return 'bg-card';
+    }
+  };
+
   return (
     <>
     <div className="flex flex-col h-full">
@@ -803,6 +813,7 @@ export default function PipelinePage() {
           filteredProspects.map(prospect => {
             if (!prospect.opportunity) return null;
             const classification = getClassification(prospect.opportunity.stage);
+            const cardBgClass = getCardBgClass(classification);
             const isFinancingStage = prospect.opportunity.stage === 'Financiamiento Externo';
             const currentIndex = isFinancingStage ? -1 : stages.indexOf(prospect.opportunity.stage);
             
@@ -827,7 +838,7 @@ export default function PipelinePage() {
             const tagClass = prospect.tag ? tagClasses[prospect.tag as keyof typeof tagClasses] : '';
 
             return (
-              <Card key={prospect.id} className={cn("border-2 border-l-4", tagClass || 'border-l-transparent')}>
+              <Card key={prospect.id} className={cn("border-2 border-l-4", tagClass || 'border-l-transparent', cardBgClass)}>
                 <CardHeader className="flex flex-row items-start justify-between">
                   <div>
                     <CardTitle className="text-xl">{prospect.clientName}</CardTitle>
@@ -1323,7 +1334,7 @@ export default function PipelinePage() {
           }}
           onConfirm={handleFollowUpSubmit}
           isSubmitting={isSubmitting}
-          prospectName={currentProspect.clientName}
+          prospect={currentProspect}
           activity={currentActivity}
       />
     )}
@@ -1418,3 +1429,5 @@ export default function PipelinePage() {
     </>
   );
 }
+
+    
