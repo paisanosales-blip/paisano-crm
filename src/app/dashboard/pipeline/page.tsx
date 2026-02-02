@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -57,6 +58,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { NewProspectDialog } from '@/components/new-prospect-dialog';
 import { InformationSentDialog, type InfoSentConfirmPayload } from '@/components/information-sent-dialog';
+import { QuotationChoiceDialog } from '@/components/quotation-choice-dialog';
 import { QuotationUploadDialog, type QuotationFormValues } from '@/components/quotation-upload-dialog';
 import { EditClientDialog } from '@/components/edit-client-dialog';
 import { NegotiationDialog, type NegotiationConfirmPayload } from '@/components/negotiation-dialog';
@@ -87,9 +89,11 @@ const getClassification = (stage: OpportunityStage): ClientClassification => {
 };
 
 export default function PipelinePage() {
+  const router = useRouter();
   const [filterStage, setFilterStage] = useState<OpportunityStage | 'Todos'>('Todos');
   const [selectedUserId, setSelectedUserId] = useState<string>('me');
   const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
+  const [quotationChoiceOpen, setQuotationChoiceOpen] = useState(false);
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
   const [negotiationDialogOpen, setNegotiationDialogOpen] = useState(false);
   const [closingDialogOpen, setClosingDialogOpen] = useState(false);
@@ -216,7 +220,7 @@ export default function PipelinePage() {
     if (prospect.opportunity.stage === 'Primer contacto' && newStage === 'Envió de Información') {
         setInfoSentDialogOpen(true);
     } else if (prospect.opportunity.stage === 'Envió de Información' && newStage === 'Envió de Cotización') {
-        setQuotationUploadOpen(true);
+        setQuotationChoiceOpen(true);
     } else if (prospect.opportunity.stage === 'Envió de Cotización' && newStage === 'Negociación') {
         setNegotiationDialogOpen(true);
     } else if (prospect.opportunity.stage === 'Negociación' && newStage === 'Cierre de venta') {
@@ -225,6 +229,16 @@ export default function PipelinePage() {
         // Allow jumping forward only if editing an already passed stage
         handleStageChange(prospect.opportunity.id, newStage);
     }
+  };
+
+  const handleSelectCreateQuotation = () => {
+    setQuotationChoiceOpen(false);
+    router.push('/dashboard/quotations/new');
+  };
+
+  const handleSelectUploadQuotation = () => {
+    setQuotationChoiceOpen(false);
+    setQuotationUploadOpen(true);
   };
 
   const handleEditInfoSent = (prospect: any) => {
@@ -1041,6 +1055,17 @@ export default function PipelinePage() {
           isSubmitting={isSubmitting}
       />
     )}
+    {currentProspect && (
+        <QuotationChoiceDialog
+            open={quotationChoiceOpen}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) setCurrentProspect(null);
+                setQuotationChoiceOpen(isOpen);
+            }}
+            onSelectCreate={handleSelectCreateQuotation}
+            onSelectUpload={handleSelectUploadQuotation}
+        />
+      )}
       {currentProspect && (
       <QuotationUploadDialog
           open={quotationUploadOpen}
