@@ -78,3 +78,14 @@ export type Activity = {
   date: string;
   followUpDate?: string;
 };
+
+export type Product = {
+  id: string;
+  sellerId: string;
+  sellerName: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: 'USD' | 'MXN';
+  createdAt: string;
+};

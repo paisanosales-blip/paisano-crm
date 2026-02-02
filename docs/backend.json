@@ -415,6 +415,55 @@
         "completed",
         "createdDate"
       ]
+    },
+    "Product": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Product",
+      "type": "object",
+      "description": "Represents a product or service offered.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the product."
+        },
+        "sellerId": {
+          "type": "string",
+          "description": "The ID of the seller who created the product."
+        },
+        "sellerName": {
+          "type": "string",
+          "description": "Denormalized name of the seller for display."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the product."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the product."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the product price."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Date the product was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "sellerId",
+        "name",
+        "price",
+        "currency",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -501,6 +550,22 @@
             {
               "name": "activityId",
               "description": "The unique identifier of the activity."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/products/{productId}",
+        "definition": {
+          "entityName": "Product",
+          "schema": {
+            "$ref": "#/backend/entities/Product"
+          },
+          "description": "Stores product information. Each product is owned by a seller.",
+          "params": [
+            {
+              "name": "productId",
+              "description": "The unique identifier of the product."
             }
           ]
         }

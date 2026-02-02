@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Home, GanttChartSquare, Users, FileText, Shield, CalendarCheck } from 'lucide-react';
+import { Home, GanttChartSquare, Users, FileText, Shield, CalendarCheck, Package } from 'lucide-react';
 import { doc } from 'firebase/firestore';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -109,6 +109,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/follow-ups">
                   <CalendarCheck />
                   <span>Seguimientos</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Productos">
+                <Link href="/dashboard/products">
+                  <Package />
+                  <span>Productos</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

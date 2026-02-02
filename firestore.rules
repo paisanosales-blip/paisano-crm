@@ -21,7 +21,7 @@ service cloud.firestore {
       allow delete: if isManager() && request.auth.uid != userId;
     }
 
-    match /{collection}/{docId} where collection in ['leads', 'opportunities', 'quotations', 'activities'] {
+    match /{collection}/{docId} where collection in ['leads', 'opportunities', 'quotations', 'activities', 'products'] {
       // SECURE GET: A user can GET a document if they are the manager or the assigned seller.
       allow get: if isManager() || resource.data.sellerId == request.auth.uid;
 
