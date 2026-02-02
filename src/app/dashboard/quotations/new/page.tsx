@@ -119,7 +119,7 @@ export default function NewQuotationPage() {
     const LIGHT_GRAY = '#F5F5F5';
 
     // --- HEADER ---
-    const headerY = 15;
+    const headerY = -5;
     let imgHeight = 0;
 
     if (logoUrl) {
