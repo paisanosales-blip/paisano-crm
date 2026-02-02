@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Tag } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Tag, Sparkles, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -79,6 +79,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { QuotationGeneratorDialog } from '@/components/quotation-generator-dialog';
 import { FinancingDialog, type FinancingConfirmPayload } from '@/components/financing-dialog';
+import { suggestNextAction } from '@/ai/flows/suggest-next-action';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -119,11 +120,15 @@ export default function PipelinePage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<any | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPostQuotationFollowUpAlertOpen, setIsPostQuotationFollowUpAlertOpen] = useState(false);
   const [followUpQuotationId, setFollowUpQuotationId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isSuggestionLoading, setIsSuggestionLoading] = useState(false);
+  const [suggestion, setSuggestion] = useState<{ nextAction: string; rationale: string } | null>(null);
+  const [isSuggestionDialogOpen, setIsSuggestionDialogOpen] = useState(false);
+  const [prospectForSuggestion, setProspectForSuggestion] = useState<any | null>(null);
 
 
   const { toast } = useToast();
@@ -670,6 +675,43 @@ export default function PipelinePage() {
     });
   };
 
+  const handleGetSuggestion = async (prospect: any) => {
+    if (!prospect) return;
+
+    setIsSuggestionLoading(true);
+    setProspectForSuggestion(prospect); 
+
+    const pastInteractions = prospect.activities.length > 0
+      ? prospect.activities
+          .map((act: any) => `- ${format(new Date(act.createdDate), "PP", { locale: es })}: ${act.type} - "${act.description || 'Sin descripción'}"`)
+          .join('\n')
+      : 'No hay interacciones pasadas.';
+
+    const clientDetails = `Nombre: ${prospect.clientName}, Tipo: ${prospect.clientType}, Contacto: ${prospect.contactPerson}, Ubicación: ${prospect.city}, ${prospect.country}.`;
+    
+    try {
+      const result = await suggestNextAction({
+        pastInteractions,
+        quotationStatus: prospect.quotation?.status || 'No existe',
+        salesPipelineStage: prospect.opportunity?.stage || 'No disponible',
+        clientDetails,
+      });
+
+      setSuggestion(result);
+      setIsSuggestionDialogOpen(true);
+
+    } catch (error) {
+      console.error("Error getting suggestion:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error de IA',
+        description: 'No se pudo generar una sugerencia en este momento.',
+      });
+    } finally {
+      setIsSuggestionLoading(false);
+    }
+  };
+
   const isLoading = isUserAuthLoading || isProfileLoading || areLeadsLoading || areOppsLoading || areQuotsLoading || areActivitiesLoading || areUsersLoading;
 
   const clientProspects = React.useMemo(() => {
@@ -896,10 +938,26 @@ export default function PipelinePage() {
                             </Button>
                         </CollapsibleTrigger>
                         <CollapsibleContent className="px-1 py-2 space-y-2 border-t mt-1">
-                            <Button size="sm" className="w-full h-8" onClick={() => handleNewFollowUpClick(prospect)}>
-                              <PlusCircle className="mr-2 h-4 w-4" />
-                              Agregar Seguimiento
-                            </Button>
+                            <div className="grid grid-cols-2 gap-2">
+                                <Button size="sm" className="w-full h-8" onClick={() => handleNewFollowUpClick(prospect)}>
+                                  <PlusCircle className="mr-2 h-4 w-4" />
+                                  Agregar Seguimiento
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full h-8"
+                                    onClick={() => handleGetSuggestion(prospect)}
+                                    disabled={isSuggestionLoading}
+                                >
+                                    {isSuggestionLoading ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                    )}
+                                    Sugerir Acción
+                                </Button>
+                            </div>
                             {prospect.activities.length > 0 ? (
                                 <Accordion type="single" collapsible className="w-full" defaultValue={prospect.activities[0]?.id}>
                                   {prospect.activities.map((act: any) => (
@@ -1310,8 +1368,53 @@ export default function PipelinePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog open={isSuggestionDialogOpen} onOpenChange={setIsSuggestionDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <AlertDialogTitle>Sugerencia de Próxima Acción</AlertDialogTitle>
+              </div>
+              <AlertDialogDescription>
+                Basado en la información del prospecto, la IA recomienda la siguiente acción:
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            {suggestion ? (
+              <div className="py-4 space-y-4">
+                  <div className="space-y-1">
+                      <h4 className="font-semibold text-foreground">Acción Sugerida:</h4>
+                      <p className="p-3 rounded-md bg-muted text-foreground">{suggestion.nextAction}</p>
+                  </div>
+                  <div className="space-y-1">
+                      <h4 className="font-semibold text-foreground">Justificación:</h4>
+                      <p className="text-sm text-muted-foreground p-3 rounded-md border">{suggestion.rationale}</p>
+                  </div>
+              </div>
+            ) : (
+              <div className="py-4 flex items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setProspectForSuggestion(null)}>Cerrar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => {
+                  if (!prospectForSuggestion || !suggestion) return;
+                  setCurrentProspect(prospectForSuggestion);
+                  setCurrentActivity({
+                      description: suggestion.nextAction,
+                      type: '',
+                      dueDate: undefined,
+                      contactChannels: [],
+                  });
+                  setFollowUpQuotationId(null);
+                  setIsFollowUpDialogOpen(true);
+                  setIsSuggestionDialogOpen(false);
+              }}>
+                  Agendar Seguimiento
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
-
-    
