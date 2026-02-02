@@ -18,7 +18,7 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, query, where, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, doc, query, where, addDoc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { cn } from '@/lib/utils';
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
@@ -118,6 +118,7 @@ export default function PipelinePage() {
   const [activityToDelete, setActivityToDelete] = useState<any | null>(null);
   const [isPostQuotationFollowUpAlertOpen, setIsPostQuotationFollowUpAlertOpen] = useState(false);
   const [followUpQuotationId, setFollowUpQuotationId] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
 
   const { toast } = useToast();
@@ -266,6 +267,7 @@ export default function PipelinePage() {
 
   const handleEditQuotation = (prospect: any) => {
       setCurrentProspect(prospect);
+      setIsEditMode(true);
       setQuotationUploadOpen(true);
   };
 
@@ -367,8 +369,8 @@ export default function PipelinePage() {
     setIsSubmitting(true);
     setUploadProgress(0);
   
-    const isEditing = !!currentProspect.quotation;
-    const pdfUrl = isEditing ? currentProspect.quotation.pdfUrl : '';
+    const isEditing = isEditMode;
+    const pdfUrl = isEditing && currentProspect.quotation ? currentProspect.quotation.pdfUrl : '';
 
     const performDatabaseUpdate = async (finalPdfUrl: string) => {
       try {
@@ -389,19 +391,8 @@ export default function PipelinePage() {
             };
             await updateDoc(quotationRef, quotationData);
             quotationIdForFollowUp = currentProspect.quotation.id;
-            
-            if (currentProspect.opportunity.stage === 'Envió de Información') {
-                await updateDoc(opportunityRef, { stage: 'Envió de Cotización', sellerId: user.uid });
-            } else {
-                await updateDoc(opportunityRef, { sellerId: user.uid }); // Just confirm sellerId
-            }
-    
-            toast({
-                title: '¡Cotización Actualizada!',
-                description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
-            });
         } else { // Creating a new quotation
-            const quotationData = {
+            const quotationData: any = {
                 opportunityId: currentProspect.opportunity.id,
                 sellerId: user.uid,
                 sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
@@ -413,27 +404,26 @@ export default function PipelinePage() {
                 createdDate: new Date().toISOString(),
             };
             
+            const existingQuotesQuery = query(collection(firestore, 'quotations'), where('opportunityId', '==', currentProspect.opportunity.id));
+            const querySnapshot = await getDocs(existingQuotesQuery);
+            quotationData.version = String(querySnapshot.size + 1);
+            
             const newDocRef = await addDoc(collection(firestore, 'quotations'), quotationData);
             quotationIdForFollowUp = newDocRef.id;
-
-            if (currentProspect.opportunity.stage === 'Envió de Información') {
-                await updateDoc(opportunityRef, { stage: 'Envió de Cotización', sellerId: user.uid });
-            } else {
-                await updateDoc(opportunityRef, { sellerId: user.uid });
-            }
-
-            toast({
-                title: `¡Cotización Enviada!`,
-                description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
-            });
-            
-            setCurrentProspect((prev: any) => {
-                if (!prev) return null;
-                const newQuotation = { ...quotationData, id: newDocRef.id };
-                return { ...prev, quotation: newQuotation };
-            });
         }
         
+        if (currentProspect.opportunity.stage === 'Envió de Información') {
+          await updateDoc(opportunityRef, { stage: 'Envió de Cotización', sellerId: user.uid });
+        } else {
+          // This case is for editing an existing quotation without changing the stage
+          await updateDoc(opportunityRef, { sellerId: user.uid });
+        }
+        
+        toast({
+          title: isEditing ? '¡Cotización Actualizada!' : '¡Cotización Enviada!',
+          description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
+        });
+
         setFollowUpQuotationId(quotationIdForFollowUp);
         setQuotationUploadOpen(false);
         setIsGeneratorOpen(false);
@@ -1158,7 +1148,10 @@ export default function PipelinePage() {
       <QuotationUploadDialog
           open={quotationUploadOpen}
           onOpenChange={(isOpen) => {
-            if (!isOpen) setCurrentProspect(null);
+            if (!isOpen) {
+                setCurrentProspect(null);
+                setIsEditMode(false);
+            }
             setQuotationUploadOpen(isOpen);
           }}
           onConfirm={handleQuotationUpload}

@@ -225,7 +225,7 @@ export default function QuotationsPage() {
                             <Skeleton className="h-48 w-full" />
                         </div>
                     ) : Object.keys(groupedQuotations).length > 0 ? (
-                        <Accordion type="single" collapsible className="w-full">
+                        <Accordion type="multiple" collapsible className="w-full">
                             {Object.entries(groupedQuotations)
                             .sort((a, b) => a[0].localeCompare(b[0]))
                             .map(([clientName, quotes]) => (
