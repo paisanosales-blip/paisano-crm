@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -70,11 +70,21 @@ export default function NewQuotationPage() {
   const [isIndividualFreight, setIsIndividualFreight] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [quotationDetails, setQuotationDetails] = useState<QuotationDetails>({
-    number: `QT-${Date.now().toString().slice(-6)}`,
+    number: '',
     validity: '30 DAYS',
     terms: 'PAYMENT TERMS: 10% DOWN PAYMENT, 90% UPON DELIVERY.\nPRICES DO NOT INCLUDE VAT.\nDELIVERY TIMES ARE SUBJECT TO CHANGE WITHOUT PRIOR NOTICE.',
     notes: 'THANK YOU FOR YOUR PREFERENCE.',
   });
+
+  useEffect(() => {
+    const lastNumberStr = localStorage.getItem('lastQuotationNumber');
+    const lastNumber = lastNumberStr ? parseInt(lastNumberStr, 10) : 1000; // Start from 1001 if not set
+    const nextNumber = lastNumber + 1;
+    setQuotationDetails(prev => ({
+      ...prev,
+      number: `QT-${String(nextNumber).padStart(6, '0')}`,
+    }));
+  }, []);
 
   const selectedClient = useMemo(() => {
     if (!leads || !selectedClientId) return null;
@@ -137,6 +147,9 @@ export default function NewQuotationPage() {
       alert('FREIGHT DESTINATION IS REQUIRED WHEN FREIGHT AMOUNT IS ADDED.');
       return;
     }
+    
+    const currentNumberStr = quotationDetails.number.replace('QT-', '');
+    const currentNumber = parseInt(currentNumberStr, 10);
 
     const doc = new jsPDF() as jsPDFWithAutoTable;
     const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
@@ -150,8 +163,7 @@ export default function NewQuotationPage() {
     const LIGHT_GRAY = '#F5F5F5';
     
     // --- HEADER ---
-    const headerY = -5;
-    const textHeaderY = 20;
+    const headerTextY = 20;
 
     if (logoUrl) {
       try {
@@ -159,7 +171,7 @@ export default function NewQuotationPage() {
         const img = new Image();
         img.src = logoUrl;
         const imgWidth = 90;
-        doc.addImage(logoUrl, format.toUpperCase(), margin, headerY, imgWidth, 0, undefined, 'NONE');
+        doc.addImage(logoUrl, format.toUpperCase(), margin, -5, imgWidth, 0, undefined, 'NONE');
       } catch (e) {
         console.error("Error adding logo image to PDF:", e);
       }
@@ -168,13 +180,13 @@ export default function NewQuotationPage() {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(BLACK);
-    doc.text('PAISANO TRAILER', docWidth - margin, textHeaderY, { align: 'right', baseline: 'top' });
+    doc.text('PAISANO TRAILER', docWidth - margin, headerTextY, { align: 'right', baseline: 'top' });
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(100);
 
-    const addressY = textHeaderY + 8;
+    const addressY = headerTextY + 8;
     const addressLineSpacing = 4;
     doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
@@ -276,7 +288,8 @@ export default function NewQuotationPage() {
     currentY = (doc as any).autoTable.previous.finalY;
     
     // --- TOTALS ---
-    const totalsY = currentY + 6;
+    currentY += 6; // Add space before totals
+    const totalsY = currentY;
     let lineY = totalsY;
     doc.setFontSize(11);
     
@@ -341,6 +354,7 @@ export default function NewQuotationPage() {
     };
 
     addSection('TERMS AND CONDITIONS', quotationDetails.terms);
+    currentY += 2; // Keep sections tight
     addSection('ADDITIONAL NOTES', quotationDetails.notes);
     
     // --- APPROVAL SIGNATURE ---
@@ -377,9 +391,12 @@ export default function NewQuotationPage() {
 
     doc.save(`QUOTATION-${selectedClient.clientName.replace(/\s/g, '_')}-${quotationDetails.number}.pdf`);
 
+    localStorage.setItem('lastQuotationNumber', String(currentNumber));
+
+    const nextNumber = currentNumber + 1;
     setQuotationDetails(prev => ({
         ...prev,
-        number: `QT-${Date.now().toString().slice(-6)}`
+        number: `QT-${String(nextNumber).padStart(6, '0')}`
     }));
   };
 
