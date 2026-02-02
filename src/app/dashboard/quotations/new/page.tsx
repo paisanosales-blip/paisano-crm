@@ -122,7 +122,7 @@ export default function NewQuotationPage() {
     if (logoUrl) {
         try {
             const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
-            doc.addImage(logoUrl, format.toUpperCase(), margin, 15, 80, 40);
+            doc.addImage(logoUrl, format.toUpperCase(), margin, 15, 80, 20);
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
         }
@@ -151,6 +151,23 @@ export default function NewQuotationPage() {
 
     finalY = 70;
 
+    // --- QUOTATION DETAILS ---
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    const quoteDetailsX = docWidth - margin;
+    doc.text('QUOTATION #:', quoteDetailsX - 45, finalY, { align: 'left' });
+    doc.text('DATE:', quoteDetailsX - 45, finalY + 6, { align: 'left' });
+    doc.text('VALIDITY:', quoteDetailsX - 45, finalY + 12, { align: 'left' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(quotationDetails.number.toUpperCase(), quoteDetailsX, finalY, { align: 'right' });
+    doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, finalY + 6, { align: 'right' });
+    doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, finalY + 12, { align: 'right' });
+
+    finalY += 25; // Space after details block
+
+
     // --- INFO SECTION ---
     const infoStartY = finalY;
     const rightColX = docWidth / 2 + 10;
@@ -176,29 +193,14 @@ export default function NewQuotationPage() {
     // Client Info
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text('BILL TO:', rightColX + 3, infoStartY + 4);
+    doc.text('BUYER:', rightColX + 3, infoStartY + 4);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.text(selectedClient.clientName.toUpperCase(), rightColX + 3, infoStartY + 10);
     doc.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 15);
     if(selectedClient.email) doc.text(selectedClient.email.toUpperCase(), rightColX + 3, infoStartY + 20);
 
-
-    // Quotation Details
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    const quoteDetailsX = docWidth - margin;
-    doc.text('QUOTATION #:', quoteDetailsX - 45, finalY + infoBoxHeight + 10, { align: 'left' });
-    doc.text('DATE:', quoteDetailsX - 45, finalY + infoBoxHeight + 16, { align: 'left' });
-    doc.text('VALIDITY:', quoteDetailsX - 45, finalY + infoBoxHeight + 22, { align: 'left' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(quotationDetails.number.toUpperCase(), quoteDetailsX, finalY + infoBoxHeight + 10, { align: 'right' });
-    doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, finalY + infoBoxHeight + 16, { align: 'right' });
-    doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, finalY + infoBoxHeight + 22, { align: 'right' });
-
-    finalY = finalY + infoBoxHeight + 35;
+    finalY = infoStartY + infoBoxHeight + 15;
 
     // --- PRODUCTS TABLE ---
     const tableColumn = ["DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"];
@@ -241,15 +243,10 @@ export default function NewQuotationPage() {
     // Freight
     if (freight > 0) {
       doc.setFont('helvetica', 'bold');
-      doc.text('FREIGHT TO:', docWidth - 70, lineY, { align: 'right' });
-      doc.setFont('helvetica', 'normal');
-      doc.text(freightTo.toUpperCase(), docWidth - margin, lineY, { align: 'right' });
-      lineY += 7;
-      
-      doc.setFont('helvetica', 'bold');
-      doc.text('FREIGHT AMOUNT:', docWidth - 70, lineY, { align: 'right' });
+      doc.text(`FREIGHT TO: ${freightTo.toUpperCase()}:`, docWidth - 70, lineY, { align: 'right' });
       doc.setFont('helvetica', 'normal');
       doc.text(`$${freight.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+      lineY += 7;
     }
 
     // Total
@@ -260,9 +257,9 @@ export default function NewQuotationPage() {
     lineY = totalY + 7;
     
     doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL:', docWidth - 70, lineY, { align: 'right' });
+    doc.text('TOTAL (DOLLARS):', docWidth - 70, lineY, { align: 'right' });
     doc.setTextColor(RED);
-    doc.text(`$${total.toFixed(2)} DOLLARS`, docWidth - margin, lineY, { align: 'right' });
+    doc.text(`$${total.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
     
     let currentY = lineY + 14;
     doc.setTextColor(BLACK);
@@ -292,24 +289,22 @@ export default function NewQuotationPage() {
       currentY += (termsLines.length * 4) + 10;
     }
     
+    let finalYAfterContent = currentY;
+    let pageCount = (doc as any).internal.getNumberOfPages();
+
+    const signatureBlockTop = pageHeight - 85; 
+    if (finalYAfterContent > signatureBlockTop) {
+        doc.addPage();
+        pageCount++;
+    }
+    
     // --- FOOTER AND SIGNATURE ---
-    const pageCount = (doc as any).internal.getNumberOfPages();
-    for(let i = 1; i <= pageCount; i++) {
+    for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
-        const isLastPage = i === pageCount;
-        
-        let footerY = pageHeight - 25;
-        
-        if (isLastPage) {
-            let sigY = footerY - 30;
-            // Add a new page if the content + signature block will overflow
-            if (currentY > sigY && i === (doc as any).internal.getCurrentPageInfo().pageNumber) {
-                doc.addPage();
-                const newPageCount = (doc as any).internal.getNumberOfPages();
-                doc.setPage(newPageCount);
-                sigY = pageHeight - 55;
-            }
-            
+        const footerY = pageHeight - 25;
+
+        if (i === pageCount) {
+            const sigY = footerY - 30;
             const sigWidth = 80;
             const sigXStart = (docWidth - sigWidth) / 2;
             doc.line(sigXStart, sigY, sigXStart + sigWidth, sigY);
