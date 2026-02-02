@@ -111,7 +111,7 @@ export default function NewQuotationPage() {
     const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
     const docWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
     const margin = 15;
-    let finalY = 0;
+    let currentY = 0;
 
     const logoUrl = localStorage.getItem('sidebarLogo');
     const RED = '#8B0000';
@@ -119,11 +119,17 @@ export default function NewQuotationPage() {
     const LIGHT_GRAY = '#F5F5F5';
 
     // --- HEADER ---
-    const headerY = 5;
+    const headerY = -5; // User's requested position. May clip.
+
     if (logoUrl) {
         try {
             const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
-            doc.addImage(logoUrl, format.toUpperCase(), margin, headerY, 90, 0, undefined, 'NONE'); 
+            // Calculate aspect ratio to avoid distortion
+            const img = new Image();
+            img.src = logoUrl;
+            const imgWidth = 90;
+            const imgHeight = img.height * (imgWidth / img.width);
+            doc.addImage(logoUrl, format.toUpperCase(), margin, headerY, imgWidth, imgHeight, undefined, 'NONE');
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
         }
@@ -141,36 +147,38 @@ export default function NewQuotationPage() {
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, headerY + 19, { align: 'right' });
     doc.text('RFC: SPA150217AM3', docWidth - margin, headerY + 23, { align: 'right' });
 
+    // Track the bottom of the header block. Assuming text is the lowest point.
+    currentY = headerY + 23 + 8; // Start separator 8 points below the lowest text
 
     // Decorative Separator
-    const separatorY = headerY + 35;
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
-    doc.line(margin, separatorY, docWidth - margin, separatorY);
+    doc.line(margin, currentY, docWidth - margin, currentY);
     doc.setDrawColor(BLACK);
     doc.setLineWidth(0.3);
-    doc.line(margin, separatorY + 1.5, docWidth - margin, separatorY + 1.5);
+    doc.line(margin, currentY + 1.5, docWidth - margin, currentY + 1.5);
 
-    finalY = separatorY + 12;
+    currentY += 12; // Add space after separator
+
 
     // --- QUOTATION DETAILS ---
     const quoteDetailsX = docWidth - margin;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text('QUOTATION #:', quoteDetailsX - 45, finalY, { align: 'left' });
-    doc.text('DATE:', quoteDetailsX - 45, finalY + 6, { align: 'left' });
-    doc.text('VALIDITY:', quoteDetailsX - 45, finalY + 12, { align: 'left' });
+    doc.text('QUOTATION #:', quoteDetailsX - 45, currentY, { align: 'left' });
+    doc.text('DATE:', quoteDetailsX - 45, currentY + 6, { align: 'left' });
+    doc.text('VALIDITY:', quoteDetailsX - 45, currentY + 12, { align: 'left' });
 
     doc.setFont('helvetica', 'normal');
-    doc.text(quotationDetails.number.toUpperCase(), quoteDetailsX, finalY, { align: 'right' });
-    doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, finalY + 6, { align: 'right' });
-    doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, finalY + 12, { align: 'right' });
+    doc.text(quotationDetails.number.toUpperCase(), quoteDetailsX, currentY, { align: 'right' });
+    doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, currentY + 6, { align: 'right' });
+    doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, currentY + 12, { align: 'right' });
 
-    finalY += 12 + 10;
+    currentY += 12 + 10;
 
 
     // --- INFO SECTION ---
-    const infoStartY = finalY;
+    const infoStartY = currentY;
     const rightColX = docWidth / 2 + 10;
     const infoBoxHeight = 28;
 
@@ -198,7 +206,7 @@ export default function NewQuotationPage() {
     doc.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 15);
     if(selectedClient.email) doc.text(selectedClient.email.toUpperCase(), rightColX + 3, infoStartY + 20);
 
-    finalY = infoStartY + infoBoxHeight + 8;
+    currentY = infoStartY + infoBoxHeight + 8;
 
     // --- PRODUCTS TABLE ---
     const tableColumn = ["DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"];
@@ -217,14 +225,14 @@ export default function NewQuotationPage() {
     doc.autoTable({
         head: [tableColumn],
         body: tableRows,
-        startY: finalY,
+        startY: currentY,
         theme: 'striped',
         headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 11 },
         styles: { fontSize: 11, cellPadding: 3 },
         margin: { left: margin, right: margin }
     });
     
-    let currentY = (doc as any).autoTable.previous.finalY;
+    currentY = (doc as any).autoTable.previous.finalY;
     
     // --- TOTALS ---
     const totalsY = currentY + 6;
