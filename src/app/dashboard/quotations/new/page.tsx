@@ -13,15 +13,19 @@ import { Trash2, PlusCircle, FileDown, Settings } from 'lucide-react';
 import { QuotationDetailsDialog, type QuotationDetails } from '@/components/quotation-details-dialog';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { Checkbox } from '@/components/ui/checkbox';
+import type { Product } from '@/lib/types';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
 }
 
-type Product = {
+type QuotationItem = {
+  productId: string;
   description: string;
   quantity: number;
   price: number;
+  individualFreight: number;
 };
 
 type Client = {
@@ -51,12 +55,19 @@ export default function NewQuotationPage() {
   }, [firestore, user]);
   const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
 
+  const productsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'products');
+  }, [firestore]);
+  const { data: allProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
+
   const [selectedClientId, setSelectedClientId] = useState<string>('');
-  const [products, setProducts] = useState<Product[]>([
-    { description: '', quantity: 1, price: 0 },
+  const [items, setItems] = useState<QuotationItem[]>([
+    { productId: '', description: '', quantity: 1, price: 0, individualFreight: 0 },
   ]);
   const [freight, setFreight] = useState(0);
   const [freightTo, setFreightTo] = useState('');
+  const [isIndividualFreight, setIsIndividualFreight] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [quotationDetails, setQuotationDetails] = useState<QuotationDetails>({
     number: `QT-${Date.now().toString().slice(-6)}`,
@@ -70,39 +81,59 @@ export default function NewQuotationPage() {
     return (leads as Client[]).find(lead => lead.id === selectedClientId) || null;
   }, [leads, selectedClientId]);
 
-  const handleProductChange = (index: number, field: keyof Product, value: string | number) => {
-    const newProducts = [...products];
-    if (typeof newProducts[index][field] === 'number') {
-      newProducts[index] = { ...newProducts[index], [field]: Number(value) };
+  const handleItemChange = (index: number, field: keyof QuotationItem, value: string | number) => {
+    const newItems = [...items];
+    if (typeof newItems[index][field] === 'number') {
+      newItems[index] = { ...newItems[index], [field]: Number(value) < 0 ? 0 : Number(value) };
     } else {
-      newProducts[index] = { ...newProducts[index], [field]: value };
+      newItems[index] = { ...newItems[index], [field]: value as string };
     }
-    setProducts(newProducts);
+    setItems(newItems);
+  };
+  
+  const handleProductSelect = (index: number, newProductId: string) => {
+      if (!allProducts) return;
+      const selectedProd = allProducts.find(p => p.id === newProductId);
+      if (!selectedProd) return;
+
+      const newItems = [...items];
+      newItems[index] = {
+          ...newItems[index],
+          productId: newProductId,
+          description: selectedProd.name,
+          price: selectedProd.price,
+      };
+      setItems(newItems);
   };
 
-  const addProduct = () => {
-    setProducts([...products, { description: '', quantity: 1, price: 0 }]);
+  const addItem = () => {
+    setItems([...items, { productId: '', description: '', quantity: 1, price: 0, individualFreight: 0 }]);
   };
 
-  const removeProduct = (index: number) => {
-    const newProducts = products.filter((_, i) => i !== index);
-    setProducts(newProducts);
+  const removeItem = (index: number) => {
+    const newItems = items.filter((_, i) => i !== index);
+    setItems(newItems);
   };
 
   const subtotal = useMemo(() => {
-    return products.reduce((acc, product) => acc + product.quantity * product.price, 0);
-  }, [products]);
+    return items.reduce((acc, item) => acc + item.quantity * item.price, 0);
+  }, [items]);
 
   const total = useMemo(() => {
-    return subtotal + freight;
-  }, [subtotal, freight]);
+    const productsTotal = subtotal;
+    if (isIndividualFreight) {
+      const individualFreightsTotal = items.reduce((acc, item) => acc + (item.individualFreight || 0), 0);
+      return productsTotal + individualFreightsTotal;
+    }
+    return productsTotal + freight;
+  }, [subtotal, freight, items, isIndividualFreight]);
   
   const generatePdf = () => {
     if (!selectedClient) {
       alert('PLEASE SELECT A CLIENT.');
       return;
     }
-    if (freight > 0 && !freightTo.trim()) {
+    if (!isIndividualFreight && freight > 0 && !freightTo.trim()) {
       alert('FREIGHT DESTINATION IS REQUIRED WHEN FREIGHT AMOUNT IS ADDED.');
       return;
     }
@@ -208,26 +239,37 @@ export default function NewQuotationPage() {
     currentY = infoStartY + infoBoxHeight + 8;
 
     // --- PRODUCTS TABLE ---
-    const tableColumn = ["DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"];
-    const tableRows: (string | number)[][] = [];
-
-    products.forEach(prod => {
-        const productData = [
-            prod.description.toUpperCase(),
-            prod.quantity,
-            `$${prod.price.toFixed(2)}`,
-            `$${(prod.quantity * prod.price).toFixed(2)}`
+    const tableHead = isIndividualFreight
+        ? [["DESCRIPTION", "QTY", "UNIT PRICE", "FREIGHT", "TOTAL"]]
+        : [["DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"]];
+    
+    const tableBody = items.map(item => {
+        const itemTotal = item.quantity * item.price;
+        if (isIndividualFreight) {
+            return [
+                item.description.toUpperCase(),
+                item.quantity,
+                `$${item.price.toFixed(2)}`,
+                `$${item.individualFreight.toFixed(2)}`,
+                `$${(itemTotal + item.individualFreight).toFixed(2)}`
+            ];
+        }
+        return [
+            item.description.toUpperCase(),
+            item.quantity,
+            `$${item.price.toFixed(2)}`,
+            `$${itemTotal.toFixed(2)}`
         ];
-        tableRows.push(productData);
     });
 
+
     doc.autoTable({
-        head: [tableColumn],
-        body: tableRows,
+        head: tableHead,
+        body: tableBody,
         startY: currentY,
         theme: 'striped',
-        headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 11 },
-        styles: { fontSize: 11, cellPadding: 3 },
+        headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
+        styles: { fontSize: 10, cellPadding: 3 },
         margin: { left: margin, right: margin }
     });
     
@@ -244,7 +286,16 @@ export default function NewQuotationPage() {
     doc.text(`$${subtotal.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
     lineY += 7;
 
-    if (freight > 0) {
+    if (isIndividualFreight) {
+      const totalIndividualFreight = items.reduce((acc, item) => acc + item.individualFreight, 0);
+      if (totalIndividualFreight > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('TOTAL FREIGHT:', docWidth - 70, lineY, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+        doc.text(`$${totalIndividualFreight.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+        lineY += 7;
+      }
+    } else if (freight > 0) {
       doc.setFont('helvetica', 'bold');
       const freightText = `FREIGHT TO: ${freightTo.toUpperCase()}:`;
       doc.text(freightText, docWidth - 70, lineY, { align: 'right' });
@@ -267,45 +318,34 @@ export default function NewQuotationPage() {
     currentY = lineY;
     doc.setTextColor(BLACK);
 
+    currentY += 12;
+
     const addSection = (title: string, content: string, fontSize: number) => {
+      if (!content) return;
       doc.setFontSize(fontSize);
-      // Get line height based on current font size (fontSize * 1.15 in pts)
       const lineHeight = doc.getLineHeight();
       const lines = doc.splitTextToSize(content.toUpperCase(), docWidth - (margin * 2));
-      
-      // Calculate the total height this section will occupy.
-      // Height of title (1 line) + height of content (N lines) + a small gap (4pt).
-      const sectionHeight = lineHeight + 4 + (lines.length * lineHeight);
+      const sectionHeight = lineHeight + (lines.length * lineHeight);
 
-      // Check if there is enough space on the current page.
       if (currentY + sectionHeight > pageHeight - 45) { // 45 for footer area
         doc.addPage();
         currentY = margin;
       }
       
-      // --- Draw the section ---
-      // Title
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(fontSize);
       doc.text(title.toUpperCase(), margin, currentY);
+      currentY += lineHeight;
 
-      // Content
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(fontSize);
-      doc.text(lines, margin, currentY + lineHeight + 4); // Start content below title with a gap
+      doc.text(lines, margin, currentY + 4);
       
-      // Update currentY to be at the end of the drawn section.
-      currentY += sectionHeight;
+      currentY += (lines.length * lineHeight) + 4;
     };
 
-    currentY += 12; // Add space before terms and conditions
-
-    if (quotationDetails.terms) {
-      addSection('TERMS AND CONDITIONS', quotationDetails.terms, 8);
-    }
-    if (quotationDetails.notes) {
-      addSection('ADDITIONAL NOTES', quotationDetails.notes, 8);
-    }
+    addSection('TERMS AND CONDITIONS', quotationDetails.terms, 8);
+    addSection('ADDITIONAL NOTES', quotationDetails.notes, 8);
     
     // --- APPROVAL SIGNATURE ---
     const signatureHeight = 25;
@@ -372,24 +412,32 @@ export default function NewQuotationPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
-              <div className="max-w-sm">
-                  <Label htmlFor="client-select">SELECT CLIENT</Label>
-                  <Select onValueChange={setSelectedClientId} value={selectedClientId} disabled={areLeadsLoading}>
-                      <SelectTrigger id="client-select">
-                          <SelectValue placeholder="CHOOSE A CLIENT..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                          {areLeadsLoading ? (
-                              <SelectItem value="loading" disabled>LOADING CLIENTS...</SelectItem>
-                          ) : (
-                              leads?.map((lead: any) => (
-                                  <SelectItem key={lead.id} value={lead.id}>
-                                      {lead.clientName}
-                                  </SelectItem>
-                              ))
-                          )}
-                      </SelectContent>
-                  </Select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="max-w-sm">
+                      <Label htmlFor="client-select">SELECT CLIENT</Label>
+                      <Select onValueChange={setSelectedClientId} value={selectedClientId} disabled={areLeadsLoading}>
+                          <SelectTrigger id="client-select">
+                              <SelectValue placeholder="CHOOSE A CLIENT..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {areLeadsLoading ? (
+                                  <SelectItem value="loading" disabled>LOADING CLIENTS...</SelectItem>
+                              ) : (
+                                  leads?.map((lead: any) => (
+                                      <SelectItem key={lead.id} value={lead.id}>
+                                          {lead.clientName}
+                                      </SelectItem>
+                                  ))
+                              )}
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div className="flex items-end pb-1.5">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="individual-freight" checked={isIndividualFreight} onCheckedChange={(checked) => setIsIndividualFreight(!!checked)} />
+                        <Label htmlFor="individual-freight">Flete INDIVIDUAL</Label>
+                    </div>
+                  </div>
               </div>
 
               <div>
@@ -397,45 +445,68 @@ export default function NewQuotationPage() {
                   <Table>
                       <TableHeader>
                           <TableRow>
-                              <TableHead className="w-[60%]">DESCRIPTION</TableHead>
+                              <TableHead className="w-[40%]">PRODUCT</TableHead>
                               <TableHead>QUANTITY</TableHead>
                               <TableHead>UNIT PRICE</TableHead>
+                              {isIndividualFreight && <TableHead>FREIGHT</TableHead>}
                               <TableHead>TOTAL</TableHead>
                               <TableHead className="w-[50px]"><span className="sr-only">ACTIONS</span></TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
-                          {products.map((product, index) => (
+                          {items.map((item, index) => (
                               <TableRow key={index}>
                                   <TableCell>
-                                      <Input
-                                          type="text"
-                                          placeholder="Product description..."
-                                          value={product.description}
-                                          onChange={(e) => handleProductChange(index, 'description', e.target.value)}
-                                      />
+                                      <Select 
+                                        onValueChange={(value) => handleProductSelect(index, value)}
+                                        value={item.productId}
+                                        disabled={areProductsLoading}
+                                      >
+                                          <SelectTrigger>
+                                              <SelectValue placeholder="Select a product..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                              {areProductsLoading ? (
+                                                  <SelectItem value="loading" disabled>Loading...</SelectItem>
+                                              ) : (
+                                                  allProducts?.map((prod) => (
+                                                      <SelectItem key={prod.id} value={prod.id}>{prod.name}</SelectItem>
+                                                  ))
+                                              )}
+                                          </SelectContent>
+                                      </Select>
                                   </TableCell>
                                   <TableCell>
                                       <Input
                                           type="number"
-                                          value={product.quantity}
-                                          onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
+                                          value={item.quantity}
+                                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                                           className="w-20"
                                       />
                                   </TableCell>
                                   <TableCell>
                                       <Input
                                           type="number"
-                                          value={product.price}
-                                          onChange={(e) => handleProductChange(index, 'price', e.target.value)}
+                                          value={item.price}
+                                          onChange={(e) => handleItemChange(index, 'price', e.target.value)}
                                           className="w-32"
                                       />
                                   </TableCell>
+                                  {isIndividualFreight && (
+                                    <TableCell>
+                                        <Input
+                                            type="number"
+                                            value={item.individualFreight}
+                                            onChange={(e) => handleItemChange(index, 'individualFreight', e.target.value)}
+                                            className="w-32"
+                                        />
+                                    </TableCell>
+                                  )}
                                   <TableCell className="font-medium">
-                                      ${(product.quantity * product.price).toFixed(2)}
+                                      ${(item.quantity * item.price).toFixed(2)}
                                   </TableCell>
                                   <TableCell>
-                                      <Button variant="ghost" size="icon" onClick={() => removeProduct(index)}>
+                                      <Button variant="ghost" size="icon" onClick={() => removeItem(index)}>
                                           <Trash2 className="h-4 w-4 text-destructive" />
                                       </Button>
                                   </TableCell>
@@ -443,7 +514,7 @@ export default function NewQuotationPage() {
                           ))}
                       </TableBody>
                   </Table>
-                  <Button variant="outline" size="sm" onClick={addProduct} className="mt-4">
+                  <Button variant="outline" size="sm" onClick={addItem} className="mt-4">
                       <PlusCircle className="mr-2 h-4 w-4" />
                       ADD PRODUCT
                   </Button>
@@ -455,26 +526,36 @@ export default function NewQuotationPage() {
                           <p>SUBTOTAL:</p>
                           <p>${subtotal.toFixed(2)}</p>
                       </div>
-                      <div className="flex justify-between items-center">
-                          <Label htmlFor="freight-to">FREIGHT TO:</Label>
-                          <Input
-                              id="freight-to"
-                              placeholder="Destination"
-                              value={freightTo}
-                              onChange={(e) => setFreightTo(e.target.value)}
-                              className="w-48"
-                          />
-                      </div>
-                      <div className="flex justify-between items-center">
-                          <Label htmlFor="freight-amount">FREIGHT AMOUNT</Label>
-                          <Input
-                              id="freight-amount"
-                              type="number"
-                              value={freight}
-                              onChange={(e) => setFreight(Number(e.target.value))}
-                              className="w-32"
-                          />
-                      </div>
+                      {!isIndividualFreight && (
+                        <>
+                            <div className="flex justify-between items-center">
+                                <Label htmlFor="freight-to">FREIGHT TO:</Label>
+                                <Input
+                                    id="freight-to"
+                                    placeholder="Destination"
+                                    value={freightTo}
+                                    onChange={(e) => setFreightTo(e.target.value)}
+                                    className="w-48"
+                                />
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <Label htmlFor="freight-amount">FREIGHT AMOUNT</Label>
+                                <Input
+                                    id="freight-amount"
+                                    type="number"
+                                    value={freight}
+                                    onChange={(e) => setFreight(Number(e.target.value))}
+                                    className="w-32"
+                                />
+                            </div>
+                        </>
+                      )}
+                      {isIndividualFreight && (
+                        <div className="flex justify-between items-center font-medium">
+                            <p>TOTAL FREIGHT:</p>
+                            <p>${items.reduce((acc, item) => acc + item.individualFreight, 0).toFixed(2)}</p>
+                        </div>
+                      )}
                       <div className="flex justify-between items-center text-lg font-bold">
                           <p>TOTAL:</p>
                           <p>${total.toFixed(2)}</p>

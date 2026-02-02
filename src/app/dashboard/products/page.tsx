@@ -2,14 +2,12 @@
 
 import React, { useState } from 'react';
 import {
-  useUser,
   useFirestore,
   useCollection,
   useMemoFirebase,
-  useDoc,
   deleteDocumentNonBlocking,
 } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -46,13 +44,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ProductDialog } from '@/components/product-dialog';
 import type { Product } from '@/lib/types';
 
 
 export default function ProductsPage() {
-  const { user, isUserLoading: isUserAuthLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -61,38 +57,13 @@ export default function ProductsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string>('me');
-
-  const userProfileRef = useMemoFirebase(() => {
-    if (!user) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [firestore, user]);
-  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
-
-  const usersQuery = useMemoFirebase(() => {
-    if (!firestore || userProfile?.role !== 'manager') return null;
-    return query(collection(firestore, 'users'));
-  }, [firestore, userProfile]);
-  const { data: allUsers, isLoading: areUsersLoading } = useCollection(usersQuery);
 
   const productsQuery = useMemoFirebase(() => {
-    if (!user || !userProfile) return null;
-    const baseCollection = collection(firestore, 'products');
-    const isManager = userProfile.role === 'manager';
+    if (!firestore) return null;
+    return collection(firestore, 'products');
+  }, [firestore]);
 
-    if (isManager) {
-        if (selectedUserId === 'all') {
-            return query(baseCollection);
-        }
-        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
-        return query(baseCollection, where('sellerId', '==', userIdToFilter));
-    }
-    
-    return query(baseCollection, where('sellerId', '==', user.uid));
-  }, [firestore, user, userProfile, selectedUserId]);
-
-  const { data: products, isLoading: areProductsLoading } = useCollection(productsQuery);
-  const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areProductsLoading;
+  const { data: products, isLoading } = useCollection(productsQuery);
 
   const handleNewClick = () => {
     setSelectedProduct(null);
@@ -149,22 +120,6 @@ export default function ProductsPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-headline font-bold">Productos</h1>
            <div className="flex items-center gap-4">
-              {userProfile?.role === 'manager' && (
-                  <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
-                      <SelectTrigger className="w-[220px]">
-                          <SelectValue placeholder="Seleccionar vendedor..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                          <SelectItem value="me">Mis Productos</SelectItem>
-                          <SelectItem value="all">Todos los Productos</SelectItem>
-                          {allUsers?.filter(u => u.id !== user?.uid).map((u: any) => (
-                              <SelectItem key={u.id} value={u.id}>
-                                  {`${u.firstName} ${u.lastName}`}
-                              </SelectItem>
-                          ))}
-                      </SelectContent>
-                  </Select>
-              )}
               <Button onClick={handleNewClick}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Nuevo Producto
