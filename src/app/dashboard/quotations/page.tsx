@@ -225,4 +225,5 @@ export default function QuotationsPage() {
                 </CardContent>
             </Card>
         </div>
-    )
+    );
+}
