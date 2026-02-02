@@ -120,7 +120,7 @@ export default function NewQuotationPage() {
 
     // --- HEADER ---
     const headerY = -5;
-    const textHeaderY = 10;
+    const textHeaderY = 14;
     let imgHeight = 0;
 
     if (logoUrl) {
@@ -155,7 +155,7 @@ export default function NewQuotationPage() {
     const textBottom = addressY + addressLineSpacing * 2 + 2;
     const headerBottom = Math.max(logoBottom, textBottom);
     
-    currentY = headerBottom + 2;
+    currentY = 25; // Fixed vertical position for the separator line
 
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
@@ -164,7 +164,8 @@ export default function NewQuotationPage() {
     doc.setLineWidth(0.3);
     doc.line(margin, currentY + 1.5, docWidth - margin, currentY + 1.5);
 
-    currentY += 12;
+    // Ensure next content starts below the lowest element (header or separator) + padding
+    currentY = Math.max(headerBottom, currentY) + 12;
 
 
     // --- QUOTATION DETAILS ---
