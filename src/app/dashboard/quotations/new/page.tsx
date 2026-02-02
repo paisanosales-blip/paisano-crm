@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc, useStorage } from '@/firebase';
+import { collection, query, where, doc, getDocs, addDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +17,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Product } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
@@ -40,8 +43,11 @@ type Client = {
 };
 
 export default function NewQuotationPage() {
+  const router = useRouter();
   const { user } = useUser();
   const firestore = useFirestore();
+  const storage = useStorage();
+  const { toast } = useToast();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -61,6 +67,12 @@ export default function NewQuotationPage() {
   }, [firestore]);
   const { data: allProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
 
+  const opportunitiesQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, 'opportunities'), where('sellerId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
+
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [items, setItems] = useState<QuotationItem[]>([
     { productId: '', description: '', quantity: 1, price: 0, individualFreight: 0 },
@@ -75,10 +87,12 @@ export default function NewQuotationPage() {
     terms: 'PAYMENT TERMS: 10% DOWN PAYMENT, 90% UPON DELIVERY.\nPRICES DO NOT INCLUDE VAT.\nDELIVERY TIMES ARE SUBJECT TO CHANGE WITHOUT PRIOR NOTICE.',
     notes: 'THANK YOU FOR YOUR PREFERENCE.',
   });
+  const [currency, setCurrency] = useState('USD');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const lastNumberStr = localStorage.getItem('lastQuotationNumber');
-    const lastNumber = lastNumberStr ? parseInt(lastNumberStr, 10) : 1000; // Start from 1001 if not set
+    const lastNumber = lastNumberStr ? parseInt(lastNumberStr, 10) : 1000;
     const nextNumber = lastNumber + 1;
     setQuotationDetails(prev => ({
       ...prev,
@@ -138,303 +152,339 @@ export default function NewQuotationPage() {
     return productsTotal + freight;
   }, [subtotal, freight, items, isIndividualFreight]);
   
-  const generatePdf = () => {
-    if (!selectedClient) {
-      alert('PLEASE SELECT A CLIENT.');
+  const handleGenerateAndSave = async () => {
+    if (!selectedClient || !firestore || !user || !userProfile || !storage) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Por favor, seleccione un cliente e inicie sesión.',
+      });
       return;
     }
     if (!isIndividualFreight && freight > 0 && !freightTo.trim()) {
-      alert('FREIGHT DESTINATION IS REQUIRED WHEN FREIGHT AMOUNT IS ADDED.');
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'El destino del flete es requerido cuando se agrega un monto de flete.',
+      });
       return;
     }
-    
-    const currentNumberStr = quotationDetails.number.replace('QT-', '');
-    const currentNumber = parseInt(currentNumberStr, 10);
 
-    const doc = new jsPDF() as jsPDFWithAutoTable;
-    const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
-    const docWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
-    const margin = 15;
-    let currentY = 0;
+    setIsSubmitting(true);
+    try {
+      // Find or create opportunity
+      let opportunityId: string;
+      const oppsCollection = collection(firestore, 'opportunities');
+      const q = query(oppsCollection, where('leadId', '==', selectedClient.id));
+      const oppsSnapshot = await getDocs(q);
 
-    const logoUrl = localStorage.getItem('sidebarLogo');
-    const RED = '#8B0000';
-    const BLACK = '#000000';
-    const LIGHT_GRAY = '#F5F5F5';
-    
-    // --- HEADER ---
-    const headerTextY = 20;
-
-    if (logoUrl) {
-      try {
-        const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
-        const img = new Image();
-        img.src = logoUrl;
-        const imgWidth = 90;
-        doc.addImage(logoUrl, format.toUpperCase(), margin, -5, imgWidth, 0, undefined, 'NONE');
-      } catch (e) {
-        console.error("Error adding logo image to PDF:", e);
+      if (oppsSnapshot.empty) {
+        const opportunityData = {
+          leadId: selectedClient.id,
+          sellerId: user.uid,
+          sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+          stage: 'Primer contacto',
+          name: `Oportunidad para ${selectedClient.clientName}`,
+          value: total,
+          currency,
+          probability: 10,
+          createdDate: new Date().toISOString(),
+          expectedCloseDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
+        };
+        const newOppRef = await addDoc(oppsCollection, opportunityData);
+        opportunityId = newOppRef.id;
+      } else {
+        opportunityId = oppsSnapshot.docs[0].id;
       }
-    }
+      
+      const opportunityRef = doc(firestore, 'opportunities', opportunityId);
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(BLACK);
-    doc.text('PAISANO TRAILER', docWidth - margin, headerTextY, { align: 'right', baseline: 'top' });
+      const currentNumberStr = quotationDetails.number.replace('QT-', '');
+      const currentNumber = parseInt(currentNumberStr, 10);
+  
+      const docPdf = new jsPDF() as jsPDFWithAutoTable;
+      const pageHeight = docPdf.internal.pageSize.height || docPdf.internal.pageSize.getHeight();
+      const docWidth = docPdf.internal.pageSize.width || docPdf.internal.pageSize.getWidth();
+      const margin = 15;
+      let currentY = 0;
+      const logoUrl = localStorage.getItem('sidebarLogo');
+      const RED = '#8B0000';
+      const BLACK = '#000000';
+      const LIGHT_GRAY = '#F5F5F5';
+      const headerTextY = 20;
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-
-    const addressY = headerTextY + 8;
-    const addressLineSpacing = 4;
-    doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
-    doc.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
-    doc.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
-
-    const separatorY = 50;
-    doc.setDrawColor(RED);
-    doc.setLineWidth(0.8);
-    doc.line(margin, separatorY, docWidth - margin, separatorY);
-    doc.setDrawColor(BLACK);
-    doc.setLineWidth(0.3);
-    doc.line(margin, separatorY + 1.5, docWidth - margin, separatorY + 1.5);
-    
-    currentY = separatorY + 12;
-
-    // --- QUOTATION DETAILS ---
-    const quoteDetailsX = docWidth - margin;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text('QUOTATION #:', quoteDetailsX - 45, currentY, { align: 'left' });
-    doc.text('DATE:', quoteDetailsX - 45, currentY + 6, { align: 'left' });
-    doc.text('VALIDITY:', quoteDetailsX - 45, currentY + 12, { align: 'left' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.text(quotationDetails.number.toUpperCase(), quoteDetailsX, currentY, { align: 'right' });
-    doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, currentY + 6, { align: 'right' });
-    doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, currentY + 12, { align: 'right' });
-
-    currentY += 12 + 10;
-
-
-    // --- INFO SECTION ---
-    const infoStartY = currentY;
-    const rightColX = docWidth / 2 + 10;
-    const infoBoxHeight = 28;
-
-    doc.setFillColor(LIGHT_GRAY);
-    doc.rect(margin, infoStartY - 2, (docWidth / 2) - margin - 5, infoBoxHeight, 'F');
-    doc.rect(rightColX, infoStartY - 2, (docWidth / 2) - margin - 10, infoBoxHeight, 'F');
-    
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(BLACK);
-    doc.text('SALES PERSON:', margin + 3, infoStartY + 4);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    if (userProfile) {
-        doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, infoStartY + 10);
-        if (userProfile.email) doc.text(userProfile.email.toUpperCase(), margin + 3, infoStartY + 15);
-    }
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text('BUYER:', rightColX + 3, infoStartY + 4);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(selectedClient.clientName.toUpperCase(), rightColX + 3, infoStartY + 10);
-    doc.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 15);
-    if(selectedClient.email) doc.text(selectedClient.email.toUpperCase(), rightColX + 3, infoStartY + 20);
-
-    currentY = infoStartY + infoBoxHeight + 8;
-
-    // --- PRODUCTS TABLE ---
-    const tableHead = isIndividualFreight
-        ? [["DESCRIPTION", "QTY", "UNIT PRICE", "UNIT FREIGHT", "TOTAL"]]
-        : [["DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"]];
-    
-    const tableBody = items.map(item => {
-        const itemTotal = item.quantity * item.price;
-        if (isIndividualFreight) {
-            const totalFreightForItem = item.individualFreight * item.quantity;
-            return [
-                item.description.toUpperCase(),
-                item.quantity,
-                `$${item.price.toFixed(2)}`,
-                `$${item.individualFreight.toFixed(2)}`,
-                `$${(itemTotal + totalFreightForItem).toFixed(2)}`
-            ];
+      if (logoUrl) {
+        try {
+          const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
+          const img = new Image();
+          img.src = logoUrl;
+          const imgWidth = 90;
+          docPdf.addImage(logoUrl, format.toUpperCase(), margin, -5, imgWidth, 0, undefined, 'NONE');
+        } catch (e) {
+          console.error("Error adding logo image to PDF:", e);
         }
-        return [
-            item.description.toUpperCase(),
-            item.quantity,
-            `$${item.price.toFixed(2)}`,
-            `$${itemTotal.toFixed(2)}`
-        ];
-    });
+      }
 
-
-    doc.autoTable({
-        head: tableHead,
-        body: tableBody,
-        startY: currentY,
-        theme: 'striped',
-        headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
-        styles: { fontSize: 10, cellPadding: 3 },
-        margin: { left: margin, right: margin }
-    });
-    
-    currentY = (doc as any).autoTable.previous.finalY;
-    
-    // --- TOTALS ---
-    currentY += 6; // Add space before totals
-    const totalsY = currentY;
-    let lineY = totalsY;
-    doc.setFontSize(11);
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('SUBTOTAL:', docWidth - 70, lineY, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    doc.text(`$${subtotal.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
-    lineY += 7;
-
-    if (isIndividualFreight) {
-      const totalIndividualFreight = items.reduce((acc, item) => acc + (item.individualFreight || 0) * item.quantity, 0);
-      if (totalIndividualFreight > 0) {
-        doc.setFont('helvetica', 'bold');
-        doc.text('TOTAL FREIGHT:', docWidth - 70, lineY, { align: 'right' });
-        doc.setFont('helvetica', 'normal');
-        doc.text(`$${totalIndividualFreight.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+      docPdf.setFont('helvetica', 'bold');
+      docPdf.setFontSize(16);
+      docPdf.setTextColor(BLACK);
+      docPdf.text('PAISANO TRAILER', docWidth - margin, headerTextY, { align: 'right', baseline: 'top' });
+      docPdf.setFont('helvetica', 'normal');
+      docPdf.setFontSize(10);
+      docPdf.setTextColor(100);
+      const addressY = headerTextY + 8;
+      const addressLineSpacing = 4;
+      docPdf.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
+      docPdf.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
+      docPdf.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
+      const separatorY = 50;
+      docPdf.setDrawColor(RED);
+      docPdf.setLineWidth(0.8);
+      docPdf.line(margin, separatorY, docWidth - margin, separatorY);
+      docPdf.setDrawColor(BLACK);
+      docPdf.setLineWidth(0.3);
+      docPdf.line(margin, separatorY + 1.5, docWidth - margin, separatorY + 1.5);
+      currentY = separatorY + 12;
+      const quoteDetailsX = docWidth - margin;
+      docPdf.setFont('helvetica', 'bold');
+      docPdf.setFontSize(10);
+      docPdf.text('QUOTATION #:', quoteDetailsX - 45, currentY, { align: 'left' });
+      docPdf.text('DATE:', quoteDetailsX - 45, currentY + 6, { align: 'left' });
+      docPdf.text('VALIDITY:', quoteDetailsX - 45, currentY + 12, { align: 'left' });
+      docPdf.setFont('helvetica', 'normal');
+      docPdf.text(quotationDetails.number.toUpperCase(), quoteDetailsX, currentY, { align: 'right' });
+      docPdf.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, currentY + 6, { align: 'right' });
+      docPdf.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, currentY + 12, { align: 'right' });
+      currentY += 12 + 10;
+      const infoStartY = currentY;
+      const rightColX = docWidth / 2 + 10;
+      const infoBoxHeight = 28;
+      docPdf.setFillColor(LIGHT_GRAY);
+      docPdf.rect(margin, infoStartY - 2, (docWidth / 2) - margin - 5, infoBoxHeight, 'F');
+      docPdf.rect(rightColX, infoStartY - 2, (docWidth / 2) - margin - 10, infoBoxHeight, 'F');
+      docPdf.setFont('helvetica', 'bold');
+      docPdf.setFontSize(10);
+      docPdf.setTextColor(BLACK);
+      docPdf.text('SALES PERSON:', margin + 3, infoStartY + 4);
+      docPdf.setFont('helvetica', 'normal');
+      docPdf.setFontSize(10);
+      if (userProfile) {
+          docPdf.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, infoStartY + 10);
+          if (userProfile.email) docPdf.text(userProfile.email.toUpperCase(), margin + 3, infoStartY + 15);
+      }
+      docPdf.setFont('helvetica', 'bold');
+      docPdf.setFontSize(10);
+      docPdf.text('BUYER:', rightColX + 3, infoStartY + 4);
+      docPdf.setFont('helvetica', 'normal');
+      docPdf.setFontSize(10);
+      docPdf.text(selectedClient.clientName.toUpperCase(), rightColX + 3, infoStartY + 10);
+      docPdf.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 15);
+      if(selectedClient.email) docPdf.text(selectedClient.email.toUpperCase(), rightColX + 3, infoStartY + 20);
+      currentY = infoStartY + infoBoxHeight + 8;
+      const tableHead = isIndividualFreight
+          ? [["DESCRIPTION", "QTY", "UNIT PRICE", "UNIT FREIGHT", "TOTAL"]]
+          : [["DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"]];
+      const tableBody = items.map(item => {
+          const itemTotal = item.quantity * item.price;
+          if (isIndividualFreight) {
+              const totalFreightForItem = item.individualFreight * item.quantity;
+              return [
+                  item.description.toUpperCase(),
+                  item.quantity,
+                  `$${item.price.toFixed(2)}`,
+                  `$${item.individualFreight.toFixed(2)}`,
+                  `$${(itemTotal + totalFreightForItem).toFixed(2)}`
+              ];
+          }
+          return [
+              item.description.toUpperCase(),
+              item.quantity,
+              `$${item.price.toFixed(2)}`,
+              `$${itemTotal.toFixed(2)}`
+          ];
+      });
+      docPdf.autoTable({
+          head: tableHead,
+          body: tableBody,
+          startY: currentY,
+          theme: 'striped',
+          headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
+          styles: { fontSize: 10, cellPadding: 3 },
+          margin: { left: margin, right: margin }
+      });
+      currentY = (docPdf as any).autoTable.previous.finalY;
+      currentY += 6;
+      const totalsY = currentY;
+      let lineY = totalsY;
+      docPdf.setFontSize(11);
+      docPdf.setFont('helvetica', 'bold');
+      docPdf.text('SUBTOTAL:', docWidth - 70, lineY, { align: 'right' });
+      docPdf.setFont('helvetica', 'normal');
+      docPdf.text(`$${subtotal.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+      lineY += 7;
+      if (isIndividualFreight) {
+        const totalIndividualFreight = items.reduce((acc, item) => acc + (item.individualFreight || 0) * item.quantity, 0);
+        if (totalIndividualFreight > 0) {
+          docPdf.setFont('helvetica', 'bold');
+          docPdf.text('TOTAL FREIGHT:', docWidth - 70, lineY, { align: 'right' });
+          docPdf.setFont('helvetica', 'normal');
+          docPdf.text(`$${totalIndividualFreight.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+          lineY += 7;
+        }
+      } else if (freight > 0) {
+        docPdf.setFont('helvetica', 'bold');
+        const freightText = `FREIGHT TO: ${freightTo.toUpperCase()}:`;
+        docPdf.text(freightText, docWidth - 70, lineY, { align: 'right' });
+        docPdf.setFont('helvetica', 'normal');
+        docPdf.text(`$${freight.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
         lineY += 7;
       }
-    } else if (freight > 0) {
-      doc.setFont('helvetica', 'bold');
-      const freightText = `FREIGHT TO: ${freightTo.toUpperCase()}:`;
-      doc.text(freightText, docWidth - 70, lineY, { align: 'right' });
-      doc.setFont('helvetica', 'normal');
-      doc.text(`$${freight.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
-      lineY += 7;
-    }
-
-    const totalY = lineY + 2;
-    doc.setDrawColor(BLACK);
-    doc.setLineWidth(0.2);
-    doc.line(docWidth - 80, totalY, docWidth - margin, totalY);
-    lineY = totalY + 7;
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL (DOLLARS):', docWidth - 70, lineY, { align: 'right' });
-    doc.setTextColor(RED);
-    doc.text(`$${total.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
-    
-    currentY = lineY + 12;
-    doc.setTextColor(BLACK);
-
-    const addSection = (title: string, content: string) => {
-      if (!content) return;
-      doc.setFontSize(8);
-      const lineHeight = doc.getLineHeight() / doc.internal.scaleFactor;
-      const lines = doc.splitTextToSize(content.toUpperCase(), docWidth - (margin * 2));
-      const sectionHeight = lines.length * lineHeight;
-
-      if (currentY + sectionHeight > pageHeight - 45) { // 45 for footer area
-        doc.addPage();
-        currentY = margin;
+      const totalY = lineY + 2;
+      docPdf.setDrawColor(BLACK);
+      docPdf.setLineWidth(0.2);
+      docPdf.line(docWidth - 80, totalY, docWidth - margin, totalY);
+      lineY = totalY + 7;
+      docPdf.setFont('helvetica', 'bold');
+      docPdf.text('TOTAL (DOLLARS):', docWidth - 70, lineY, { align: 'right' });
+      docPdf.setTextColor(RED);
+      docPdf.text(`$${total.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+      currentY = lineY + 12;
+      docPdf.setTextColor(BLACK);
+      const addSection = (title: string, content: string) => {
+        if (!content) return;
+        docPdf.setFontSize(8);
+        const lineHeight = docPdf.getLineHeight() / docPdf.internal.scaleFactor;
+        const lines = docPdf.splitTextToSize(content.toUpperCase(), docWidth - (margin * 2));
+        const sectionHeight = lines.length * lineHeight;
+        if (currentY + sectionHeight > pageHeight - 45) {
+          docPdf.addPage();
+          currentY = margin;
+        }
+        docPdf.setFont('helvetica', 'bold');
+        docPdf.text(title.toUpperCase(), margin, currentY);
+        currentY += lineHeight;
+        docPdf.setFont('helvetica', 'normal');
+        docPdf.text(lines, margin, currentY);
+        currentY += sectionHeight;
+      };
+      addSection('TERMS AND CONDITIONS', quotationDetails.terms);
+      currentY += 2;
+      addSection('ADDITIONAL NOTES', quotationDetails.notes);
+      const signatureHeight = 25;
+      if (currentY + signatureHeight > pageHeight - 35) {
+          docPdf.addPage();
+          currentY = margin;
       }
+      currentY += 20;
+      const sigWidth = 80;
+      const sigXStart = (docWidth - sigWidth) / 2;
+      docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
+      docPdf.setFontSize(9);
+      docPdf.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
+      let pageCount = (docPdf as any).internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+          docPdf.setPage(i);
+          const footerY = pageHeight - 25;
+          docPdf.setDrawColor(RED);
+          docPdf.setLineWidth(0.5);
+          docPdf.line(margin, footerY, docWidth - margin, footerY);
+          docPdf.setFontSize(9);
+          docPdf.setTextColor(100);
+          const footerText = `PAISANOSALES@GMAIL.COM | 915 408 7478 | WWW.PAISANOTRAILER.COM`;
+          docPdf.text(footerText, docWidth / 2, footerY + 8, { align: 'center' });
+          docPdf.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerY + 8, { align: 'right' });
+      }
+
+      const pdfBlob = docPdf.output('blob');
+      const pdfFile = new File([pdfBlob], `QT-${quotationDetails.number}-${selectedClient.clientName.replace(/\s/g, '_')}.pdf`, { type: 'application/pdf' });
       
-      doc.setFont('helvetica', 'bold');
-      doc.text(title.toUpperCase(), margin, currentY);
-      currentY += lineHeight;
+      const storageRef = ref(storage, `quotations/${opportunityId}/${pdfFile.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, pdfFile);
+      toast({ title: 'Subiendo PDF...' });
+      const snapshot = await uploadTask;
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      toast({ title: 'PDF Subido, guardando datos...' });
 
-      doc.setFont('helvetica', 'normal');
-      doc.text(lines, margin, currentY);
-      
-      currentY += sectionHeight;
-    };
+      const quotesCollection = collection(firestore, 'quotations');
+      const quotesQuery = query(quotesCollection, where('opportunityId', '==', opportunityId));
+      const quotesSnapshot = await getDocs(quotesQuery);
+      const newVersion = String(quotesSnapshot.size + 1);
 
-    addSection('TERMS AND CONDITIONS', quotationDetails.terms);
-    currentY += 2; // Keep sections tight
-    addSection('ADDITIONAL NOTES', quotationDetails.notes);
-    
-    // --- APPROVAL SIGNATURE ---
-    const signatureHeight = 25;
-    if (currentY + signatureHeight > pageHeight - 35) {
-        doc.addPage();
-        currentY = margin;
+      const quotationData = {
+        opportunityId,
+        sellerId: user.uid,
+        sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+        pdfUrl: downloadURL,
+        value: total,
+        currency,
+        version: newVersion,
+        status: 'Enviada' as const,
+        createdDate: new Date().toISOString(),
+      };
+      await addDoc(quotesCollection, quotationData);
+      await updateDoc(opportunityRef, { stage: 'Envió de Cotización', value: total, currency });
+
+      localStorage.setItem('lastQuotationNumber', String(currentNumber));
+      const nextNumber = currentNumber + 1;
+      setQuotationDetails(prev => ({
+          ...prev,
+          number: `QT-${String(nextNumber).padStart(6, '0')}`
+      }));
+      toast({
+        title: '¡Cotización Guardada!',
+        description: 'La cotización se ha registrado en el historial.',
+      });
+
+      router.push('/dashboard/quotations');
+
+    } catch(error) {
+      console.error("Error creating quotation:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error al Guardar',
+        description: 'Ocurrió un problema al guardar la cotización. Verifique los permisos e intente de nuevo.',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-    currentY += 20;
-    
-    const sigWidth = 80;
-    const sigXStart = (docWidth - sigWidth) / 2;
-    doc.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
-    doc.setFontSize(9);
-    doc.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
-    
-    
-    // --- FOOTER ---
-    let pageCount = (doc as any).internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        const footerY = pageHeight - 25;
-
-        doc.setDrawColor(RED);
-        doc.setLineWidth(0.5);
-        doc.line(margin, footerY, docWidth - margin, footerY);
-
-        doc.setFontSize(9);
-        doc.setTextColor(100);
-        const footerText = `PAISANOSALES@GMAIL.COM | 915 408 7478 | WWW.PAISANOTRAILER.COM`;
-        doc.text(footerText, docWidth / 2, footerY + 8, { align: 'center' });
-        doc.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerY + 8, { align: 'right' });
-    }
-
-    doc.save(`QUOTATION-${selectedClient.clientName.replace(/\s/g, '_')}-${quotationDetails.number}.pdf`);
-
-    localStorage.setItem('lastQuotationNumber', String(currentNumber));
-
-    const nextNumber = currentNumber + 1;
-    setQuotationDetails(prev => ({
-        ...prev,
-        number: `QT-${String(nextNumber).padStart(6, '0')}`
-    }));
   };
+
+  const isLoading = areLeadsLoading || areOppsLoading || areProductsLoading;
 
   return (
     <>
       <div className="grid gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-headline font-bold">NEW QUOTATION</h1>
+          <h1 className="text-2xl font-headline font-bold">NUEVA COTIZACIÓN</h1>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setIsDetailsDialogOpen(true)}>
                 <Settings className="mr-2 h-4 w-4" />
-                QUOTATION DETAILS
+                DETALLES DE COTIZACIÓN
             </Button>
-            <Button onClick={generatePdf} disabled={!selectedClientId}>
-                <FileDown className="mr-2 h-4 w-4" />
-                GENERATE PDF
+            <Button onClick={handleGenerateAndSave} disabled={!selectedClientId || isSubmitting}>
+                {isSubmitting ? 'GUARDANDO...' : <><FileDown className="mr-2 h-4 w-4" />GUARDAR COTIZACIÓN</>}
             </Button>
           </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>QUOTATION DETAILS</CardTitle>
+            <CardTitle>Detalles de la Cotización</CardTitle>
             <CardDescription>
-              SELECT A CLIENT AND ADD PRODUCTS TO GENERATE THE QUOTATION DOCUMENT.
+              Seleccione un cliente y añada productos para generar el documento de cotización.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="max-w-sm">
-                      <Label htmlFor="client-select">SELECT CLIENT</Label>
-                      <Select onValueChange={setSelectedClientId} value={selectedClientId} disabled={areLeadsLoading}>
+                      <Label htmlFor="client-select">SELECCIONAR CLIENTE</Label>
+                      <Select onValueChange={setSelectedClientId} value={selectedClientId} disabled={isLoading}>
                           <SelectTrigger id="client-select">
-                              <SelectValue placeholder="CHOOSE A CLIENT..." />
+                              <SelectValue placeholder="Elegir un cliente..." />
                           </SelectTrigger>
                           <SelectContent>
-                              {areLeadsLoading ? (
-                                  <SelectItem value="loading" disabled>LOADING CLIENTS...</SelectItem>
+                              {isLoading ? (
+                                  <SelectItem value="loading" disabled>Cargando clientes...</SelectItem>
                               ) : (
                                   leads?.map((lead: any) => (
                                       <SelectItem key={lead.id} value={lead.id}>
@@ -442,6 +492,18 @@ export default function NewQuotationPage() {
                                       </SelectItem>
                                   ))
                               )}
+                          </SelectContent>
+                      </Select>
+                  </div>
+                   <div className="max-w-sm">
+                      <Label htmlFor="currency-select">MONEDA</Label>
+                      <Select onValueChange={setCurrency} value={currency}>
+                          <SelectTrigger id="currency-select">
+                              <SelectValue placeholder="Seleccionar moneda..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="USD">USD</SelectItem>
+                              <SelectItem value="MXN">MXN</SelectItem>
                           </SelectContent>
                       </Select>
                   </div>
@@ -454,16 +516,16 @@ export default function NewQuotationPage() {
               </div>
 
               <div>
-                  <Label>PRODUCTS / SERVICES</Label>
+                  <Label>PRODUCTOS / SERVICIOS</Label>
                   <Table>
                       <TableHeader>
                           <TableRow>
-                              <TableHead className="w-[40%]">PRODUCT</TableHead>
-                              <TableHead>QUANTITY</TableHead>
-                              <TableHead>UNIT PRICE</TableHead>
-                              {isIndividualFreight && <TableHead>FREIGHT</TableHead>}
+                              <TableHead className="w-[40%]">PRODUCTO</TableHead>
+                              <TableHead>CANTIDAD</TableHead>
+                              <TableHead>PRECIO UNITARIO</TableHead>
+                              {isIndividualFreight && <TableHead>FLETE</TableHead>}
                               <TableHead>TOTAL</TableHead>
-                              <TableHead className="w-[50px]"><span className="sr-only">ACTIONS</span></TableHead>
+                              <TableHead className="w-[50px]"><span className="sr-only">ACCIONES</span></TableHead>
                           </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -473,14 +535,14 @@ export default function NewQuotationPage() {
                                       <Select 
                                         onValueChange={(value) => handleProductSelect(index, value)}
                                         value={item.productId}
-                                        disabled={areProductsLoading}
+                                        disabled={isLoading}
                                       >
                                           <SelectTrigger>
-                                              <SelectValue placeholder="Select a product..." />
+                                              <SelectValue placeholder="Seleccionar un producto..." />
                                           </SelectTrigger>
                                           <SelectContent>
-                                              {areProductsLoading ? (
-                                                  <SelectItem value="loading" disabled>Loading...</SelectItem>
+                                              {isLoading ? (
+                                                  <SelectItem value="loading" disabled>Cargando...</SelectItem>
                                               ) : (
                                                   allProducts?.map((prod) => (
                                                       <SelectItem key={prod.id} value={prod.id}>{prod.name}</SelectItem>
@@ -532,7 +594,7 @@ export default function NewQuotationPage() {
                   </Table>
                   <Button variant="outline" size="sm" onClick={addItem} className="mt-4">
                       <PlusCircle className="mr-2 h-4 w-4" />
-                      ADD PRODUCT
+                      AÑADIR PRODUCTO
                   </Button>
               </div>
 
@@ -545,17 +607,17 @@ export default function NewQuotationPage() {
                       {!isIndividualFreight && (
                         <>
                             <div className="flex justify-between items-center">
-                                <Label htmlFor="freight-to">FREIGHT TO:</Label>
+                                <Label htmlFor="freight-to">FLETE A:</Label>
                                 <Input
                                     id="freight-to"
-                                    placeholder="Destination"
+                                    placeholder="Destino"
                                     value={freightTo}
                                     onChange={(e) => setFreightTo(e.target.value)}
                                     className="w-48"
                                 />
                             </div>
                             <div className="flex justify-between items-center">
-                                <Label htmlFor="freight-amount">FREIGHT AMOUNT</Label>
+                                <Label htmlFor="freight-amount">MONTO DE FLETE</Label>
                                 <Input
                                     id="freight-amount"
                                     type="number"
@@ -568,7 +630,7 @@ export default function NewQuotationPage() {
                       )}
                       {isIndividualFreight && (
                         <div className="flex justify-between items-center font-medium">
-                            <p>TOTAL FREIGHT:</p>
+                            <p>TOTAL DE FLETES:</p>
                             <p>${items.reduce((acc, item) => acc + (item.individualFreight * item.quantity), 0).toFixed(2)}</p>
                         </div>
                       )}
