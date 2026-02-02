@@ -119,16 +119,16 @@ export default function NewQuotationPage() {
     const LIGHT_GRAY = '#F5F5F5';
 
     // --- HEADER ---
-    const headerY = -5; // User's requested position. May clip.
+    const headerY = -5;
+    let imgHeight = 0;
 
     if (logoUrl) {
         try {
             const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
-            // Calculate aspect ratio to avoid distortion
             const img = new Image();
             img.src = logoUrl;
             const imgWidth = 90;
-            const imgHeight = img.height * (imgWidth / img.width);
+            imgHeight = img.height * (imgWidth / img.width);
             doc.addImage(logoUrl, format.toUpperCase(), margin, headerY, imgWidth, imgHeight, undefined, 'NONE');
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
@@ -147,8 +147,12 @@ export default function NewQuotationPage() {
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, headerY + 19, { align: 'right' });
     doc.text('RFC: SPA150217AM3', docWidth - margin, headerY + 23, { align: 'right' });
 
-    // Track the bottom of the header block. Assuming text is the lowest point.
-    currentY = headerY + 23 + 8; // Start separator 8 points below the lowest text
+    // Determine the bottom of the entire header block by checking logo and text height
+    const logoBottom = headerY + imgHeight;
+    const textBottom = headerY + 23; // Bottom of the RFC text line
+    const headerBottom = Math.max(logoBottom, textBottom);
+    
+    currentY = headerBottom + 8; // Position separator below the lowest element
 
     // Decorative Separator
     doc.setDrawColor(RED);
