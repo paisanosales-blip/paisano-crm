@@ -144,12 +144,12 @@ export default function NewQuotationPage() {
     // Decorative Separator
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
-    doc.line(margin, 60, docWidth - margin, 60);
+    doc.line(margin, 50, docWidth - margin, 50);
     doc.setDrawColor(BLACK);
     doc.setLineWidth(0.3);
-    doc.line(margin, 61.5, docWidth - margin, 61.5);
+    doc.line(margin, 51.5, docWidth - margin, 51.5);
 
-    finalY = 70;
+    finalY = 55;
 
     // --- QUOTATION DETAILS ---
     doc.setFont('helvetica', 'bold');
@@ -165,7 +165,7 @@ export default function NewQuotationPage() {
     doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, finalY + 6, { align: 'right' });
     doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, finalY + 12, { align: 'right' });
 
-    finalY += 25; // Space after details block
+    finalY += 12 + 10; // Block height + space after
 
 
     // --- INFO SECTION ---
@@ -200,7 +200,7 @@ export default function NewQuotationPage() {
     doc.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 15);
     if(selectedClient.email) doc.text(selectedClient.email.toUpperCase(), rightColX + 3, infoStartY + 20);
 
-    finalY = infoStartY + infoBoxHeight + 15;
+    finalY = infoStartY + infoBoxHeight + 10;
 
     // --- PRODUCTS TABLE ---
     const tableColumn = ["DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"];
@@ -226,10 +226,10 @@ export default function NewQuotationPage() {
         margin: { left: margin, right: margin }
     });
     
-    finalY = (doc as any).autoTable.previous.finalY;
+    let currentY = (doc as any).autoTable.previous.finalY;
     
     // --- TOTALS ---
-    const totalsY = finalY + 10;
+    const totalsY = currentY + 8;
     let lineY = totalsY;
     doc.setFontSize(11);
     
@@ -243,7 +243,8 @@ export default function NewQuotationPage() {
     // Freight
     if (freight > 0) {
       doc.setFont('helvetica', 'bold');
-      doc.text(`FREIGHT TO: ${freightTo.toUpperCase()}:`, docWidth - 70, lineY, { align: 'right' });
+      const freightText = `FREIGHT TO: ${freightTo.toUpperCase()}:`;
+      doc.text(freightText, docWidth - 70, lineY, { align: 'right' });
       doc.setFont('helvetica', 'normal');
       doc.text(`$${freight.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
       lineY += 7;
@@ -261,56 +262,53 @@ export default function NewQuotationPage() {
     doc.setTextColor(RED);
     doc.text(`$${total.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
     
-    let currentY = lineY + 14;
+    currentY = lineY + 10;
     doc.setTextColor(BLACK);
+
+    // --- APPROVAL SIGNATURE ---
+    if (currentY > pageHeight - 60) { // Check if space for signature and notes
+        doc.addPage();
+        currentY = margin;
+    }
+    const sigY = currentY + 20;
+    const sigWidth = 80;
+    const sigXStart = (docWidth - sigWidth) / 2;
+    doc.line(sigXStart, sigY, sigXStart + sigWidth, sigY);
+    doc.setFontSize(9);
+    doc.text('APPROVAL SIGNATURE', docWidth / 2, sigY + 5, { align: 'center' });
+    currentY = sigY + 10;
 
     // --- TERMS, NOTES ---
     if (quotationDetails.notes) {
-       if (currentY + 20 > pageHeight) { doc.addPage(); currentY = margin; }
+       if (currentY > pageHeight - 35) { doc.addPage(); currentY = margin; }
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.text('ADDITIONAL NOTES', margin, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       const notesLines = doc.splitTextToSize(quotationDetails.notes.toUpperCase(), docWidth - (margin * 2));
-      doc.text(notesLines, margin, currentY + 5);
-      currentY += (notesLines.length * 4) + 10;
+      doc.text(notesLines, margin, currentY + 4);
+      currentY += (notesLines.length * 3.5) + 8;
     }
 
     if (quotationDetails.terms) {
-      if (currentY + 20 > pageHeight) { doc.addPage(); currentY = margin; }
+      if (currentY > pageHeight - 35) { doc.addPage(); currentY = margin; }
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.text('TERMS AND CONDITIONS', margin, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       const termsLines = doc.splitTextToSize(quotationDetails.terms.toUpperCase(), docWidth - (margin * 2));
-      doc.text(termsLines, margin, currentY + 5);
-      currentY += (termsLines.length * 4) + 10;
+      doc.text(termsLines, margin, currentY + 4);
+      currentY += (termsLines.length * 3.5) + 8;
     }
     
-    let finalYAfterContent = currentY;
     let pageCount = (doc as any).internal.getNumberOfPages();
-
-    const signatureBlockTop = pageHeight - 85; 
-    if (finalYAfterContent > signatureBlockTop) {
-        doc.addPage();
-        pageCount++;
-    }
     
-    // --- FOOTER AND SIGNATURE ---
+    // --- FOOTER ---
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         const footerY = pageHeight - 25;
-
-        if (i === pageCount) {
-            const sigY = footerY - 30;
-            const sigWidth = 80;
-            const sigXStart = (docWidth - sigWidth) / 2;
-            doc.line(sigXStart, sigY, sigXStart + sigWidth, sigY);
-            doc.setFontSize(9);
-            doc.text('APPROVAL SIGNATURE', docWidth / 2, sigY + 5, { align: 'center' });
-        }
 
         doc.setDrawColor(RED);
         doc.setLineWidth(0.5);
