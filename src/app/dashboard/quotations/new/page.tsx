@@ -119,11 +119,11 @@ export default function NewQuotationPage() {
     const LIGHT_GRAY = '#F5F5F5';
 
     // --- HEADER ---
-    const headerY = 5;
+    const headerY = margin;
     if (logoUrl) {
         try {
             const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
-            doc.addImage(logoUrl, format.toUpperCase(), margin, headerY, 90, 0); 
+            doc.addImage(logoUrl, format.toUpperCase(), margin, headerY, 90, 0, undefined, 'NONE'); 
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
         }
@@ -143,7 +143,7 @@ export default function NewQuotationPage() {
 
 
     // Decorative Separator
-    const separatorY = headerY + 30;
+    const separatorY = headerY + 35;
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
     doc.line(margin, separatorY, docWidth - margin, separatorY);
