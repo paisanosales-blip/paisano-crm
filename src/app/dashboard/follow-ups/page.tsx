@@ -88,7 +88,7 @@ export default function FollowUpsPage() {
   
   const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
   const [currentActivity, setCurrentActivity] = useState<any | null>(null);
-  const [currentClient, setCurrentClient] = useState<any | null>(null);
+  const [currentProspect, setCurrentProspect] = useState<any | null>(null);
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<any | null>(null);
@@ -124,26 +124,84 @@ export default function FollowUpsPage() {
   const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
 
   const leadsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'leads');
-  }, [firestore]);
+    if (!user || !userProfile) return null;
+    const baseCollection = collection(firestore, 'leads');
+    const isManager = userProfile.role === 'manager';
+    if (isManager) {
+        if (selectedUserId === 'all') return query(baseCollection);
+        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+        return query(baseCollection, where('sellerId', '==', userIdToFilter));
+    }
+    return query(baseCollection, where('sellerId', '==', user.uid));
+  }, [firestore, user, userProfile, selectedUserId]);
   const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
+  
+  const opportunitiesQuery = useMemoFirebase(() => {
+    if (!user || !userProfile) return null;
+    const baseCollection = collection(firestore, 'opportunities');
+    const isManager = userProfile.role === 'manager';
+    if (isManager) {
+        if (selectedUserId === 'all') return query(baseCollection);
+        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+        return query(baseCollection, where('sellerId', '==', userIdToFilter));
+    }
+    return query(baseCollection, where('sellerId', '==', user.uid));
+  }, [firestore, user, userProfile, selectedUserId]);
+  const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
 
-  const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areActivitiesLoading || areLeadsLoading;
+  const quotationsQuery = useMemoFirebase(() => {
+    if (!user || !userProfile) return null;
+    const baseCollection = collection(firestore, 'quotations');
+    const isManager = userProfile.role === 'manager';
+    if (isManager) {
+        if (selectedUserId === 'all') return query(baseCollection);
+        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+        return query(baseCollection, where('sellerId', '==', userIdToFilter));
+    }
+    return query(baseCollection, where('sellerId', '==', user.uid));
+  }, [firestore, user, userProfile, selectedUserId]);
+  const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
-  const leadsMap = useMemo(() => {
-    if (!leads) return new Map();
-    return new Map((leads as any[]).map((l) => [l.id, l]));
-  }, [leads]);
+
+  const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areActivitiesLoading || areLeadsLoading || areOppsLoading || areQuotsLoading;
 
   const activityGroups = useMemo(() => {
-    if (!activities) return [];
+    if (!activities || !leads || !opportunities || !quotations) return [];
     
-    const enriched = (activities as any[]).map((act) => ({
-      ...act,
-      clientName: leadsMap.get(act.leadId)?.clientName || 'Cliente no encontrado',
-      client: leadsMap.get(act.leadId) || null,
-    }));
+    const leadsMap = new Map((leads as any[]).map(l => [l.id, l]));
+    const opportunitiesMap = new Map();
+    (opportunities as any[]).forEach(op => {
+      if (!opportunitiesMap.has(op.leadId) || new Date(op.createdDate) > new Date(opportunitiesMap.get(op.leadId).createdDate)) {
+        opportunitiesMap.set(op.leadId, op);
+      }
+    });
+
+    const quotationsMap = new Map();
+    (quotations as any[]).forEach(q => {
+        if (!quotationsMap.has(q.opportunityId) || new Date(q.createdDate) > new Date(quotationsMap.get(q.opportunityId).createdDate)) {
+            quotationsMap.set(q.opportunityId, q);
+        }
+    });
+
+    const enriched = (activities as any[]).map((act) => {
+      const lead = leadsMap.get(act.leadId);
+      const opportunity = opportunitiesMap.get(act.leadId);
+      const quotation = opportunity ? quotationsMap.get(opportunity.id) : null;
+      
+      const prospectActivities = (activities as any[]).filter(a => a.leadId === act.leadId)
+        .sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
+
+      return {
+        ...act,
+        prospect: {
+            ...(lead || {}),
+            opportunity,
+            quotation,
+            activities: prospectActivities,
+        },
+        clientName: lead?.clientName || 'Cliente no encontrado',
+      };
+    });
 
     const filtered = showCompleted ? enriched : enriched.filter((act) => !act.completed);
 
@@ -185,7 +243,7 @@ export default function FollowUpsPage() {
       { title: 'Sin Fecha', activities: noDate.sort(sortByCreated), styleKey: 'muted' },
     ].filter(group => group.activities.length > 0);
 
-  }, [activities, leadsMap, showCompleted]);
+  }, [activities, leads, opportunities, quotations, showCompleted]);
   
   const handleToggleActivityComplete = (activityId: string, completed: boolean) => {
     if (!firestore) return;
@@ -200,7 +258,7 @@ export default function FollowUpsPage() {
 
   const handleEditActivityClick = (activity: any) => {
     setCurrentActivity(activity);
-    setCurrentClient(activity.client);
+    setCurrentProspect(activity.prospect);
     setIsFollowUpDialogOpen(true);
   };
 
@@ -221,14 +279,14 @@ export default function FollowUpsPage() {
   };
   
   const handleFollowUpSubmit = (payload: FollowUpSubmitPayload) => {
-    if (!currentClient || !firestore || !user || !userProfile) return;
+    if (!currentProspect || !firestore || !user || !userProfile) return;
 
     setIsSubmitting(true);
     const { id, observations, nextContactDate, nextContactType, contactChannels } = payload;
     const selectedChannels = contactChannels ? Object.entries(contactChannels).filter(([, value]) => value).map(([key]) => key) : [];
     
     const activityData: any = {
-        leadId: currentClient.id,
+        leadId: currentProspect.id,
         sellerId: user.uid,
         sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
         type: nextContactType || 'Nota',
@@ -249,7 +307,7 @@ export default function FollowUpsPage() {
     toast({ title: payload.id ? 'Seguimiento Actualizado' : 'Actividad Creada' });
     setIsFollowUpDialogOpen(false);
     setCurrentActivity(null);
-    setCurrentClient(null);
+    setCurrentProspect(null);
     setIsSubmitting(false);
   };
 
@@ -380,19 +438,19 @@ export default function FollowUpsPage() {
         )}
       </div>
 
-       {currentClient && (
+       {currentProspect && (
             <FollowUpDialog
                 open={isFollowUpDialogOpen}
                 onOpenChange={(isOpen) => {
                     if (!isOpen) {
                         setCurrentActivity(null);
-                        setCurrentClient(null);
+                        setCurrentProspect(null);
                     }
                     setIsFollowUpDialogOpen(isOpen);
                 }}
                 onConfirm={handleFollowUpSubmit}
                 isSubmitting={isSubmitting}
-                prospectName={currentClient.clientName}
+                prospect={currentProspect}
                 activity={currentActivity}
             />
         )}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-
+import { draftFollowUpScript, type DraftFollowUpScriptInput } from '@/ai/flows/draft-follow-up-script';
 
 const contactChannelItems = [
   'WhatsApp', 'Messenger', 'Llamada', 'Mensaje de Texto', 'Correo Electronico'
@@ -46,7 +46,7 @@ interface FollowUpDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: (payload: FollowUpSubmitPayload) => void;
   isSubmitting: boolean;
-  prospectName: string;
+  prospect: any;
   activity?: any;
 }
 
@@ -55,7 +55,7 @@ export function FollowUpDialog({
   onOpenChange,
   onConfirm,
   isSubmitting,
-  prospectName,
+  prospect,
   activity,
 }: FollowUpDialogProps) {
 
@@ -70,6 +70,7 @@ export function FollowUpDialog({
   const [observations, setObservations] = useState('');
   const [nextContactDate, setNextContactDate] = useState<Date>();
   const [nextContactType, setNextContactType] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -93,6 +94,46 @@ export function FollowUpDialog({
 
   const handleChannelChange = (channel: string, checked: boolean) => {
     setContactChannels((prev) => ({ ...prev, [channel]: checked }));
+  };
+
+  const handleGenerateDraft = async () => {
+    if (!prospect) {
+      toast({ title: "Error", description: "No se encontró el prospecto.", variant: "destructive" });
+      return;
+    }
+    if (!nextContactType || nextContactType === '') {
+      toast({ title: "Tipo de contacto requerido", description: "Seleccione un tipo de contacto antes de generar un borrador.", variant: "destructive" });
+      return;
+    }
+  
+    setIsGenerating(true);
+    try {
+      const pastInteractions = prospect.activities?.length > 0
+        ? prospect.activities
+            .slice(0, 5) // Limit to last 5 interactions for brevity
+            .map((act: any) => `- ${format(new Date(act.createdDate), "PP", { locale: es })}: ${act.type} - "${act.description || 'Sin descripción'}"`)
+            .join('\n')
+        : 'No hay interacciones pasadas.';
+      
+      const clientDetails = `Nombre: ${prospect.clientName}, Tipo: ${prospect.clientType}, Contacto: ${prospect.contactPerson}, Ubicación: ${prospect.city}, ${prospect.country}.`;
+  
+      const input: DraftFollowUpScriptInput = {
+        clientDetails,
+        followUpType: nextContactType,
+        salesPipelineStage: prospect.opportunity?.stage || 'No disponible',
+        quotationStatus: prospect.quotation?.status || 'No existe',
+        pastInteractions,
+      };
+  
+      const result = await draftFollowUpScript(input);
+      setObservations(result.draft);
+      
+    } catch(e) {
+      console.error("Error generating draft:", e);
+      toast({ title: "Error de IA", description: "No se pudo generar el borrador.", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleConfirm = () => {
@@ -129,7 +170,7 @@ export function FollowUpDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl" onPointerDownOutside={(e) => { if (e.target instanceof HTMLElement && e.target.closest('[data-radix-popper-content-wrapper]')) { e.preventDefault(); } }}>
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar' : 'Nuevo'} Seguimiento para {prospectName}</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar' : 'Nuevo'} Seguimiento para {prospect.clientName}</DialogTitle>
           <DialogDescription>
              {isEditing ? 'Modifique los detalles de esta actividad.' : 'Registre una nueva interacción o agende el próximo contacto para este prospecto.'}
           </DialogDescription>
@@ -153,16 +194,6 @@ export function FollowUpDialog({
                 </div>
             </div>
             
-            <div className="space-y-2">
-                <Label htmlFor="observations" className="font-medium text-sm text-foreground">OBSERVACIONES</Label>
-                <Textarea
-                id="observations"
-                placeholder="Escriba aquí sus observaciones sobre la interacción..."
-                value={observations}
-                onChange={(e) => setObservations(e.target.value)}
-                />
-            </div>
-
             <div className="space-y-3">
                 <Label className="font-medium text-sm text-foreground">AGENDAR PRÓXIMO CONTACTO (OPCIONAL)</Label>
                 <div className="grid grid-cols-2 gap-4">
@@ -200,10 +231,38 @@ export function FollowUpDialog({
                     <SelectItem value="Llamada">LLAMADA</SelectItem>
                     <SelectItem value="Mensaje">MENSAJE</SelectItem>
                     <SelectItem value="Correo">CORREO</SelectItem>
+                    <SelectItem value="Reunión">REUNIÓN</SelectItem>
                     <SelectItem value="Nota">NOTA</SelectItem>
                     </SelectContent>
                 </Select>
                 </div>
+            </div>
+
+            <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                    <Label htmlFor="observations" className="font-medium text-sm text-foreground">OBSERVACIONES</Label>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateDraft}
+                        disabled={isGenerating || !nextContactType}
+                    >
+                        {isGenerating ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Sparkles className="mr-2 h-4 w-4" />
+                        )}
+                        Generar borrador
+                    </Button>
+                </div>
+                <Textarea
+                  id="observations"
+                  placeholder="Escriba sus observaciones o genere un borrador con IA..."
+                  value={observations}
+                  onChange={(e) => setObservations(e.target.value)}
+                  className="min-h-[120px]"
+                />
             </div>
         </div>
         <DialogFooter>
@@ -218,6 +277,3 @@ export function FollowUpDialog({
     </Dialog>
   );
 }
-
-    
-
