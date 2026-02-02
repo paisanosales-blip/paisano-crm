@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export default function QuotationsPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
@@ -126,6 +127,25 @@ export default function QuotationsPage() {
 
     }, [quotations, opportunities, leads, isLoading]);
 
+    const groupedQuotations = React.useMemo(() => {
+        if (!enrichedQuotations) return {};
+        const groups = enrichedQuotations.reduce((acc, quote) => {
+            const clientName = quote.clientName || 'Cliente Desconocido';
+            if (!acc[clientName]) {
+                acc[clientName] = [];
+            }
+            acc[clientName].push(quote);
+            return acc;
+        }, {} as Record<string, any[]>);
+
+        // Sort quotes within each group by version
+        Object.values(groups).forEach(quotes => {
+            quotes.sort((a, b) => Number(b.version) - Number(a.version));
+        });
+
+        return groups;
+    }, [enrichedQuotations]);
+
     const handleDeleteClick = (quotation: any) => {
         setQuotationToDelete(quotation);
         setIsDeleteDialogOpen(true);
@@ -199,83 +219,90 @@ export default function QuotationsPage() {
                     <CardTitle>Historial de Cotizaciones</CardTitle>
                     <CardDescription>Rastrea y gestiona todas las cotizaciones de clientes generadas desde el flujo de ventas.</CardDescription>
                 </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Cliente</TableHead>
-                                <TableHead>Valor</TableHead>
-                                <TableHead>Estado</TableHead>
-                                <TableHead>Versión</TableHead>
-                                <TableHead>Fecha</TableHead>
-                                <TableHead>PDF</TableHead>
-                                <TableHead><span className="sr-only">Acciones</span></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                             {isLoading ? (
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <TableRow key={i}>
-                                    <TableCell colSpan={7}>
-                                        <Skeleton className="h-10 w-full" />
-                                    </TableCell>
-                                    </TableRow>
-                                ))
-                            ) : enrichedQuotations.length > 0 ? (
-                                enrichedQuotations.map(quote => {
-                                    const statusVariant : 'default' | 'secondary' | 'destructive' | 'outline' = {
-                                        'Enviada': 'default',
-                                        'Aceptada': 'secondary',
-                                        'Rechazada': 'destructive',
-                                        'Borrador': 'outline',
-                                    }[quote.status as string] || 'default';
-
-                                    return (
-                                    <TableRow key={quote.id}>
-                                        <TableCell className="font-semibold">{quote.clientName}</TableCell>
-                                        <TableCell>{new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency }).format(quote.value)}</TableCell>
-                                        <TableCell><Badge variant={statusVariant}>{quote.status}</Badge></TableCell>
-                                        <TableCell className="text-center">v{quote.version}</TableCell>
-                                        <TableCell>{new Date(quote.createdDate).toLocaleDateString()}</TableCell>
-                                        <TableCell>
-                                            <Button asChild variant="outline" size="sm" disabled={!quote.pdfUrl}>
-                                                <a href={quote.pdfUrl} target="_blank" rel="noopener noreferrer">
-                                                    <FileDown className="mr-2 h-3 w-3"/>
-                                                    Descargar
-                                                </a>
-                                            </Button>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button aria-haspopup="true" size="icon" variant="ghost">
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                        <span className="sr-only">Toggle menu</span>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                                    <DropdownMenuItem disabled>Editar</DropdownMenuItem>
-                                                    <DropdownMenuItem disabled>Crear Nueva Versión</DropdownMenuItem>
-                                                    <DropdownMenuItem className="text-destructive" onSelect={() => handleDeleteClick(quote)}>Eliminar</DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
-                                    </TableRow>
-                                    )
-                                })
-                             ) : (
-                                <TableRow>
-                                    <TableCell
-                                    colSpan={7}
-                                    className="h-24 text-center"
-                                    >
-                                    No se encontraron cotizaciones.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
+                 <CardContent className="px-2 pt-2">
+                    {isLoading ? (
+                        <div className="p-4">
+                            <Skeleton className="h-48 w-full" />
+                        </div>
+                    ) : Object.keys(groupedQuotations).length > 0 ? (
+                        <Accordion type="single" collapsible className="w-full">
+                            {Object.entries(groupedQuotations)
+                            .sort((a, b) => a[0].localeCompare(b[0]))
+                            .map(([clientName, quotes]) => (
+                                <AccordionItem value={clientName} key={clientName}>
+                                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 rounded-md">
+                                        <div className="flex items-center gap-4">
+                                            <span className="font-semibold text-base">{clientName}</span>
+                                            <Badge variant="secondary">{quotes.length} {quotes.length === 1 ? 'cotización' : 'cotizaciones'}</Badge>
+                                        </div>
+                                    </AccordionTrigger>
+                                    <AccordionContent className="pt-0">
+                                        <div className="border-t">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead className="w-[120px]">Valor</TableHead>
+                                                        <TableHead>Estado</TableHead>
+                                                        <TableHead>Versión</TableHead>
+                                                        <TableHead>Fecha</TableHead>
+                                                        <TableHead>PDF</TableHead>
+                                                        <TableHead className="text-right">Acciones</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {quotes.map(quote => {
+                                                        const statusVariant : 'default' | 'secondary' | 'destructive' | 'outline' = {
+                                                            'Enviada': 'default',
+                                                            'Aceptada': 'secondary',
+                                                            'Rechazada': 'destructive',
+                                                            'Borrador': 'outline',
+                                                        }[quote.status as string] || 'default';
+                    
+                                                        return (
+                                                        <TableRow key={quote.id}>
+                                                            <TableCell>{new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency }).format(quote.value)}</TableCell>
+                                                            <TableCell><Badge variant={statusVariant}>{quote.status}</Badge></TableCell>
+                                                            <TableCell className="text-center">v{quote.version}</TableCell>
+                                                            <TableCell>{new Date(quote.createdDate).toLocaleDateString()}</TableCell>
+                                                            <TableCell>
+                                                                <Button asChild variant="outline" size="sm" disabled={!quote.pdfUrl}>
+                                                                    <a href={quote.pdfUrl} target="_blank" rel="noopener noreferrer">
+                                                                        <FileDown className="mr-2 h-3 w-3"/>
+                                                                        Descargar
+                                                                    </a>
+                                                                </Button>
+                                                            </TableCell>
+                                                            <TableCell className="text-right">
+                                                                <DropdownMenu>
+                                                                    <DropdownMenuTrigger asChild>
+                                                                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                                            <MoreHorizontal className="h-4 w-4" />
+                                                                            <span className="sr-only">Toggle menu</span>
+                                                                        </Button>
+                                                                    </DropdownMenuTrigger>
+                                                                    <DropdownMenuContent align="end">
+                                                                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                                        <DropdownMenuItem disabled>Editar</DropdownMenuItem>
+                                                                        <DropdownMenuItem disabled>Crear Nueva Versión</DropdownMenuItem>
+                                                                        <DropdownMenuItem className="text-destructive" onSelect={() => handleDeleteClick(quote)}>Eliminar</DropdownMenuItem>
+                                                                    </DropdownMenuContent>
+                                                                </DropdownMenu>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                        )
+                                                    })}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    </AccordionContent>
+                                </AccordionItem>
+                            ))}
+                        </Accordion>
+                    ) : (
+                        <div className="h-24 text-center flex items-center justify-center p-6 pt-0">
+                            <p>No se encontraron cotizaciones.</p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
