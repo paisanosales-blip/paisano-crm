@@ -119,7 +119,7 @@ export default function NewQuotationPage() {
     const LIGHT_GRAY = '#F5F5F5';
 
     // --- HEADER ---
-    const headerY = -5;
+    const headerY = 15;
     let imgHeight = 0;
 
     if (logoUrl) {
@@ -147,14 +147,12 @@ export default function NewQuotationPage() {
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, headerY + 19, { align: 'right' });
     doc.text('RFC: SPA150217AM3', docWidth - margin, headerY + 23, { align: 'right' });
 
-    // Determine the bottom of the entire header block by checking logo and text height
     const logoBottom = headerY + imgHeight;
-    const textBottom = headerY + 23; // Bottom of the RFC text line
+    const textBottom = headerY + 23;
     const headerBottom = Math.max(logoBottom, textBottom);
     
-    currentY = headerBottom + 8; // Position separator below the lowest element
+    currentY = headerBottom + 4;
 
-    // Decorative Separator
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
     doc.line(margin, currentY, docWidth - margin, currentY);
@@ -162,7 +160,7 @@ export default function NewQuotationPage() {
     doc.setLineWidth(0.3);
     doc.line(margin, currentY + 1.5, docWidth - margin, currentY + 1.5);
 
-    currentY += 12; // Add space after separator
+    currentY += 12;
 
 
     // --- QUOTATION DETAILS ---
