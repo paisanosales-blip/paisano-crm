@@ -117,30 +117,29 @@ export default function NewQuotationPage() {
     const RED = '#8B0000';
     const BLACK = '#000000';
     const LIGHT_GRAY = '#F5F5F5';
-
+    
     // --- HEADER ---
     const headerY = -5;
     const textHeaderY = 20;
-    let imgHeight = 0;
 
     if (logoUrl) {
-        try {
-            const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
-            const img = new Image();
-            img.src = logoUrl;
-            const imgWidth = 90;
-            imgHeight = img.height * (imgWidth / img.width);
-            doc.addImage(logoUrl, format.toUpperCase(), margin, headerY, imgWidth, imgHeight, undefined, 'NONE');
-        } catch (e) {
-            console.error("Error adding logo image to PDF:", e);
-        }
+      try {
+        const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
+        const img = new Image();
+        img.src = logoUrl;
+        const imgWidth = 90;
+        const imgHeight = img.height * (imgWidth / img.width);
+        doc.addImage(logoUrl, format.toUpperCase(), margin, headerY, imgWidth, imgHeight, undefined, 'NONE');
+      } catch (e) {
+        console.error("Error adding logo image to PDF:", e);
+      }
     }
-    
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(BLACK);
     doc.text('PAISANO TRAILER', docWidth - margin, textHeaderY, { align: 'right', baseline: 'top' });
-    
+
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(100);
@@ -151,18 +150,15 @@ export default function NewQuotationPage() {
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
     doc.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
 
-    currentY = 20;
-
+    const separatorY = 50;
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
-    doc.line(margin, 50, docWidth - margin, 50);
+    doc.line(margin, separatorY, docWidth - margin, separatorY);
     doc.setDrawColor(BLACK);
     doc.setLineWidth(0.3);
-    doc.line(margin, 50 + 1.5, docWidth - margin, 50 + 1.5);
-
-    // Ensure next content starts below the lowest element (header or separator) + padding
-    currentY = 50 + 12;
-
+    doc.line(margin, separatorY + 1.5, docWidth - margin, separatorY + 1.5);
+    
+    currentY = separatorY + 12;
 
     // --- QUOTATION DETAILS ---
     const quoteDetailsX = docWidth - margin;
@@ -271,6 +267,8 @@ export default function NewQuotationPage() {
     currentY = lineY;
     doc.setTextColor(BLACK);
 
+    currentY += 12;
+
     const addSection = (title: string, content: string, fontSize: number) => {
       const lines = doc.splitTextToSize(content.toUpperCase(), docWidth - (margin * 2));
       const sectionHeight = (lines.length * (fontSize / 2.5)) + 8;
@@ -283,10 +281,9 @@ export default function NewQuotationPage() {
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(fontSize);
       doc.text(title.toUpperCase(), margin, currentY);
-      currentY += 4;
       doc.setFont('helvetica', 'normal');
-      doc.text(lines, margin, currentY);
-      currentY += (lines.length * (fontSize / 2.5));
+      doc.text(lines, margin, currentY + 4);
+      currentY += (lines.length * (fontSize / 2.5)) + 4;
     };
 
     if (quotationDetails.terms) {
