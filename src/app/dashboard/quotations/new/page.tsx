@@ -151,7 +151,7 @@ export default function NewQuotationPage() {
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
     doc.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
 
-    currentY = 50;
+    currentY = 47;
 
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
