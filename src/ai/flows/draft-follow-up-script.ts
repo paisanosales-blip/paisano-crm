@@ -11,7 +11,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const DraftFollowUpScriptInputSchema = z.object({
+const DraftFollowUpScriptInputSchema = z.object({
   clientDetails: z.string().describe('Details about the client and their needs.'),
   followUpType: z.string().describe('The type of follow-up being made (e.g., "Llamada", "Correo", "Mensaje").'),
   salesPipelineStage: z.string().describe('The current stage of the client in the sales pipeline.'),
@@ -20,7 +20,7 @@ export const DraftFollowUpScriptInputSchema = z.object({
 });
 export type DraftFollowUpScriptInput = z.infer<typeof DraftFollowUpScriptInputSchema>;
 
-export const DraftFollowUpScriptOutputSchema = z.object({
+const DraftFollowUpScriptOutputSchema = z.object({
   draft: z.string().describe('The generated script or draft for the follow-up.'),
 });
 export type DraftFollowUpScriptOutput = z.infer<typeof DraftFollowUpScriptOutputSchema>;
