@@ -266,6 +266,15 @@
           "type": "string",
           "description": "Date when the sale was closed.",
           "format": "date-time"
+        },
+        "financiamientoExternoNotes": {
+          "type": "string",
+          "description": "Observations from the external financing stage."
+        },
+        "financiamientoExternoDate": {
+          "type": "string",
+          "description": "Date when the opportunity was moved to external financing.",
+          "format": "date-time"
         }
       },
       "required": [

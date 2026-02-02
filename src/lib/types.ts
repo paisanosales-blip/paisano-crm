@@ -15,14 +15,15 @@ export type Client = {
   createdAt: string;
 };
 
-export type OpportunityStage = 'Primer contacto' | 'Envió de Información' | 'Envió de Cotización' | 'Negociación' | 'Cierre de venta';
+export type OpportunityStage = 'Primer contacto' | 'Envió de Información' | 'Envió de Cotización' | 'Negociación' | 'Cierre de venta' | 'Financiamiento Externo';
 
-export type ClientClassification = 'PROSPECTO' | 'CLIENTE POTENCIAL' | 'CLIENTE';
+export type ClientClassification = 'PROSPECTO' | 'CLIENTE POTENCIAL' | 'CLIENTE' | 'FINANCIAMIENTO';
 
 export const getClassification = (stage: OpportunityStage): ClientClassification => {
     if (stage === 'Primer contacto' || stage === 'Envió de Información') return 'PROSPECTO';
     if (stage === 'Envió de Cotización' || stage === 'Negociación') return 'CLIENTE POTENCIAL';
     if (stage === 'Cierre de venta') return 'CLIENTE';
+    if (stage === 'Financiamiento Externo') return 'FINANCIAMIENTO';
     return 'PROSPECTO';
 };
 
@@ -54,6 +55,8 @@ export type Opportunity = {
   deliveryTimeConfirmed?: boolean;
   closingNotes?: string;
   closingDate?: string;
+  financiamientoExternoNotes?: string;
+  financiamientoExternoDate?: string;
 };
 
 export type Quotation = {

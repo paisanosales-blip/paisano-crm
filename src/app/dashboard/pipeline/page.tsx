@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -73,6 +73,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { QuotationGeneratorDialog } from '@/components/quotation-generator-dialog';
+import { FinancingDialog, type FinancingConfirmPayload } from '@/components/financing-dialog';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -83,6 +84,7 @@ const filterButtonLabels: Record<OpportunityStage | 'Todos', string> = {
     'Envió de Cotización': 'COTIZACIÓN',
     'Negociación': 'NEGOCIACIÓN',
     'Cierre de venta': 'CIERRE',
+    'Financiamiento Externo': 'FINANCIAMIENTO',
 };
 
 // Helper function to get classification
@@ -90,6 +92,7 @@ const getClassification = (stage: OpportunityStage): ClientClassification => {
     if (stage === 'Primer contacto' || stage === 'Envió de Información') return 'PROSPECTO';
     if (stage === 'Envió de Cotización' || stage === 'Negociación') return 'CLIENTE POTENCIAL';
     if (stage === 'Cierre de venta') return 'CLIENTE';
+    if (stage === 'Financiamiento Externo') return 'FINANCIAMIENTO';
     return 'PROSPECTO';
 };
 
@@ -103,6 +106,7 @@ export default function PipelinePage() {
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [negotiationDialogOpen, setNegotiationDialogOpen] = useState(false);
   const [closingDialogOpen, setClosingDialogOpen] = useState(false);
+  const [financingDialogOpen, setFinancingDialogOpen] = useState(false);
   const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
   const [currentProspect, setCurrentProspect] = useState<any | null>(null);
   const [currentActivity, setCurrentActivity] = useState<any | null>(null);
@@ -221,12 +225,15 @@ export default function PipelinePage() {
     const currentIndex = stages.indexOf(prospect.opportunity.stage);
     const newIndex = stages.indexOf(newStage);
 
-    if (newIndex < currentIndex) {
-      // Moving backwards
-      handleStageChange(prospect.opportunity.id, newStage);
+    if (newStage === 'Financiamiento Externo') {
+      setFinancingDialogOpen(true);
       return;
     }
 
+    if (prospect.opportunity.stage === 'Financiamiento Externo' || (currentIndex !== -1 && newIndex < currentIndex)) {
+      handleStageChange(prospect.opportunity.id, newStage);
+      return;
+    }
 
     if (prospect.opportunity.stage === 'Primer contacto' && newStage === 'Envió de Información') {
         setInfoSentDialogOpen(true);
@@ -563,6 +570,33 @@ export default function PipelinePage() {
     }
   };
 
+  const handleFinancingConfirm = async (payload: FinancingConfirmPayload) => {
+    if (!currentProspect || !firestore || !user) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
+      const updateData = {
+        ...payload,
+        stage: 'Financiamiento Externo',
+        financiamientoExternoDate: new Date().toISOString(),
+        sellerId: user.uid,
+      };
+      await updateDoc(opportunityRef, updateData);
+      toast({ title: 'Éxito', description: `Prospecto movido a: Financiamiento Externo` });
+      router.refresh();
+    } catch (error) {
+      console.error("Error moving to financing:", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo mover el prospecto.' });
+    } finally {
+      setFinancingDialogOpen(false);
+      setCurrentProspect(null);
+      setIsSubmitting(false);
+    }
+  };
+
   const handleFollowUpSubmit = (payload: FollowUpSubmitPayload) => {
     if (!currentProspect || !firestore || !user || !userProfile) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
@@ -654,13 +688,14 @@ export default function PipelinePage() {
     return prospect.opportunity?.stage === filterStage;
   });
   
-  const allStagesForFilter: Array<OpportunityStage | 'Todos'> = ['Todos', ...stages];
+  const allStagesForFilter: Array<OpportunityStage | 'Todos'> = ['Todos', ...stages, 'Financiamiento Externo'];
 
   const getBadgeClass = (classification: ClientClassification) => {
     switch (classification) {
         case 'PROSPECTO': return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700';
         case 'CLIENTE POTENCIAL': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/80 dark:text-blue-200 dark:border-blue-800';
         case 'CLIENTE': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/80 dark:text-green-200 dark:border-green-800';
+        case 'FINANCIAMIENTO': return 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/80 dark:text-amber-200 dark:border-amber-800';
         default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700';
     }
   };
@@ -721,7 +756,8 @@ export default function PipelinePage() {
           filteredProspects.map(prospect => {
             if (!prospect.opportunity) return null;
             const classification = getClassification(prospect.opportunity.stage);
-            const currentIndex = stages.indexOf(prospect.opportunity.stage);
+            const isFinancingStage = prospect.opportunity.stage === 'Financiamiento Externo';
+            const currentIndex = isFinancingStage ? -1 : stages.indexOf(prospect.opportunity.stage);
             
             const summaryTabsConfig = [
               { key: 'info', name: 'Info. Enviada', stageIndex: 1 },
@@ -748,6 +784,10 @@ export default function PipelinePage() {
                       <DropdownMenuContent>
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                         <DropdownMenuItem onSelect={() => handleEditClick(prospect)}>Editar</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => requestStageChange(prospect, 'Financiamiento Externo')}>
+                            <Landmark className="mr-2 h-4 w-4" />
+                            <span>Financiamiento Externo</span>
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                 </CardHeader>
@@ -880,11 +920,10 @@ export default function PipelinePage() {
                     </div>
                     <div className="flex items-center">
                         {stages.map((stage, index) => {
-                            const currentIndex = stages.indexOf(prospect.opportunity.stage);
-                            const isCompleted = index < currentIndex;
-                            const isCurrent = index === currentIndex;
+                            const isCompleted = currentIndex > index;
+                            const isCurrent = currentIndex === index;
                             const isNext = index === currentIndex + 1;
-                            const canMoveTo = isNext || isCompleted || index < currentIndex;
+                            const canMoveTo = isNext || isCompleted || index < currentIndex || isFinancingStage;
 
                             return (
                                 <React.Fragment key={stage}>
@@ -893,7 +932,7 @@ export default function PipelinePage() {
                                         className={cn(
                                             'relative flex flex-col items-center gap-1.5 text-center transition-opacity w-28',
                                             (canMoveTo) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
-                                            !isCompleted && !isCurrent && !isNext && 'opacity-50'
+                                            !isFinancingStage && !isCompleted && !isCurrent && !isNext && 'opacity-50'
                                         )}
                                         title={canMoveTo ? `Mover a: ${stage}` : stage}
                                     >
@@ -1160,6 +1199,18 @@ export default function PipelinePage() {
           onConfirm={handleClosingConfirm}
           opportunity={currentProspect.opportunity}
           isSubmitting={isSubmitting}
+      />
+    )}
+    {currentProspect && (
+      <FinancingDialog
+        open={financingDialogOpen}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setCurrentProspect(null);
+          setFinancingDialogOpen(isOpen);
+        }}
+        onConfirm={handleFinancingConfirm}
+        prospectName={currentProspect.clientName}
+        isSubmitting={isSubmitting}
       />
     )}
     {currentProspect && (

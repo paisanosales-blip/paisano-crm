@@ -9,7 +9,7 @@ import {
 } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, DollarSign, Target, UserCheck, Users, FileText, UserX } from 'lucide-react';
+import { TrendingUp, DollarSign, Target, UserCheck, Users, FileText, UserX, Landmark } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -86,20 +86,27 @@ export default function DashboardPage() {
             return isWithinInterval(itemDate, { start, end });
         });
 
+        const opportunitiesMovedToFinancingInMonth = (allOpportunities || []).filter(item => {
+            if (!item.financiamientoExternoDate || item.stage !== 'Financiamiento Externo') return false;
+            const itemDate = new Date(item.financiamientoExternoDate);
+            return isWithinInterval(itemDate, { start, end });
+        });
+
         return {
             monthlyData: {
                 opportunities: opportunitiesCreatedInMonth,
                 quotations: quotationsCreatedInMonth,
                 closedOpportunities: opportunitiesClosedInMonth,
+                movedToFinancing: opportunitiesMovedToFinancingInMonth,
             }
         }
 
     }, [currentMonth, allOpportunities, allQuotations]);
 
     const dashboardStats = React.useMemo(() => {
-        const { opportunities, quotations, closedOpportunities } = monthlyData;
+        const { opportunities, quotations, closedOpportunities, movedToFinancing } = monthlyData;
 
-        if (!opportunities || !quotations || !closedOpportunities) {
+        if (!opportunities || !quotations || !closedOpportunities || !movedToFinancing) {
             return {
                 prospectosActivos: 0,
                 clientesPotenciales: 0,
@@ -108,6 +115,7 @@ export default function DashboardPage() {
                 ingresosTotales: 0,
                 clientesNoAtendidos: 0,
                 cotizacionesHechas: 0,
+                clientesEnFinanciamiento: 0,
             };
         }
         
@@ -144,6 +152,7 @@ export default function DashboardPage() {
             ingresosTotales,
             clientesNoAtendidos: prospectosNoAtendidos,
             cotizacionesHechas: quotations.length,
+            clientesEnFinanciamiento: movedToFinancing.length,
         };
     }, [monthlyData]);
 
@@ -185,7 +194,7 @@ export default function DashboardPage() {
             </div>
             {isLoading ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    {Array.from({length: 7}).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
+                    {Array.from({length: 8}).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
                 </div>
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
@@ -257,6 +266,16 @@ export default function DashboardPage() {
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.clientesNoAtendidos}</div>
                             <p className="text-xs text-muted-foreground">Nuevas oportunidades que siguen en 'Primer contacto'.</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Financiamiento Externo</CardTitle>
+                            <Landmark className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{dashboardStats.clientesEnFinanciamiento}</div>
+                            <p className="text-xs text-muted-foreground">Movidos a financiamiento este mes.</p>
                         </CardContent>
                     </Card>
                 </div>
