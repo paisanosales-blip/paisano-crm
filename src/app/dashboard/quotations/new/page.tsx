@@ -151,17 +151,17 @@ export default function NewQuotationPage() {
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
     doc.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
 
-    currentY = 47;
+    currentY = 20;
 
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
-    doc.line(margin, currentY, docWidth - margin, currentY);
+    doc.line(margin, 50, docWidth - margin, 50);
     doc.setDrawColor(BLACK);
     doc.setLineWidth(0.3);
-    doc.line(margin, currentY + 1.5, docWidth - margin, currentY + 1.5);
+    doc.line(margin, 50 + 1.5, docWidth - margin, 50 + 1.5);
 
     // Ensure next content starts below the lowest element (header or separator) + padding
-    currentY += 12;
+    currentY = 50 + 12;
 
 
     // --- QUOTATION DETAILS ---
@@ -278,8 +278,6 @@ export default function NewQuotationPage() {
       if (currentY + sectionHeight > pageHeight - 45) {
         doc.addPage();
         currentY = margin;
-      } else {
-        currentY += 10;
       }
       
       doc.setFont('helvetica', 'bold');
