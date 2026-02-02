@@ -56,6 +56,7 @@ export default function NewQuotationPage() {
     { description: '', quantity: 1, price: 0 },
   ]);
   const [freight, setFreight] = useState(0);
+  const [freightTo, setFreightTo] = useState('');
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [quotationDetails, setQuotationDetails] = useState<QuotationDetails>({
     number: `QT-${Date.now().toString().slice(-6)}`,
@@ -99,6 +100,10 @@ export default function NewQuotationPage() {
   const generatePdf = () => {
     if (!selectedClient) {
       alert('PLEASE SELECT A CLIENT.');
+      return;
+    }
+    if (freight > 0 && !freightTo.trim()) {
+      alert('FREIGHT DESTINATION IS REQUIRED WHEN FREIGHT AMOUNT IS ADDED.');
       return;
     }
 
@@ -190,7 +195,7 @@ export default function NewQuotationPage() {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.text(quotationDetails.number.toUpperCase(), quoteDetailsX, finalY + infoBoxHeight + 10, { align: 'right' });
-    doc.text(new Date().toLocaleDateString('en-GB').toUpperCase(), quoteDetailsX, finalY + infoBoxHeight + 16, { align: 'right' });
+    doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, finalY + infoBoxHeight + 16, { align: 'right' });
     doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, finalY + infoBoxHeight + 22, { align: 'right' });
 
     finalY = finalY + infoBoxHeight + 35;
@@ -223,26 +228,43 @@ export default function NewQuotationPage() {
     
     // --- TOTALS ---
     const totalsY = finalY + 10;
+    let lineY = totalsY;
     doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
     
+    // Subtotal
+    doc.setFont('helvetica', 'bold');
+    doc.text('SUBTOTAL:', docWidth - 70, lineY, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.text(`$${subtotal.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+    lineY += 7;
+
+    // Freight
+    if (freight > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('FREIGHT TO:', docWidth - 70, lineY, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.text(freightTo.toUpperCase(), docWidth - margin, lineY, { align: 'right' });
+      lineY += 7;
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text('FREIGHT AMOUNT:', docWidth - 70, lineY, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.text(`$${freight.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+    }
+
+    // Total
+    const totalY = lineY + 7;
     doc.setDrawColor(BLACK);
     doc.setLineWidth(0.2);
-    doc.line(docWidth - 80, totalsY + 14, docWidth - margin, totalsY + 14);
-
-    doc.text('SUBTOTAL:', docWidth - 70, totalsY, { align: 'right' });
-    doc.text('FREIGHT:', docWidth - 70, totalsY + 7, { align: 'right' });
-    doc.text('TOTAL:', docWidth - 70, totalsY + 21, { align: 'right' });
-    
-    doc.setFont('helvetica', 'normal');
-    doc.text(`$${subtotal.toFixed(2)}`, docWidth - margin, totalsY, { align: 'right' });
-    doc.text(`$${freight.toFixed(2)}`, docWidth - margin, totalsY + 7, { align: 'right' });
+    doc.line(docWidth - 80, totalY, docWidth - margin, totalY);
+    lineY = totalY + 7;
     
     doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL:', docWidth - 70, lineY, { align: 'right' });
     doc.setTextColor(RED);
-    doc.text(`$${total.toFixed(2)} DOLLARS`, docWidth - margin, totalsY + 21, { align: 'right' });
+    doc.text(`$${total.toFixed(2)} DOLLARS`, docWidth - margin, lineY, { align: 'right' });
     
-    let currentY = totalsY + 35;
+    let currentY = lineY + 14;
     doc.setTextColor(BLACK);
 
     // --- TERMS, NOTES ---
@@ -418,13 +440,29 @@ export default function NewQuotationPage() {
 
               <div className="flex justify-end">
                   <div className="w-full max-w-sm space-y-4">
-                      <div className="flex justify-between items-center">
-                          <Label>FREIGHT</Label>
-                          <Input type="number" value={freight} onChange={(e) => setFreight(Number(e.target.value))} className="w-32" />
-                      </div>
                       <div className="flex justify-between items-center font-medium">
                           <p>SUBTOTAL:</p>
                           <p>${subtotal.toFixed(2)}</p>
+                      </div>
+                      <div className="flex justify-between items-center">
+                          <Label htmlFor="freight-to">FREIGHT TO:</Label>
+                          <Input
+                              id="freight-to"
+                              placeholder="Destination"
+                              value={freightTo}
+                              onChange={(e) => setFreightTo(e.target.value)}
+                              className="w-48"
+                          />
+                      </div>
+                      <div className="flex justify-between items-center">
+                          <Label htmlFor="freight-amount">FREIGHT AMOUNT</Label>
+                          <Input
+                              id="freight-amount"
+                              type="number"
+                              value={freight}
+                              onChange={(e) => setFreight(Number(e.target.value))}
+                              className="w-32"
+                          />
                       </div>
                       <div className="flex justify-between items-center text-lg font-bold">
                           <p>TOTAL:</p>
