@@ -122,7 +122,8 @@ export default function NewQuotationPage() {
     if (logoUrl) {
         try {
             const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
-            doc.addImage(logoUrl, format.toUpperCase(), margin, 15, 80, 20);
+            // Use 0 for height to maintain aspect ratio
+            doc.addImage(logoUrl, format.toUpperCase(), margin, 15, 90, 0); 
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
         }
@@ -149,7 +150,7 @@ export default function NewQuotationPage() {
     doc.setLineWidth(0.3);
     doc.line(margin, 51.5, docWidth - margin, 51.5);
 
-    finalY = 55;
+    finalY = 62; // Increased space after separator
 
     // --- QUOTATION DETAILS ---
     doc.setFont('helvetica', 'bold');
@@ -200,7 +201,7 @@ export default function NewQuotationPage() {
     doc.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 15);
     if(selectedClient.email) doc.text(selectedClient.email.toUpperCase(), rightColX + 3, infoStartY + 20);
 
-    finalY = infoStartY + infoBoxHeight + 10;
+    finalY = infoStartY + infoBoxHeight + 8; // Optimized space
 
     // --- PRODUCTS TABLE ---
     const tableColumn = ["DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"];
@@ -229,7 +230,7 @@ export default function NewQuotationPage() {
     let currentY = (doc as any).autoTable.previous.finalY;
     
     // --- TOTALS ---
-    const totalsY = currentY + 8;
+    const totalsY = currentY + 6; // Optimized space
     let lineY = totalsY;
     doc.setFontSize(11);
     
@@ -251,7 +252,7 @@ export default function NewQuotationPage() {
     }
 
     // Total
-    const totalY = lineY + 7;
+    const totalY = lineY + 2; // Optimized space
     doc.setDrawColor(BLACK);
     doc.setLineWidth(0.2);
     doc.line(docWidth - 80, totalY, docWidth - margin, totalY);
@@ -265,19 +266,6 @@ export default function NewQuotationPage() {
     currentY = lineY + 10;
     doc.setTextColor(BLACK);
 
-    // --- APPROVAL SIGNATURE ---
-    if (currentY > pageHeight - 60) { // Check if space for signature and notes
-        doc.addPage();
-        currentY = margin;
-    }
-    const sigY = currentY + 20;
-    const sigWidth = 80;
-    const sigXStart = (docWidth - sigWidth) / 2;
-    doc.line(sigXStart, sigY, sigXStart + sigWidth, sigY);
-    doc.setFontSize(9);
-    doc.text('APPROVAL SIGNATURE', docWidth / 2, sigY + 5, { align: 'center' });
-    currentY = sigY + 10;
-
     // --- TERMS, NOTES ---
     if (quotationDetails.notes) {
        if (currentY > pageHeight - 35) { doc.addPage(); currentY = margin; }
@@ -288,7 +276,7 @@ export default function NewQuotationPage() {
       doc.setFontSize(8);
       const notesLines = doc.splitTextToSize(quotationDetails.notes.toUpperCase(), docWidth - (margin * 2));
       doc.text(notesLines, margin, currentY + 4);
-      currentY += (notesLines.length * 3.5) + 8;
+      currentY += (notesLines.length * 3.5) + 6; // Optimized space
     }
 
     if (quotationDetails.terms) {
@@ -300,8 +288,21 @@ export default function NewQuotationPage() {
       doc.setFontSize(8);
       const termsLines = doc.splitTextToSize(quotationDetails.terms.toUpperCase(), docWidth - (margin * 2));
       doc.text(termsLines, margin, currentY + 4);
-      currentY += (termsLines.length * 3.5) + 8;
+      currentY += (termsLines.length * 3.5) + 6; // Optimized space
     }
+
+    // --- APPROVAL SIGNATURE ---
+    if (currentY > pageHeight - 60) { // Check if space for signature
+        doc.addPage();
+        currentY = margin;
+    }
+    currentY += 20; // Add space before signature
+    
+    const sigWidth = 80;
+    const sigXStart = (docWidth - sigWidth) / 2;
+    doc.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
+    doc.setFontSize(9);
+    doc.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
     
     let pageCount = (doc as any).internal.getNumberOfPages();
     
