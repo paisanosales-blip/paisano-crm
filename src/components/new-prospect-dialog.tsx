@@ -199,7 +199,7 @@ export function NewProspectDialog() {
           NUEVO PROSPECTO
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[625px]">
+      <DialogContent className="sm:max-w-[625px]" onPointerDownOutside={(e) => { if (e.target instanceof HTMLElement && e.target.closest('[data-radix-popper-content-wrapper]')) { e.preventDefault(); } }}>
         <DialogHeader>
           <DialogTitle>CREAR NUEVO PROSPECTO</DialogTitle>
           <DialogDescription>

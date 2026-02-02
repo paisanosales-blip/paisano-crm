@@ -123,7 +123,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="sm:max-w-[525px]" onPointerDownOutside={(e) => { if (e.target instanceof HTMLElement && e.target.closest('[data-radix-popper-content-wrapper]')) { e.preventDefault(); } }}>
         <DialogHeader>
           <DialogTitle>{isEditing ? 'EDITAR' : 'NUEVO'} PRODUCTO</DialogTitle>
           <DialogDescription>

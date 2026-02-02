@@ -397,7 +397,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+    <DialogContent className="max-w-4xl h-[90vh] flex flex-col" onPointerDownOutside={(e) => { if (e.target instanceof HTMLElement && e.target.closest('[data-radix-popper-content-wrapper]')) { e.preventDefault(); } }}>
         <DialogHeader>
           <DialogTitle>GENERAR COTIZACIÓN PARA {prospect?.clientName.toUpperCase()}</DialogTitle>
           <DialogDescription>

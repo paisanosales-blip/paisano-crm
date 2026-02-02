@@ -127,7 +127,7 @@ export function FollowUpDialog({
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl" onPointerDownOutside={(e) => { if (e.target instanceof HTMLElement && e.target.closest('[data-radix-popper-content-wrapper]')) { e.preventDefault(); } }}>
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Nuevo'} Seguimiento para {prospectName}</DialogTitle>
           <DialogDescription>
@@ -220,3 +220,4 @@ export function FollowUpDialog({
 }
 
     
+
