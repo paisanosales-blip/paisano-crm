@@ -8,22 +8,37 @@ import {
   useCollection,
   useMemoFirebase,
   useDoc,
+  deleteDocumentNonBlocking,
 } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { MoreHorizontal, PlusCircle, FileDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
+import { useToast } from '@/hooks/use-toast';
 
 export default function QuotationsPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
     const firestore = useFirestore();
+    const { toast } = useToast();
     const [selectedUserId, setSelectedUserId] = useState<string>('me');
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [quotationToDelete, setQuotationToDelete] = useState<any | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const userProfileRef = useMemoFirebase(() => {
       if (!user) return null;
@@ -111,7 +126,46 @@ export default function QuotationsPage() {
 
     }, [quotations, opportunities, leads, isLoading]);
 
+    const handleDeleteClick = (quotation: any) => {
+        setQuotationToDelete(quotation);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!quotationToDelete || !firestore) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'No se pudo encontrar la cotización a eliminar.',
+            });
+            return;
+        }
+
+        setIsDeleting(true);
+
+        try {
+            deleteDocumentNonBlocking(doc(firestore, 'quotations', quotationToDelete.id));
+
+            toast({
+                title: 'Eliminación Iniciada',
+                description: `La cotización para ${quotationToDelete.clientName} se está eliminando.`,
+            });
+        } catch (error) {
+            console.error("Error deleting quotation:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Error al eliminar',
+                description: 'Ocurrió un problema al eliminar la cotización.',
+            });
+        } finally {
+            setIsDeleting(false);
+            setIsDeleteDialogOpen(false);
+            setQuotationToDelete(null);
+        }
+    };
+
     return (
+      <>
         <div className="grid gap-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-headline font-bold">Cotizaciones</h1>
@@ -203,7 +257,7 @@ export default function QuotationsPage() {
                                                     <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                                                     <DropdownMenuItem disabled>Editar</DropdownMenuItem>
                                                     <DropdownMenuItem disabled>Crear Nueva Versión</DropdownMenuItem>
-                                                    <DropdownMenuItem className="text-destructive" disabled>Eliminar</DropdownMenuItem>
+                                                    <DropdownMenuItem className="text-destructive" onSelect={() => handleDeleteClick(quote)}>Eliminar</DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </TableCell>
@@ -225,5 +279,22 @@ export default function QuotationsPage() {
                 </CardContent>
             </Card>
         </div>
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta acción no se puede deshacer. Se eliminará permanentemente la cotización.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteConfirm} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                        {isDeleting ? 'Eliminando...' : 'Eliminar Permanentemente'}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+      </>
     );
 }
