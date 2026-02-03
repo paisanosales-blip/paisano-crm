@@ -424,6 +424,19 @@
           "type": "string",
           "description": "Date the activity was created.",
           "format": "date-time"
+        },
+        "completedDate": {
+          "type": "string",
+          "description": "Date the activity was completed.",
+          "format": "date-time"
+        },
+        "clientResponded": {
+          "type": "boolean",
+          "description": "Indicates if the client responded during this activity."
+        },
+        "completionNotes": {
+          "type": "string",
+          "description": "Notes recorded upon completing the activity."
         }
       },
       "required": [

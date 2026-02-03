@@ -49,6 +49,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { FollowUpDialog, type FollowUpSubmitPayload } from '@/components/follow-up-dialog';
+import { CompleteFollowUpDialog, type CompletionPayload } from '@/components/complete-follow-up-dialog';
 
 const groupStyleKeys = {
     destructive: {
@@ -93,6 +94,10 @@ export default function FollowUpsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
+  const [activityToComplete, setActivityToComplete] = useState<any | null>(null);
+
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -245,16 +250,65 @@ export default function FollowUpsPage() {
 
   }, [activities, leads, opportunities, quotations, showCompleted]);
   
-  const handleToggleActivityComplete = (activityId: string, completed: boolean) => {
+ const handleToggleActivityComplete = (activity: any, completed: boolean) => {
     if (!firestore) return;
-    const activityRef = doc(firestore, 'activities', activityId);
-    
-    updateDocumentNonBlocking(activityRef, { completed });
-    toast({
-      title: `Actividad ${completed ? 'Completada' : 'Pendiente'}`,
-      description: 'El estado del seguimiento ha sido actualizado.',
-    });
+
+    if (completed) {
+      // Open the completion dialog
+      setActivityToComplete(activity);
+      setIsCompleteDialogOpen(true);
+    } else {
+      // If un-checking, just update the status without a dialog
+      const activityRef = doc(firestore, 'activities', activity.id);
+      updateDocumentNonBlocking(activityRef, { 
+        completed: false, 
+        completedDate: null,
+        clientResponded: null,
+        completionNotes: null,
+      });
+      toast({
+        title: `Actividad Pendiente`,
+        description: 'El seguimiento ha sido marcado como no completado.',
+      });
+    }
   };
+
+  const handleCompletionConfirm = (payload: CompletionPayload) => {
+    if (!firestore || !user || !userProfile || !activityToComplete) return;
+
+    setIsSubmitting(true);
+    const { activityId, clientResponded, completionNotes, scheduleNext, nextFollowUp } = payload;
+    
+    // 1. Update the completed activity
+    const activityRef = doc(firestore, 'activities', activityId);
+    updateDocumentNonBlocking(activityRef, {
+      completed: true,
+      completedDate: new Date().toISOString(),
+      clientResponded,
+      completionNotes,
+    });
+
+    // 2. Create new activity if scheduled
+    if (scheduleNext && nextFollowUp) {
+        addDocumentNonBlocking(collection(firestore, 'activities'), {
+            leadId: activityToComplete.leadId,
+            sellerId: user.uid,
+            sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+            type: nextFollowUp.type,
+            description: nextFollowUp.description,
+            dueDate: nextFollowUp.dueDate ? nextFollowUp.dueDate.toISOString() : null,
+            completed: false,
+            createdDate: new Date().toISOString(),
+        });
+    }
+
+    toast({ title: "Seguimiento completado", description: "El resultado ha sido guardado." });
+    
+    setIsSubmitting(false);
+    setIsCompleteDialogOpen(false);
+    setActivityToComplete(null);
+  };
+
 
   const handleEditActivityClick = (activity: any) => {
     setCurrentActivity(activity);
@@ -402,7 +456,7 @@ export default function FollowUpsPage() {
                                 <Checkbox
                                     id={`activity-${activity.id}`}
                                     checked={activity.completed}
-                                    onCheckedChange={(checked) => handleToggleActivityComplete(activity.id, !!checked)}
+                                    onCheckedChange={(checked) => handleToggleActivityComplete(activity, !!checked)}
                                     className="h-5 w-5"
                                 />
                                 <DropdownMenu>
@@ -454,6 +508,18 @@ export default function FollowUpsPage() {
                 activity={currentActivity}
             />
         )}
+        <CompleteFollowUpDialog
+            open={isCompleteDialogOpen}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) {
+                    setActivityToComplete(null);
+                }
+                setIsCompleteDialogOpen(isOpen);
+            }}
+            onConfirm={handleCompletionConfirm}
+            isSubmitting={isSubmitting}
+            activity={activityToComplete}
+        />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

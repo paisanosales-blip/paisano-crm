@@ -88,12 +88,19 @@ export type Quotation = {
 
 export type Activity = {
   id: string;
-  entityId: string; // Could be clientId or opportunityId
+  leadId: string;
   quotationId?: string;
+  sellerId: string;
+  sellerName: string;
   type: 'Llamada' | 'Correo' | 'Reunión' | 'Nota' | 'Mensaje';
-  notes: string;
-  date: string;
-  followUpDate?: string;
+  description: string;
+  contactChannels?: string[];
+  dueDate?: string;
+  completed: boolean;
+  createdDate: string;
+  completedDate?: string;
+  clientResponded?: boolean;
+  completionNotes?: string;
 };
 
 export type Product = {
