@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   useUser,
   useFirestore,
@@ -50,9 +50,10 @@ import { EditClientDialog } from '@/components/edit-client-dialog';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
-export default function ClientsPage() {
+export default function ProspectsPage() {
   const { user, isUserLoading: isUserAuthLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -63,6 +64,7 @@ export default function ClientsPage() {
   const [clientToDelete, setClientToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('me');
+  const [activeTab, setActiveTab] = useState('prospects');
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -91,9 +93,52 @@ export default function ClientsPage() {
     
     return query(baseCollection, where('sellerId', '==', user.uid));
   }, [firestore, user, userProfile, selectedUserId]);
-
   const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
-  const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areLeadsLoading;
+  
+  const opportunitiesQuery = useMemoFirebase(() => {
+    if (!user || !userProfile) return null;
+    const baseCollection = collection(firestore, 'opportunities');
+    const isManager = userProfile.role === 'manager';
+
+    if (isManager) {
+        if (selectedUserId === 'all') {
+            return query(baseCollection);
+        }
+        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+        return query(baseCollection, where('sellerId', '==', userIdToFilter));
+    }
+    
+    return query(baseCollection, where('sellerId', '==', user.uid));
+  }, [firestore, user, userProfile, selectedUserId]);
+  const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
+
+  const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areLeadsLoading || areOppsLoading;
+
+  const filteredData = useMemo(() => {
+    if (!leads || !opportunities) return [];
+
+    const opportunitiesMap = new Map();
+    (opportunities as any[]).forEach(op => {
+      // Get the most recent opportunity for each lead
+      if (!opportunitiesMap.has(op.leadId) || new Date(op.createdDate) > new Date(opportunitiesMap.get(op.leadId).createdDate)) {
+        opportunitiesMap.set(op.leadId, op);
+      }
+    });
+
+    const enrichedLeads = (leads as any[]).map(lead => ({
+      ...lead,
+      opportunityStage: opportunitiesMap.get(lead.id)?.stage,
+    }));
+    
+    if (activeTab === 'prospects') {
+        return enrichedLeads.filter(lead => lead.opportunityStage && lead.opportunityStage !== 'Cierre de venta' && lead.opportunityStage !== 'Descartado');
+    }
+    if (activeTab === 'clients') {
+        return enrichedLeads.filter(lead => lead.opportunityStage === 'Cierre de venta');
+    }
+    return [];
+  }, [leads, opportunities, activeTab]);
+
 
   const handleEditClick = (client: any) => {
     setSelectedClient(client);
@@ -110,7 +155,7 @@ export default function ClientsPage() {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se pudo encontrar el cliente a eliminar.',
+        description: 'No se pudo encontrar el prospecto a eliminar.',
       });
       return;
     }
@@ -181,7 +226,7 @@ export default function ClientsPage() {
     <>
       <div className="grid gap-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-headline font-bold">Clientes</h1>
+          <h1 className="text-2xl font-headline font-bold">Prospectos</h1>
            <div className="flex items-center gap-4">
               {userProfile?.role === 'manager' && (
                   <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
@@ -189,8 +234,8 @@ export default function ClientsPage() {
                           <SelectValue placeholder="Seleccionar vendedor..." />
                       </SelectTrigger>
                       <SelectContent>
-                          <SelectItem value="me">Mis Clientes</SelectItem>
-                          <SelectItem value="all">Todos los Clientes</SelectItem>
+                          <SelectItem value="me">Mis Prospectos</SelectItem>
+                          <SelectItem value="all">Todos</SelectItem>
                           {allUsers?.filter(u => u.id !== user?.uid).map((u: any) => (
                               <SelectItem key={u.id} value={u.id}>
                                   {`${u.firstName} ${u.lastName}`}
@@ -203,12 +248,18 @@ export default function ClientsPage() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Clientes</CardTitle>
+            <CardTitle>Lista de Prospectos y Clientes</CardTitle>
             <CardDescription>
-              Administra tus prospectos y clientes.
+              Administra tus prospectos y clientes. Filtra la vista usando las pestañas.
             </CardDescription>
           </CardHeader>
           <CardContent>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-4">
+                <TabsList>
+                    <TabsTrigger value="prospects">Prospectos</TabsTrigger>
+                    <TabsTrigger value="clients">Clientes</TabsTrigger>
+                </TabsList>
+            </Tabs>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -232,8 +283,8 @@ export default function ClientsPage() {
                       </TableCell>
                     </TableRow>
                   ))
-                ) : leads && leads.length > 0 ? (
-                  leads.map((client: any) => (
+                ) : filteredData && filteredData.length > 0 ? (
+                  filteredData.map((client: any) => (
                     <TableRow key={client.id}>
                       <TableCell className="font-semibold">
                         {client.clientName}
@@ -301,7 +352,7 @@ export default function ClientsPage() {
                       colSpan={7}
                       className="h-24 text-center"
                     >
-                      No se encontraron clientes.
+                      {activeTab === 'prospects' ? 'No se encontraron prospectos.' : 'No se encontraron clientes.'}
                     </TableCell>
                   </TableRow>
                 )}
@@ -323,7 +374,7 @@ export default function ClientsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará permanentemente el cliente y todos sus datos asociados (oportunidades, cotizaciones y actividades).
+              Esta acción no se puede deshacer. Se eliminará permanentemente el prospecto y todos sus datos asociados (oportunidades, cotizaciones y actividades).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
