@@ -1008,7 +1008,7 @@ export default function PipelinePage() {
                                     {prospect.activities.map((act: any, index: number) => (
                                         <AccordionItem value={act.id} key={act.id} className={cn(
                                             "border-b-0",
-                                            index === 0 && "rounded-md border bg-background"
+                                            index === 0 && "rounded-md border bg-yellow-50 dark:bg-yellow-950/40"
                                         )}>
                                         <div className="flex w-full items-center p-1.5 text-xs rounded-md hover:bg-muted/50 data-[state=open]:bg-muted/50">
                                             <Checkbox
