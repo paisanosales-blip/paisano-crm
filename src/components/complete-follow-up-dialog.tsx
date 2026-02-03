@@ -12,10 +12,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Activity } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export interface CompletionPayload {
   activityId: string;
@@ -38,7 +38,7 @@ interface CompleteFollowUpDialogProps {
 }
 
 export function CompleteFollowUpDialog({ open, onOpenChange, onConfirm, isSubmitting, activity }: CompleteFollowUpDialogProps) {
-  const [noResponse, setNoResponse] = useState(false);
+  const [clientResponded, setClientResponded] = useState<boolean | null>(null);
   const [completionNotes, setCompletionNotes] = useState('');
   const [scheduleNext, setScheduleNext] = useState(false);
   const [nextFollowUpType, setNextFollowUpType] = useState('');
@@ -49,7 +49,7 @@ export function CompleteFollowUpDialog({ open, onOpenChange, onConfirm, isSubmit
   useEffect(() => {
     if (open) {
       // Reset state when dialog opens
-      setNoResponse(false);
+      setClientResponded(null);
       setCompletionNotes('');
       setScheduleNext(false);
       setNextFollowUpType('');
@@ -60,6 +60,15 @@ export function CompleteFollowUpDialog({ open, onOpenChange, onConfirm, isSubmit
 
   const handleConfirm = () => {
     if (!activity) return;
+
+    if (clientResponded === null) {
+        toast({
+            variant: "destructive",
+            title: "Respuesta Requerida",
+            description: "Por favor, indique si el cliente respondió.",
+        });
+        return;
+    }
     
     if (scheduleNext) {
       if (!nextFollowUpType) {
@@ -82,7 +91,7 @@ export function CompleteFollowUpDialog({ open, onOpenChange, onConfirm, isSubmit
 
     const payload: CompletionPayload = {
       activityId: activity.id,
-      clientResponded: !noResponse,
+      clientResponded: clientResponded,
       completionNotes,
       scheduleNext,
     };
@@ -109,22 +118,32 @@ export function CompleteFollowUpDialog({ open, onOpenChange, onConfirm, isSubmit
         </DialogHeader>
         <div className="grid gap-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
           <div className="space-y-4 rounded-lg border p-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="no-client-response" className="font-medium">¿No hubo respuesta del cliente?</Label>
-              <Switch id="no-client-response" checked={noResponse} onCheckedChange={setNoResponse} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="completion-notes">Observaciones de la Actividad</Label>
-              <Textarea
-                id="completion-notes"
-                placeholder={noResponse 
-                    ? "Ej: Dejé un mensaje de voz, el correo rebotó, etc."
-                    : "Ej: El cliente confirmó la recepción del correo, mencionó que revisará la propuesta el viernes..."
-                }
-                value={completionNotes}
-                onChange={(e) => setCompletionNotes(e.target.value)}
-              />
-            </div>
+              <Label className="font-medium">¿HUBO RESPUESTA DEL CLIENTE?</Label>
+              <RadioGroup 
+                  onValueChange={(value) => setClientResponded(value === 'yes')}
+                  className="flex gap-4"
+              >
+                  <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="yes" id="r-yes" />
+                      <Label htmlFor="r-yes">Sí</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="no" id="r-no" />
+                      <Label htmlFor="r-no">No</Label>
+                  </div>
+              </RadioGroup>
+
+              {clientResponded === true && (
+                  <div className="space-y-2 pt-4 border-t">
+                      <Label htmlFor="completion-notes">Observaciones de la Actividad</Label>
+                      <Textarea
+                          id="completion-notes"
+                          placeholder="Ej: El cliente confirmó la recepción del correo, mencionó que revisará la propuesta el viernes..."
+                          value={completionNotes}
+                          onChange={(e) => setCompletionNotes(e.target.value)}
+                      />
+                  </div>
+              )}
           </div>
 
           <div className="space-y-4 rounded-lg border p-4">
