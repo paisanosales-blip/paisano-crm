@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Tag, Sparkles, Loader2, ArchiveX } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Tag, Sparkles, Loader2, ArchiveX, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -81,6 +81,7 @@ import { QuotationGeneratorDialog } from '@/components/quotation-generator-dialo
 import { FinancingDialog, type FinancingConfirmPayload } from '@/components/financing-dialog';
 import { suggestNextAction } from '@/ai/flows/suggest-next-action';
 import { DiscardProspectDialog, type DiscardConfirmPayload } from '@/components/discard-prospect-dialog';
+import { Input } from '@/components/ui/input';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -98,6 +99,7 @@ const filterButtonLabels: Record<OpportunityStage | 'Todos', string> = {
 export default function PipelinePage() {
   const router = useRouter();
   const [filterStage, setFilterStage] = useState<OpportunityStage | 'Todos'>('Todos');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string>('me');
   const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
   const [quotationChoiceOpen, setQuotationChoiceOpen] = useState(false);
@@ -761,12 +763,30 @@ export default function PipelinePage() {
     }).filter(item => item.opportunity);
   }, [leads, opportunities, quotations, activities]);
 
-  const filteredProspects = clientProspects.filter(prospect => {
-    if (filterStage === 'Todos') {
-      return prospect.opportunity?.stage !== 'Descartado';
-    }
-    return prospect.opportunity?.stage === filterStage;
-  });
+  const filteredProspects = React.useMemo(() => {
+    const lowercasedQuery = searchQuery.toLowerCase();
+    
+    return clientProspects.filter(prospect => {
+      // Stage filter
+      const stage = prospect.opportunity?.stage;
+      const stageMatch = filterStage === 'Todos' 
+        ? stage !== 'Descartado' 
+        : stage === filterStage;
+
+      if (!stageMatch) {
+        return false;
+      }
+
+      // Search query filter
+      if (searchQuery) {
+        const clientNameMatch = prospect.clientName?.toLowerCase().includes(lowercasedQuery);
+        const contactPersonMatch = prospect.contactPerson?.toLowerCase().includes(lowercasedQuery);
+        return clientNameMatch || contactPersonMatch;
+      }
+      
+      return true;
+    });
+  }, [clientProspects, filterStage, searchQuery]);
   
   const allStagesForFilter: Array<OpportunityStage | 'Todos'> = ['Todos', ...stages, 'Financiamiento Externo', 'Descartado'];
 
@@ -811,25 +831,37 @@ export default function PipelinePage() {
         <p className="text-sm text-muted-foreground">Administra el ciclo de vida de tus clientes, desde el primer contacto hasta el cierre.</p>
       </div>
       
-      <div className="flex flex-wrap gap-2 my-4">
-        {allStagesForFilter.map((stage) => ( 
-            <Button 
-                key={stage} 
-                variant={filterStage === stage ? 'default' : 'outline'} 
-                onClick={() => setFilterStage(stage)} 
-                className="text-xs h-8"
-            >
+      <div className="flex flex-wrap gap-4 my-4">
+        <div className="relative flex-1 min-w-[250px]">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nombre de cliente o contacto..."
+            className="pl-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <Select value={filterStage} onValueChange={(value) => setFilterStage(value as OpportunityStage | 'Todos')}>
+          <SelectTrigger className="w-full sm:w-[220px]">
+            <SelectValue placeholder="Filtrar por etapa" />
+          </SelectTrigger>
+          <SelectContent>
+            {allStagesForFilter.map((stage) => (
+              <SelectItem key={stage} value={stage}>
                 {filterButtonLabels[stage]}
-            </Button>
-        ))}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <div className="space-y-2">
+
+      <div className="space-y-1.5">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
             <Card key={i}>
               <CardContent className="p-2">
-                <Skeleton className="h-40 w-full" />
+                <Skeleton className="h-32 w-full" />
               </CardContent>
             </Card>
           ))
@@ -864,7 +896,7 @@ export default function PipelinePage() {
 
             return (
               <Card key={prospect.id} className={cn("border-l-4", tagClass || 'border-l-transparent', cardBgClass)}>
-                <CardHeader className="flex flex-row items-start justify-between p-2 pb-0 pt-2">
+                <CardHeader className="flex flex-row items-start justify-between p-2 pb-0">
                   <div>
                     <CardTitle className="text-base">{prospect.clientName}</CardTitle>
                     <CardDescription className="text-xs">{prospect.contactPerson}</CardDescription>
@@ -912,10 +944,10 @@ export default function PipelinePage() {
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-2 p-2">
                   <div className="space-y-1">
-                    <div className="space-y-0.5">
-                      {prospect.clientType && <Badge variant="secondary" className="text-xs">{prospect.clientType}</Badge>}
-                      <div className="text-xs text-muted-foreground">{prospect.email || 'N/A'}</div>
-                      <div className="text-xs text-muted-foreground">{prospect.phone || 'N/A'}</div>
+                    <div className="space-y-0.5 text-xs">
+                      {prospect.clientType && <Badge variant="secondary" className="text-xs mb-1">{prospect.clientType}</Badge>}
+                      <div className="text-muted-foreground">{prospect.email || 'N/A'}</div>
+                      <div className="text-muted-foreground">{prospect.phone || 'N/A'}</div>
                     </div>
                     
                     <div className="flex items-center gap-4 pt-1 border-t">
