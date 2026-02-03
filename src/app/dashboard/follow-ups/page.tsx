@@ -288,7 +288,12 @@ export default function FollowUpsPage() {
       completionNotes,
     });
 
-    // 2. Create new activity if scheduled
+    // 2. Update the lead's tag based on response
+    const leadRef = doc(firestore, 'leads', activityToComplete.leadId);
+    const newTag = clientResponded ? 'success' : 'danger';
+    updateDocumentNonBlocking(leadRef, { tag: newTag });
+
+    // 3. Create new activity if scheduled
     if (scheduleNext && nextFollowUp) {
         addDocumentNonBlocking(collection(firestore, 'activities'), {
             leadId: activityToComplete.leadId,
@@ -302,7 +307,7 @@ export default function FollowUpsPage() {
         });
     }
 
-    toast({ title: "Seguimiento completado", description: "El resultado ha sido guardado." });
+    toast({ title: "Seguimiento completado", description: "El resultado ha sido guardado y el prospecto etiquetado." });
     
     setIsSubmitting(false);
     setIsCompleteDialogOpen(false);
