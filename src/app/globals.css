@@ -23,11 +23,13 @@
     --border: 0 0% 89.8%;
     --input: 0 0% 89.8%;
     --ring: 0 100% 27.5%;
-    --chart-1: 0 100% 27.5%;
-    --chart-2: 0 80% 40%;
-    --chart-3: 0 60% 50%;
-    --chart-4: 0 0% 63.9%;
-    --chart-5: 0 0% 82.7%;
+    --chart-1: 220 81% 59%; /* Blue */
+    --chart-2: 160 61% 47%; /* Green */
+    --chart-3: 45 93% 47%;  /* Yellow */
+    --chart-4: 25 95% 53%;  /* Orange */
+    --chart-5: 0 91% 63%;    /* Red */
+    --chart-6: 280 82% 63%; /* Purple */
+    --chart-7: 0 0% 63.9%;  /* Gray */
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 3.9%; /* Black for sophistication */
@@ -59,11 +61,13 @@
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 0 100% 27.5%;
-    --chart-1: 0 100% 27.5%;
-    --chart-2: 0 80% 40%;
-    --chart-3: 0 60% 50%;
-    --chart-4: 0 0% 63.9%;
-    --chart-5: 0 0% 82.7%;
+    --chart-1: 220 81% 59%;
+    --chart-2: 160 61% 47%;
+    --chart-3: 45 93% 47%;
+    --chart-4: 25 95% 53%;
+    --chart-5: 0 91% 63%;
+    --chart-6: 280 82% 63%;
+    --chart-7: 0 0% 63.9%;
 
     --sidebar-background: 0 0% 3.9%;
     --sidebar-foreground: 0 0% 98%;

@@ -15,6 +15,8 @@ const pipelineConfig = {
     'Envió de Cotización': { label: 'Cotización', color: 'hsl(var(--chart-3))' },
     'Negociación': { label: 'Negociación', color: 'hsl(var(--chart-4))' },
     'Cierre de venta': { label: 'Cierre', color: 'hsl(var(--chart-5))' },
+    'Financiamiento Externo': { label: 'Financiamiento', color: 'hsl(var(--chart-6))' },
+    'Descartado': { label: 'Descartado', color: 'hsl(var(--chart-7))' },
 } satisfies ChartConfig;
 
 const prospectSourceConfig = {
