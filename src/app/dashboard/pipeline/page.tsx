@@ -1067,7 +1067,7 @@ export default function PipelinePage() {
                                     <div
                                         onClick={() => canMoveTo && requestStageChange(prospect, stage)}
                                         className={cn(
-                                            'flex flex-col items-center gap-1.5 text-center transition-opacity w-24',
+                                            'flex flex-col items-center gap-1.5 text-center transition-all w-24',
                                             (canMoveTo) ? 'cursor-pointer' : 'cursor-not-allowed',
                                             !isFinancingStage && !isCompleted && !isCurrent && !isNext && 'opacity-50'
                                         )}
@@ -1079,7 +1079,7 @@ export default function PipelinePage() {
                                             isCompleted ? 'border-primary bg-primary' : 'bg-card',
                                             !isFinancingStage && canMoveTo && 'hover:border-primary/50'
                                         )}>
-                                            {isCompleted ? <Check className="h-4 w-4 text-primary-foreground" /> : <span className={cn('text-xs font-bold', isCurrent ? 'text-primary-foreground' : 'text-muted-foreground')}>{index + 1}</span>}
+                                            {(isCompleted || isCurrent) ? <Check className="h-4 w-4 text-primary-foreground" /> : <span className={cn('text-xs font-bold', 'text-muted-foreground')}>{index + 1}</span>}
                                         </div>
                                         <span className={cn(
                                             'text-[11px] font-medium leading-tight max-w-full px-1',
