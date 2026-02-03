@@ -133,7 +133,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       toast({ variant: 'destructive', title: 'Error', description: 'No se ha seleccionado un prospecto.' });
       return;
     }
-    if (!isIndividualFreight && freight > 0 && !freightTo.trim()) {
+    if (((!isIndividualFreight && freight > 0) || isIndividualFreight) && !freightTo.trim()) {
       toast({ variant: 'destructive', title: 'Error', description: 'El destino del flete es requerido.' });
       return;
     }
@@ -516,29 +516,27 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
                           <p>SUBTOTAL:</p>
                           <p>${subtotal.toFixed(2)}</p>
                       </div>
+                      <div className="flex justify-between items-center">
+                          <Label htmlFor="freight-to-dialog">FLETE A:</Label>
+                          <Input
+                              id="freight-to-dialog"
+                              placeholder="Destino"
+                              value={freightTo}
+                              onChange={(e) => setFreightTo(e.target.value)}
+                              className="w-48"
+                          />
+                      </div>
                       {!isIndividualFreight && (
-                        <>
-                            <div className="flex justify-between items-center">
-                                <Label htmlFor="freight-to-dialog">FLETE A:</Label>
-                                <Input
-                                    id="freight-to-dialog"
-                                    placeholder="Destino"
-                                    value={freightTo}
-                                    onChange={(e) => setFreightTo(e.target.value)}
-                                    className="w-48"
-                                />
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <Label htmlFor="freight-amount-dialog">MONTO DE FLETE</Label>
-                                <Input
-                                    id="freight-amount-dialog"
-                                    type="number"
-                                    value={freight}
-                                    onChange={(e) => setFreight(Number(e.target.value))}
-                                    className="w-32"
-                                />
-                            </div>
-                        </>
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="freight-amount-dialog">MONTO DE FLETE</Label>
+                            <Input
+                                id="freight-amount-dialog"
+                                type="number"
+                                value={freight}
+                                onChange={(e) => setFreight(Number(e.target.value))}
+                                className="w-32"
+                            />
+                        </div>
                       )}
                       {isIndividualFreight && (
                         <div className="flex justify-between items-center font-medium">

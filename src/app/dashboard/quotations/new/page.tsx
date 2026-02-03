@@ -161,11 +161,11 @@ export default function NewQuotationPage() {
       });
       return;
     }
-    if (!isIndividualFreight && freight > 0 && !freightTo.trim()) {
+    if (((!isIndividualFreight && freight > 0) || isIndividualFreight) && !freightTo.trim()) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'El destino del flete es requerido cuando se agrega un monto de flete.',
+        description: 'El destino del flete es requerido cuando se agrega un monto de flete o se usa flete individual.',
       });
       return;
     }
@@ -604,29 +604,27 @@ export default function NewQuotationPage() {
                           <p>SUBTOTAL:</p>
                           <p>${subtotal.toFixed(2)}</p>
                       </div>
+                      <div className="flex justify-between items-center">
+                          <Label htmlFor="freight-to">FLETE A:</Label>
+                          <Input
+                              id="freight-to"
+                              placeholder="Destino"
+                              value={freightTo}
+                              onChange={(e) => setFreightTo(e.target.value)}
+                              className="w-48"
+                          />
+                      </div>
                       {!isIndividualFreight && (
-                        <>
-                            <div className="flex justify-between items-center">
-                                <Label htmlFor="freight-to">FLETE A:</Label>
-                                <Input
-                                    id="freight-to"
-                                    placeholder="Destino"
-                                    value={freightTo}
-                                    onChange={(e) => setFreightTo(e.target.value)}
-                                    className="w-48"
-                                />
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <Label htmlFor="freight-amount">MONTO DE FLETE</Label>
-                                <Input
-                                    id="freight-amount"
-                                    type="number"
-                                    value={freight}
-                                    onChange={(e) => setFreight(Number(e.target.value))}
-                                    className="w-32"
-                                />
-                            </div>
-                        </>
+                        <div className="flex justify-between items-center">
+                            <Label htmlFor="freight-amount">MONTO DE FLETE</Label>
+                            <Input
+                                id="freight-amount"
+                                type="number"
+                                value={freight}
+                                onChange={(e) => setFreight(Number(e.target.value))}
+                                className="w-32"
+                            />
+                        </div>
                       )}
                       {isIndividualFreight && (
                         <div className="flex justify-between items-center font-medium">
