@@ -141,7 +141,7 @@ export const cities: { [key: string]: string[] } = {
   SD: ['Sioux Falls', 'Rapid City', 'Aberdeen', 'Brookings', 'Watertown'],
   TN: ['Nashville', 'Memphis', 'Knoxville', 'Chattanooga', 'Clarksville'],
   TX: ['Abilene', 'Andrews', 'Arlington', 'Austin', 'Dallas', 'El Paso', 'Fort Stockton', 'Fort Worth', 'Houston', 'Kempner', 'Kermit', 'Marion', 'Midland', 'Monahans', 'Odessa', 'Ozona', 'Pecos', 'San Antonio', 'Seminole'],
-  UT: ['Salt Lake City', 'West Valley City', 'Provo', 'West Jordan', 'Orem'],
+  UT: ['Salt Lake City', 'West Valley City', 'Provo', 'West Jordan', 'Orem', 'Weber County'],
   VT: ['Burlington', 'Essex', 'South Burlington', 'Colchester', 'Rutland'],
   VA: ['Virginia Beach', 'Norfolk', 'Chesapeake', 'Richmond', 'Newport News'],
   WA: ['Seattle', 'Spokane', 'Tacoma', 'Vancouver', 'Bellevue'],
