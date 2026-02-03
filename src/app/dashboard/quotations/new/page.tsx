@@ -288,17 +288,17 @@ export default function NewQuotationPage() {
       
       const tableWidth = docWidth - (margin * 2);
       const columnStyles4 = {
-        0: { cellWidth: tableWidth * 0.55 }, // Description
-        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const }, // Qty
-        2: { cellWidth: tableWidth * 0.175, halign: 'right' as const }, // Unit Price
-        3: { cellWidth: tableWidth * 0.175, halign: 'right' as const }, // Total
+        0: { cellWidth: tableWidth * 0.55, halign: 'left' as const },
+        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
+        2: { cellWidth: tableWidth * 0.175, halign: 'right' as const },
+        3: { cellWidth: tableWidth * 0.175, halign: 'right' as const },
       };
       const columnStyles5 = {
-        0: { cellWidth: tableWidth * 0.45 }, // Description
-        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const }, // Qty
-        2: { cellWidth: tableWidth * 0.15, halign: 'right' as const }, // Unit Price
-        3: { cellWidth: tableWidth * 0.15, halign: 'right' as const }, // Unit Freight
-        4: { cellWidth: tableWidth * 0.15, halign: 'right' as const }, // Total
+        0: { cellWidth: tableWidth * 0.45, halign: 'left' as const },
+        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
+        2: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
+        3: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
+        4: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
       };
 
       const tableHead = isIndividualFreight

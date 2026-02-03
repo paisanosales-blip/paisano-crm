@@ -150,7 +150,6 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     const currentNumber = parseInt(currentNumberStr, 10);
 
     const doc = new jsPDF() as jsPDFWithAutoTable;
-    // ... (rest of jsPDF generation logic)
     const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
     const docWidth = doc.internal.pageSize.width || doc.internal.pageSize.getWidth();
     const margin = 15;
@@ -161,7 +160,6 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     const BLACK = '#000000';
     const LIGHT_GRAY = '#F5F5F5';
     
-    // --- HEADER ---
     const headerTextY = 20;
 
     if (logoUrl) {
@@ -201,7 +199,6 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     
     currentY = separatorY + 12;
 
-    // --- QUOTATION DETAILS ---
     const quoteDetailsX = docWidth - margin;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
@@ -216,7 +213,6 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
 
     currentY += 12 + 10;
 
-    // --- INFO SECTION ---
     const infoStartY = currentY;
     const rightColX = docWidth / 2 + 10;
     const infoBoxHeight = 28;
@@ -247,21 +243,20 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
 
     currentY = infoStartY + infoBoxHeight + 8;
 
-    // --- PRODUCTS TABLE ---
     const tableWidth = docWidth - (margin * 2);
     const columnStyles4 = {
-        0: { cellWidth: tableWidth * 0.55 }, // Description
-        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const }, // Qty
-        2: { cellWidth: tableWidth * 0.175, halign: 'right' as const }, // Unit Price
-        3: { cellWidth: tableWidth * 0.175, halign: 'right' as const }, // Total
-    };
-    const columnStyles5 = {
-        0: { cellWidth: tableWidth * 0.45 }, // Description
-        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const }, // Qty
-        2: { cellWidth: tableWidth * 0.15, halign: 'right' as const }, // Unit Price
-        3: { cellWidth: tableWidth * 0.15, halign: 'right' as const }, // Unit Freight
-        4: { cellWidth: tableWidth * 0.15, halign: 'right' as const }, // Total
-    };
+        0: { cellWidth: tableWidth * 0.55, halign: 'left' as const },
+        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
+        2: { cellWidth: tableWidth * 0.175, halign: 'right' as const },
+        3: { cellWidth: tableWidth * 0.175, halign: 'right' as const },
+      };
+      const columnStyles5 = {
+        0: { cellWidth: tableWidth * 0.45, halign: 'left' as const },
+        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
+        2: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
+        3: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
+        4: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
+      };
     
     const tableHead = isIndividualFreight
         ? [["DESCRIPTION", "QTY", "UNIT PRICE", "UNIT FREIGHT", "TOTAL"]]
@@ -300,7 +295,6 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     
     currentY = (doc as any).autoTable.previous.finalY;
     
-    // --- TOTALS ---
     currentY += 6;
     const totalsY = currentY;
     let lineY = totalsY;
@@ -370,7 +364,6 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     currentY += 2;
     addSection('ADDITIONAL NOTES', quotationDetails.notes);
     
-    // --- APPROVAL SIGNATURE ---
     const signatureHeight = 25;
     if (currentY + signatureHeight > pageHeight - 35) {
         doc.addPage();
@@ -384,7 +377,6 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.setFontSize(9);
     doc.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
     
-    // --- FOOTER ---
     let pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
