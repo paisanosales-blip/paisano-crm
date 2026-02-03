@@ -1055,7 +1055,7 @@ export default function PipelinePage() {
                       <h4 className="font-semibold text-xs text-muted-foreground">PROGRESO DEL PROSPECTO</h4>
                       <Badge variant="outline" className={`font-bold ${getBadgeClass(classification)}`}>{classification}</Badge>
                     </div>
-                    <div className="flex items-center">
+                    <div className="flex items-center pt-2">
                         {stages.map((stage, index) => {
                             const isCompleted = currentIndex > index;
                             const isCurrent = currentIndex === index;
@@ -1067,35 +1067,32 @@ export default function PipelinePage() {
                                     <div
                                         onClick={() => canMoveTo && requestStageChange(prospect, stage)}
                                         className={cn(
-                                            'relative flex flex-col items-center gap-1 text-center transition-opacity w-24',
-                                            (canMoveTo) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
+                                            'flex flex-col items-center gap-1.5 text-center transition-opacity w-24',
+                                            (canMoveTo) ? 'cursor-pointer' : 'cursor-not-allowed',
                                             !isFinancingStage && !isCompleted && !isCurrent && !isNext && 'opacity-50'
                                         )}
                                         title={canMoveTo ? `Mover a: ${stage}` : stage}
                                     >
-                                        <div className="relative z-10 flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-background">
-                                          <div className={cn(
-                                              'flex h-6 w-6 items-center justify-center rounded-full transition-colors scale-100 group-hover:scale-110',
-                                              (isCompleted || isCurrent) ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                                          )}>
-                                              {isCompleted ? <Check className="h-4 w-4" /> : <span className={cn(isCurrent && "font-bold")}>{index + 1}</span>}
-                                          </div>
+                                        <div className={cn(
+                                            'flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors',
+                                            isCurrent ? 'border-primary bg-primary text-primary-foreground shadow-lg' : 'border-border',
+                                            isCompleted ? 'border-primary bg-primary' : 'bg-card',
+                                            !isFinancingStage && canMoveTo && 'hover:border-primary/50'
+                                        )}>
+                                            {isCompleted ? <Check className="h-4 w-4 text-primary-foreground" /> : <span className={cn('text-xs font-bold', isCurrent ? 'text-primary-foreground' : 'text-muted-foreground')}>{index + 1}</span>}
                                         </div>
-
                                         <span className={cn(
-                                            'text-xs max-w-full truncate px-1',
-                                            isCurrent ? 'font-bold text-primary' : 'text-muted-foreground'
+                                            'text-[11px] font-medium leading-tight max-w-full px-1',
+                                            isCurrent ? 'text-primary' : 'text-muted-foreground'
                                         )}>
                                             {stage}
                                         </span>
                                     </div>
                                     {index < stages.length - 1 && (
-                                      <div className="relative h-px w-full flex-1 bg-border">
-                                          <div className={cn(
-                                              "absolute inset-y-0 left-0 h-px bg-primary transition-all",
-                                              isCompleted ? "w-full" : "w-0"
-                                          )} />
-                                      </div>
+                                      <div className={cn(
+                                          "h-0.5 w-full flex-1 transition-colors",
+                                          isCompleted ? 'bg-primary' : 'bg-border'
+                                      )} />
                                     )}
                                 </React.Fragment>
                             )
