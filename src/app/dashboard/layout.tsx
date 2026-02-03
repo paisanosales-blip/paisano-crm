@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Home, GanttChartSquare, Users, FileText, Shield, CalendarCheck, Package } from 'lucide-react';
-import { doc } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
+import { isToday, isPast } from 'date-fns';
 
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import {
   SidebarProvider,
   Sidebar,
@@ -20,6 +21,8 @@ import {
 import { DashboardHeader } from '@/components/dashboard-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { IconSwitcher } from '@/components/icon-switcher';
+import { DailySummaryDialog } from '@/components/daily-summary-dialog';
+import { generateDailySummary } from '@/ai/flows/generate-daily-summary';
 
 export default function DashboardLayout({
   children,
@@ -30,18 +33,75 @@ export default function DashboardLayout({
   const router = useRouter();
   const firestore = useFirestore();
 
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [summaryText, setSummaryText] = useState('');
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
-
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
+  const opportunitiesQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, 'opportunities'), where('sellerId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: opportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
+
+  const activitiesQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, 'activities'), where('sellerId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.replace('/login');
     }
   }, [user, isUserLoading, router]);
+
+  const isDataReady = !isUserLoading && !isProfileLoading && !areOppsLoading && !areActivitiesLoading;
+
+  useEffect(() => {
+    if (isDataReady && userProfile) {
+      const today = new Date().toISOString().split('T')[0];
+      const lastShown = localStorage.getItem('dailySummaryLastShown');
+
+      if (lastShown !== today) {
+        const fetchSummary = async () => {
+          setIsSummaryOpen(true);
+          setIsSummaryLoading(true);
+
+          const todaysFollowUps = activities?.filter(a => a.dueDate && isToday(new Date(a.dueDate)) && !a.completed).length || 0;
+          const overdueFollowUps = activities?.filter(a => a.dueDate && isPast(new Date(a.dueDate)) && !isToday(new Date(a.dueDate)) && !a.completed).length || 0;
+          const activeOpportunitiesCount = opportunities?.filter(o => o.stage !== 'Cierre de venta' && o.stage !== 'Descartado').length || 0;
+          const newLeadsCount = opportunities?.filter(o => o.stage === 'Primer contacto').length || 0;
+          const closingOpportunitiesCount = opportunities?.filter(o => o.stage === 'Negociación' || o.stage === 'Cierre de venta').length || 0;
+
+          try {
+            const result = await generateDailySummary({
+              userName: userProfile.firstName,
+              todaysFollowUps,
+              overdueFollowUps,
+              activeOpportunitiesCount,
+              newLeadsCount,
+              closingOpportunitiesCount,
+            });
+            setSummaryText(result.summary);
+          } catch (error) {
+            console.error("Failed to generate daily summary:", error);
+            setSummaryText("No se pudo cargar tu resumen diario. ¡Pero te deseamos un gran día de ventas!");
+          } finally {
+            setIsSummaryLoading(false);
+            localStorage.setItem('dailySummaryLastShown', today);
+          }
+        };
+
+        fetchSummary();
+      }
+    }
+  }, [isDataReady, userProfile, activities, opportunities]);
 
   const isLoading = isUserLoading || (user && isProfileLoading);
 
@@ -137,6 +197,13 @@ export default function DashboardLayout({
         <DashboardHeader />
         <main className="flex-1 p-4 md:p-6 bg-muted/30">{children}</main>
       </SidebarInset>
+       <DailySummaryDialog
+        open={isSummaryOpen}
+        onOpenChange={setIsSummaryOpen}
+        summary={summaryText}
+        isLoading={isSummaryLoading}
+        userName={userProfile?.firstName || 'vendedor'}
+      />
     </SidebarProvider>
   );
 }
