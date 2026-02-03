@@ -38,7 +38,7 @@ interface CompleteFollowUpDialogProps {
 }
 
 export function CompleteFollowUpDialog({ open, onOpenChange, onConfirm, isSubmitting, activity }: CompleteFollowUpDialogProps) {
-  const [clientResponded, setClientResponded] = useState(false);
+  const [noResponse, setNoResponse] = useState(false);
   const [completionNotes, setCompletionNotes] = useState('');
   const [scheduleNext, setScheduleNext] = useState(false);
   const [nextFollowUpType, setNextFollowUpType] = useState('');
@@ -49,7 +49,7 @@ export function CompleteFollowUpDialog({ open, onOpenChange, onConfirm, isSubmit
   useEffect(() => {
     if (open) {
       // Reset state when dialog opens
-      setClientResponded(false);
+      setNoResponse(false);
       setCompletionNotes('');
       setScheduleNext(false);
       setNextFollowUpType('');
@@ -82,7 +82,7 @@ export function CompleteFollowUpDialog({ open, onOpenChange, onConfirm, isSubmit
 
     const payload: CompletionPayload = {
       activityId: activity.id,
-      clientResponded,
+      clientResponded: !noResponse,
       completionNotes,
       scheduleNext,
     };
@@ -110,14 +110,17 @@ export function CompleteFollowUpDialog({ open, onOpenChange, onConfirm, isSubmit
         <div className="grid gap-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
           <div className="space-y-4 rounded-lg border p-4">
             <div className="flex items-center justify-between">
-              <Label htmlFor="client-responded" className="font-medium">¿Hubo respuesta del cliente?</Label>
-              <Switch id="client-responded" checked={clientResponded} onCheckedChange={setClientResponded} />
+              <Label htmlFor="no-client-response" className="font-medium">¿No hubo respuesta del cliente?</Label>
+              <Switch id="no-client-response" checked={noResponse} onCheckedChange={setNoResponse} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="completion-notes">Observaciones de la Actividad</Label>
               <Textarea
                 id="completion-notes"
-                placeholder="Ej: El cliente confirmó la recepción del correo, mencionó que revisará la propuesta el viernes..."
+                placeholder={noResponse 
+                    ? "Ej: Dejé un mensaje de voz, el correo rebotó, etc."
+                    : "Ej: El cliente confirmó la recepción del correo, mencionó que revisará la propuesta el viernes..."
+                }
                 value={completionNotes}
                 onChange={(e) => setCompletionNotes(e.target.value)}
               />
