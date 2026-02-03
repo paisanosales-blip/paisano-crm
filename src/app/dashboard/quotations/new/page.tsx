@@ -236,13 +236,13 @@ export default function NewQuotationPage() {
       docPdf.setFont('helvetica', 'normal');
       docPdf.setFontSize(10);
       docPdf.setTextColor(100);
-      const addressY = headerTextY + 7;
+      const addressY = headerTextY + 10;
       const addressLineSpacing = 5;
       docPdf.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
       docPdf.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
       docPdf.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
       
-      const separatorY = 41;
+      const separatorY = 43;
       docPdf.setDrawColor(RED);
       docPdf.setLineWidth(0.8);
       docPdf.line(margin, separatorY, docWidth - margin, separatorY);
@@ -265,13 +265,13 @@ export default function NewQuotationPage() {
       currentY += 12 + 10;
       
       const infoStartY = currentY;
-      const rightColX = docWidth / 2 + 10;
+      const rightColX = docWidth / 2 + 5;
       const infoBoxHeight = 40;
       const titleBoxHeight = 7;
       const contentStartY = infoStartY + titleBoxHeight;
       
       const salesPersonBoxWidth = (docWidth / 2) - margin - 5;
-      const buyerBoxWidth = (docWidth / 2) - margin - 10;
+      const buyerBoxWidth = (docWidth / 2) - margin - 5;
 
       // --- Sales Person Box ---
       docPdf.setFillColor(RED);
@@ -466,7 +466,7 @@ export default function NewQuotationPage() {
           docPdf.addPage();
           currentY = margin;
       }
-      currentY += 5;
+      currentY += 35;
       const sigWidth = 80;
       const sigXStart = (docWidth - sigWidth) / 2;
       docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);

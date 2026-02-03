@@ -183,13 +183,13 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.setFontSize(10);
     doc.setTextColor(100);
 
-    const addressY = headerTextY + 7;
+    const addressY = headerTextY + 10;
     const addressLineSpacing = 5;
     doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
     doc.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
 
-    const separatorY = 41;
+    const separatorY = 43;
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
     doc.line(margin, separatorY, docWidth - margin, separatorY);
@@ -214,13 +214,13 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     currentY += 12 + 10;
     
     const infoStartY = currentY;
-    const rightColX = docWidth / 2 + 10;
+    const rightColX = docWidth / 2 + 5;
     const infoBoxHeight = 40;
     const titleBoxHeight = 7;
     const contentStartY = infoStartY + titleBoxHeight;
     
     const salesPersonBoxWidth = (docWidth / 2) - margin - 5;
-    const buyerBoxWidth = (docWidth / 2) - margin - 10;
+    const buyerBoxWidth = (docWidth / 2) - margin - 5;
 
     // --- Sales Person Box ---
     doc.setFillColor(RED);
@@ -424,7 +424,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         doc.addPage();
         currentY = margin;
     }
-    currentY += 5;
+    currentY += 35;
     
     const sigWidth = 80;
     const sigXStart = (docWidth - sigWidth) / 2;
