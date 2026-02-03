@@ -223,7 +223,7 @@ export default function NewQuotationPage() {
           const img = new Image();
           img.src = logoUrl;
           const imgWidth = 65;
-          docPdf.addImage(logoUrl, format.toUpperCase(), margin, 3, imgWidth, 0, undefined, 'NONE');
+          docPdf.addImage(logoUrl, format.toUpperCase(), margin, 0, imgWidth, 0, undefined, 'NONE');
         } catch (e) {
           console.error("Error adding logo image to PDF:", e);
         }
@@ -242,7 +242,7 @@ export default function NewQuotationPage() {
       docPdf.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
       docPdf.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
       
-      const separatorY = 40;
+      const separatorY = 42;
       docPdf.setDrawColor(RED);
       docPdf.setLineWidth(0.8);
       docPdf.line(margin, separatorY, docWidth - margin, separatorY);
@@ -250,7 +250,7 @@ export default function NewQuotationPage() {
       docPdf.setLineWidth(0.3);
       docPdf.line(margin, separatorY + 1.5, docWidth - margin, separatorY + 1.5);
       
-      currentY = separatorY + 8;
+      currentY = separatorY + 10;
       const quoteDetailsX = docWidth - margin;
       docPdf.setFont('helvetica', 'bold');
       docPdf.setFontSize(10);
@@ -262,7 +262,7 @@ export default function NewQuotationPage() {
       docPdf.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, currentY + 6, { align: 'right' });
       docPdf.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, currentY + 12, { align: 'right' });
 
-      currentY += 12 + 8;
+      currentY += 12 + 10;
       
       const infoStartY = currentY;
       const rightColX = docWidth / 2 + 10;
@@ -466,7 +466,7 @@ export default function NewQuotationPage() {
           docPdf.addPage();
           currentY = margin;
       }
-      currentY += 40;
+      currentY += 30;
       const sigWidth = 80;
       const sigXStart = (docWidth - sigWidth) / 2;
       docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
