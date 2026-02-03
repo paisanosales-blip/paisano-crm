@@ -262,16 +262,16 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     
     const tableWidth = docWidth - (margin * 2);
     const columnStyles4 = {
-        0: { cellWidth: tableWidth * 0.55, halign: 'justify' as const },
-        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
-        2: { cellWidth: tableWidth * 0.175, halign: 'right' as const },
-        3: { cellWidth: tableWidth * 0.175, halign: 'right' as const },
-      };
-      const columnStyles5 = {
-        0: { cellWidth: tableWidth * 0.50, halign: 'justify' as const },
+        0: { cellWidth: tableWidth * 0.60, halign: 'justify' as const },
         1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
         2: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
         3: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
+      };
+      const columnStyles5 = {
+        0: { cellWidth: tableWidth * 0.55, halign: 'justify' as const },
+        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
+        2: { cellWidth: tableWidth * 0.125, halign: 'right' as const },
+        3: { cellWidth: tableWidth * 0.125, halign: 'right' as const },
         4: { cellWidth: tableWidth * 0.10, halign: 'right' as const },
       };
     
