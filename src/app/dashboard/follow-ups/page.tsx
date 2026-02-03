@@ -22,7 +22,7 @@ import {
   formatDistanceToNow,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users } from 'lucide-react';
+import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users, ListTodo, AlertOctagon, CalendarClock, CheckCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,6 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -169,6 +170,40 @@ export default function FollowUpsPage() {
 
 
   const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areActivitiesLoading || areLeadsLoading || areOppsLoading || areQuotsLoading;
+
+  const followUpStats = useMemo(() => {
+    if (!activities) {
+      return {
+        totalPending: 0,
+        overdue: 0,
+        dueToday: 0,
+        completed: 0,
+      };
+    }
+
+    let overdue = 0;
+    let dueToday = 0;
+    
+    (activities as any[]).forEach(activity => {
+      if (activity.completed) return; 
+
+      if (activity.dueDate) {
+        const dueDate = new Date(activity.dueDate);
+        if (isPast(dueDate) && !isToday(dueDate)) {
+          overdue++;
+        } else if (isToday(dueDate)) {
+          dueToday++;
+        }
+      }
+    });
+
+    return {
+      totalPending: (activities as any[]).filter(a => !a.completed).length,
+      overdue,
+      dueToday,
+      completed: (activities as any[]).filter(a => a.completed).length,
+    };
+  }, [activities]);
 
   const activityGroups = useMemo(() => {
     if (!activities || !leads || !opportunities || !quotations) return [];
@@ -405,6 +440,55 @@ export default function FollowUpsPage() {
             </div>
           </div>
         </div>
+
+        {isLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                {Array.from({length: 4}).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
+            </div>
+        ) : (
+             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
+                        <ListTodo className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{followUpStats.totalPending}</div>
+                        <p className="text-xs text-muted-foreground">Actividades totales por completar</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Atrasados</CardTitle>
+                        <AlertOctagon className="h-4 w-4 text-destructive" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-destructive">{followUpStats.overdue}</div>
+                        <p className="text-xs text-muted-foreground">Pasaron su fecha límite</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Para Hoy</CardTitle>
+                        <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{followUpStats.dueToday}</div>
+                        <p className="text-xs text-muted-foreground">Actividades programadas hoy</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Completados</CardTitle>
+                        <CheckCheck className="h-4 w-4 text-green-600" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-green-600">{followUpStats.completed}</div>
+                        <p className="text-xs text-muted-foreground">Total de actividades finalizadas</p>
+                    </CardContent>
+                </Card>
+            </div>
+        )}
 
         {isLoading ? (
             <div className="space-y-4">
