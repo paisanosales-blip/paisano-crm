@@ -284,6 +284,10 @@
           "type": "string",
           "description": "Date when the opportunity was discarded.",
           "format": "date-time"
+        },
+        "discardReason": {
+          "type": "string",
+          "description": "Reason why the opportunity was discarded."
         }
       },
       "required": [

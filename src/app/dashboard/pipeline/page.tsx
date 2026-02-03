@@ -80,6 +80,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { QuotationGeneratorDialog } from '@/components/quotation-generator-dialog';
 import { FinancingDialog, type FinancingConfirmPayload } from '@/components/financing-dialog';
 import { suggestNextAction } from '@/ai/flows/suggest-next-action';
+import { DiscardProspectDialog, type DiscardConfirmPayload } from '@/components/discard-prospect-dialog';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -259,7 +260,7 @@ export default function PipelinePage() {
     setIsDiscardDialogOpen(true);
   };
 
-  const handleDiscardConfirm = async () => {
+  const handleDiscardConfirm = async (payload: DiscardConfirmPayload) => {
     if (!prospectToDiscard || !firestore || !user) return;
 
     setIsSubmitting(true);
@@ -269,6 +270,7 @@ export default function PipelinePage() {
       const updateData = {
         stage: 'Descartado',
         discardedDate: new Date().toISOString(),
+        discardReason: payload.reason,
         sellerId: user.uid,
       };
 
@@ -770,7 +772,7 @@ export default function PipelinePage() {
 
   const getCardBgClass = (classification: ClientClassification) => {
     switch (classification) {
-        case 'PROSPECTO': return 'bg-gray-100/50 dark:bg-gray-800/40';
+        case 'PROSPECTO': return 'bg-gray-100/80 dark:bg-gray-800/40';
         case 'CLIENTE POTENCIAL': return 'bg-blue-50 dark:bg-blue-950/40';
         case 'CLIENTE': return 'bg-green-50 dark:bg-green-950/40';
         case 'FINANCIAMIENTO': return 'bg-amber-50 dark:bg-amber-950/40';
@@ -782,7 +784,7 @@ export default function PipelinePage() {
   return (
     <>
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-headline font-bold">Flujo de Ventas</h1>
         <div className="flex items-center gap-4">
           {userProfile?.role === 'manager' && (
@@ -804,9 +806,9 @@ export default function PipelinePage() {
           <NewProspectDialog />
         </div>
       </div>
-      <div>
-        <h2 className="text-xl font-semibold">Seguimiento de Prospectos</h2>
-        <p className="text-muted-foreground">Administra el ciclo de vida de tus clientes, desde el primer contacto hasta el cierre.</p>
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold">Seguimiento de Prospectos</h2>
+        <p className="text-sm text-muted-foreground">Administra el ciclo de vida de tus clientes, desde el primer contacto hasta el cierre.</p>
       </div>
       
       <div className="flex flex-wrap gap-2 my-4">
@@ -826,7 +828,7 @@ export default function PipelinePage() {
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
             <Card key={i}>
-              <CardContent className="p-4">
+              <CardContent className="p-2">
                 <Skeleton className="h-40 w-full" />
               </CardContent>
             </Card>
@@ -837,6 +839,7 @@ export default function PipelinePage() {
             const classification = getClassification(prospect.opportunity.stage);
             const cardBgClass = getCardBgClass(classification);
             const isFinancingStage = prospect.opportunity.stage === 'Financiamiento Externo';
+            const isDiscarded = prospect.opportunity.stage === 'Descartado';
             const currentIndex = isFinancingStage ? -1 : stages.indexOf(prospect.opportunity.stage);
             
             const summaryTabsConfig = [
@@ -863,7 +866,7 @@ export default function PipelinePage() {
               <Card key={prospect.id} className={cn("border-l-4", tagClass || 'border-l-transparent', cardBgClass)}>
                 <CardHeader className="flex flex-row items-start justify-between p-2 pb-0 pt-2">
                   <div>
-                    <CardTitle className="text-lg">{prospect.clientName}</CardTitle>
+                    <CardTitle className="text-base">{prospect.clientName}</CardTitle>
                     <CardDescription className="text-xs">{prospect.contactPerson}</CardDescription>
                   </div>
                    <DropdownMenu>
@@ -909,9 +912,9 @@ export default function PipelinePage() {
                 </CardHeader>
                 <CardContent className="grid md:grid-cols-2 gap-2 p-2">
                   <div className="space-y-1">
-                    <div>
+                    <div className="space-y-0.5">
                       {prospect.clientType && <Badge variant="secondary" className="text-xs">{prospect.clientType}</Badge>}
-                      <div className="text-xs text-muted-foreground mt-1">{prospect.email || 'N/A'}</div>
+                      <div className="text-xs text-muted-foreground">{prospect.email || 'N/A'}</div>
                       <div className="text-xs text-muted-foreground">{prospect.phone || 'N/A'}</div>
                     </div>
                     
@@ -1009,7 +1012,7 @@ export default function PipelinePage() {
                                         />
                                         <AccordionTrigger className="p-0 flex-1 justify-between">
                                             <div className={cn("grid gap-0.5 text-left", act.completed && "line-through text-muted-foreground")}>
-                                                <span className="font-bold text-foreground">{act.type} {act.dueDate ? `- ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
+                                                <span className="font-bold text-foreground text-xs">{act.type} {act.dueDate ? `- ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
                                                 <span className="text-xs text-muted-foreground">Creado: {format(new Date(act.createdDate), "dd/MM/yy")}</span>
                                             </div>
                                         </AccordionTrigger>
@@ -1096,6 +1099,12 @@ export default function PipelinePage() {
                             )
                         })}
                     </div>
+                     {isDiscarded && prospect.opportunity.discardReason && (
+                        <div className="p-2 mt-2 border rounded-md bg-red-50 dark:bg-red-950/40 text-xs">
+                            <p className="font-bold text-destructive">Motivo del Descarte:</p>
+                            <p className="italic text-destructive/90">"{prospect.opportunity.discardReason}"</p>
+                        </div>
+                    )}
                      <div className="mt-1 pt-1 border-t border-dashed">
                       {availableSummaries.length > 0 && (
                         <Tabs defaultValue={defaultTab} className="w-full">
@@ -1453,22 +1462,18 @@ export default function PipelinePage() {
             </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>
-      <AlertDialog open={isDiscardDialogOpen} onOpenChange={setIsDiscardDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Está seguro de descartar este prospecto?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción moverá el prospecto a un estado de "Descartado" y lo ocultará de la vista principal del flujo de ventas. Podrá verlo nuevamente usando el filtro "Descartados".
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDiscardConfirm} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">
-              {isSubmitting ? 'Descartando...' : 'Sí, Descartar'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {prospectToDiscard && (
+        <DiscardProspectDialog
+            open={isDiscardDialogOpen}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) setProspectToDiscard(null);
+                setIsDiscardDialogOpen(isOpen);
+            }}
+            onConfirm={handleDiscardConfirm}
+            prospectName={prospectToDiscard.clientName}
+            isSubmitting={isSubmitting}
+        />
+      )}
     </>
   );
 }
