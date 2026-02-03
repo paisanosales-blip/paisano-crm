@@ -449,6 +449,9 @@ export default function FollowUpsPage() {
                                     {activity.type}
                                     <span className="font-normal text-muted-foreground"> con </span> 
                                     <span className="font-medium">{activity.clientName}</span>
+                                    {activity.prospect?.contactPerson && (
+                                        <span className="text-sm font-normal text-muted-foreground"> ({activity.prospect.contactPerson})</span>
+                                    )}
                                 </p>
                                 <p className="text-sm text-muted-foreground">{activity.description || 'Sin descripción.'}</p>
                                 {dueDate && (
@@ -462,6 +465,51 @@ export default function FollowUpsPage() {
                                         </span>
                                     </div>
                                 )}
+                                <div className="flex items-center gap-4 pt-2 mt-2 border-t">
+                                    <a 
+                                        href={activity.prospect?.phone ? `https://wa.me/${(activity.prospect.country === 'US' ? '1' : '52')}${activity.prospect.phone.replace(/\D/g, '')}` : '#'}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => !activity.prospect?.phone && e.preventDefault()}
+                                        className={cn(
+                                            "transition-colors",
+                                            activity.prospect?.phone 
+                                                ? "text-green-500 hover:text-green-600" 
+                                                : "text-muted-foreground/40 cursor-not-allowed"
+                                        )}
+                                        title={activity.prospect?.phone ? `WhatsApp: ${activity.prospect.phone}` : 'No hay teléfono para WhatsApp'}
+                                    >
+                                        <MessageSquare className="h-5 w-5" />
+                                    </a>
+                                    <a 
+                                        href={activity.prospect?.email ? `https://mail.google.com/mail/?view=cm&fs=1&to=${activity.prospect.email}` : '#'}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => !activity.prospect?.email && e.preventDefault()}
+                                        className={cn(
+                                            "transition-colors",
+                                            activity.prospect?.email 
+                                                ? "text-blue-500 hover:text-blue-600" 
+                                                : "text-muted-foreground/40 cursor-not-allowed"
+                                        )}
+                                        title={activity.prospect?.email ? `Email: ${activity.prospect.email}`: 'No hay email'}
+                                    >
+                                        <Mail className="h-5 w-5" />
+                                    </a>
+                                    <a 
+                                        href={activity.prospect?.phone ? `tel:${activity.prospect.phone}` : '#'}
+                                        onClick={(e) => !activity.prospect?.phone && e.preventDefault()}
+                                        className={cn(
+                                            "transition-colors",
+                                            activity.prospect?.phone 
+                                                ? "text-foreground/80 hover:text-foreground" 
+                                                : "text-muted-foreground/40 cursor-not-allowed"
+                                        )}
+                                         title={activity.prospect?.phone ? `Llamar: ${activity.prospect.phone}`: 'No hay teléfono'}
+                                    >
+                                        <Phone className="h-5 w-5" />
+                                    </a>
+                                </div>
                             </div>
                             
                             <div className="flex items-center gap-1 sm:gap-2">
