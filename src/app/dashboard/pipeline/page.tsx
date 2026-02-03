@@ -1074,12 +1074,12 @@ export default function PipelinePage() {
                                         title={canMoveTo ? `Mover a: ${stage}` : stage}
                                     >
                                         <div className={cn(
-                                            'flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors',
-                                            isCurrent ? 'border-primary bg-primary text-primary-foreground shadow-lg' : 'border-border',
-                                            isCompleted ? 'border-primary bg-primary' : 'bg-card',
+                                            'flex h-8 w-8 items-center justify-center rounded-full border-2 text-primary-foreground transition-all',
+                                            (isCompleted || isCurrent) ? 'border-primary bg-primary' : 'border-border bg-card',
+                                            isCurrent && 'scale-110 shadow-lg',
                                             !isFinancingStage && canMoveTo && 'hover:border-primary/50'
                                         )}>
-                                            {(isCompleted || isCurrent) ? <Check className="h-4 w-4 text-primary-foreground" /> : <span className={cn('text-xs font-bold', 'text-muted-foreground')}>{index + 1}</span>}
+                                            {(isCompleted || isCurrent) ? <Check className="h-5 w-5" /> : <span className={cn('text-sm font-bold', 'text-muted-foreground')}>{index + 1}</span>}
                                         </div>
                                         <span className={cn(
                                             'text-[11px] font-medium leading-tight max-w-full px-1',
@@ -1090,8 +1090,8 @@ export default function PipelinePage() {
                                     </div>
                                     {index < stages.length - 1 && (
                                       <div className={cn(
-                                          "h-0.5 w-full flex-1 transition-colors",
-                                          isCompleted || isCurrent ? 'bg-primary' : 'bg-border'
+                                          "h-1 w-full flex-1 transition-colors",
+                                          isCompleted ? 'bg-primary' : 'bg-border'
                                       )} />
                                     )}
                                 </React.Fragment>
