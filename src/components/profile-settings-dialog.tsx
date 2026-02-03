@@ -30,7 +30,11 @@ import { Input } from '@/components/ui/input';
 import { UploadCloud } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
+// New schema with added fields
 const profileSchema = z.object({
+  firstName: z.string().min(1, 'El nombre es requerido.'),
+  lastName: z.string().min(1, 'El apellido es requerido.'),
+  phone: z.string().optional(),
   picture: z.instanceof(File).optional(),
 });
 
@@ -61,16 +65,26 @@ export function ProfileSettingsDialog({
   
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
+    defaultValues: {
+        firstName: '',
+        lastName: '',
+        phone: '',
+    }
   });
 
   const { watch } = form;
   const pictureFile = watch('picture');
 
   React.useEffect(() => {
-    if (open) {
-      form.reset({ picture: undefined });
+    if (open && userProfile) {
+        form.reset({ 
+            firstName: userProfile.firstName || '',
+            lastName: userProfile.lastName || '',
+            phone: userProfile.phone || '',
+            picture: undefined 
+        });
     }
-  }, [open, form]);
+  }, [open, userProfile, form]);
   
   const getInitials = (firstName?: string, lastName?: string) => {
     if (!firstName) return '...';
@@ -78,59 +92,75 @@ export function ProfileSettingsDialog({
   };
 
   function onSubmit(values: ProfileFormValues) {
-    if (!values.picture) {
-        toast({
-            variant: 'destructive',
-            title: 'No se seleccionó ninguna imagen',
-            description: 'Por favor, elija un archivo para cargar.',
-        });
-        return;
-    }
-    if (!firestore || !storage || !user) {
+    if (!firestore || !user) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo conectar con Firebase.' });
       return;
     }
   
     setIsSubmitting(true);
-    setUploadProgress(0);
-
-    const file = values.picture;
-    const storageRef = ref(storage, `profile-pictures/${user.uid}/${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
-
-    uploadTask.on('state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setUploadProgress(progress);
-      },
-      (error) => {
-        toast({ variant: 'destructive', title: 'Error de Subida', description: 'Ocurrió un problema al subir el archivo. Inténtelo de nuevo.' });
-        setIsSubmitting(false);
-        setUploadProgress(0);
-      },
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            const userDocRef = doc(firestore, 'users', user.uid);
+  
+    const userDocRef = doc(firestore, 'users', user.uid);
+  
+    // Data to update for text fields
+    const profileData = {
+      firstName: values.firstName,
+      lastName: values.lastName,
+      phone: values.phone,
+    };
+  
+    // Start with updating the text fields. This is a non-blocking call.
+    updateDocumentNonBlocking(userDocRef, profileData);
+  
+    // If a new picture is selected, upload it
+    if (values.picture && storage) {
+      setUploadProgress(0);
+      const file = values.picture;
+      const storageRef = ref(storage, `profile-pictures/${user.uid}/${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+  
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(progress);
+        },
+        (error) => {
+          // Image upload failed, but text fields were likely updated.
+          toast({ variant: 'destructive', title: 'Error de Subida', description: 'La imagen no pudo subirse, pero los demás datos se guardaron.' });
+          setIsSubmitting(false);
+          onOpenChange(false);
+        },
+        () => {
+          // Image upload success, now get URL and update avatarUrl
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
             updateDocumentNonBlocking(userDocRef, { avatarUrl: downloadURL });
             toast({
-                title: '¡Foto de Perfil Actualizada!',
-                description: 'Tu nueva foto de perfil se ha guardado.',
+              title: '¡Perfil Actualizado!',
+              description: 'Tu información y foto de perfil se han guardado.',
             });
+            setIsSubmitting(false);
             onOpenChange(false);
+          }).catch((urlError) => {
+            toast({ variant: 'destructive', title: 'Error de URL', description: 'La imagen se subió, pero no se pudo guardar la URL. Los demás datos sí se guardaron.' });
             setIsSubmitting(false);
-            setUploadProgress(0);
-        }).catch((urlError) => {
-            toast({ variant: 'destructive', title: 'Error al obtener URL', description: 'La imagen se subió, pero falló el guardado en la base de datos.' });
-            setIsSubmitting(false);
-            setUploadProgress(0);
-        });
-      }
-    );
+            onOpenChange(false);
+          });
+        }
+      );
+    } else {
+      // No new picture, so we're done.
+      toast({
+        title: '¡Perfil Actualizado!',
+        description: 'Tu información se ha guardado.',
+      });
+      setIsSubmitting(false);
+      onOpenChange(false);
+    }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Configuración de Perfil</DialogTitle>
           <DialogDescription>
@@ -151,12 +181,53 @@ export function ProfileSettingsDialog({
         </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+             <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="firstName"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Nombre</FormLabel>
+                            <FormControl>
+                                <Input {...field} disabled={isSubmitting} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="lastName"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Apellido</FormLabel>
+                            <FormControl>
+                                <Input {...field} disabled={isSubmitting} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+             <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Teléfono</FormLabel>
+                        <FormControl>
+                            <Input {...field} disabled={isSubmitting} placeholder="E.g., +1 555 123 4567" />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
             <FormField
               control={form.control}
               name="picture"
               render={({ field: { onChange } }) => (
                 <FormItem>
-                  <FormLabel>Foto de Perfil</FormLabel>
+                  <FormLabel>Foto de Perfil (Opcional)</FormLabel>
                   <FormControl>
                      <div className="relative flex justify-center w-full h-32 px-6 pt-5 pb-6 border-2 border-dashed rounded-md border-border">
                         <div className="space-y-1 text-center">
@@ -188,14 +259,14 @@ export function ProfileSettingsDialog({
               )}
             />
             
-            {isSubmitting && <Progress value={uploadProgress} className="w-full mt-2" />}
+            {isSubmitting && uploadProgress > 0 && <Progress value={uploadProgress} className="w-full mt-2" />}
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting || !pictureFile}>
-                {isSubmitting ? `Guardando... ${Math.round(uploadProgress)}%` : 'Guardar Foto'}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? `Guardando...` : 'Guardar Cambios'}
               </Button>
             </DialogFooter>
           </form>
@@ -204,5 +275,3 @@ export function ProfileSettingsDialog({
     </Dialog>
   );
 }
-
-    

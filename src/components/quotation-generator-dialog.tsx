@@ -167,7 +167,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
         const img = new Image();
         img.src = logoUrl;
-        const imgWidth = 30;
+        const imgWidth = 35;
         doc.addImage(logoUrl, format.toUpperCase(), margin, 3, imgWidth, 0, undefined, 'NONE');
       } catch (e) {
         console.error("Error adding logo image to PDF:", e);
