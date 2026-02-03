@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 
 
-import type { OpportunityStage, ClientClassification, Opportunity } from '@/lib/types';
+import { getClassification, getBadgeClass, type OpportunityStage, type ClientClassification, type Opportunity } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -91,15 +91,6 @@ const filterButtonLabels: Record<OpportunityStage | 'Todos', string> = {
     'Negociación': 'NEGOCIACIÓN',
     'Cierre de venta': 'CIERRE',
     'Financiamiento Externo': 'FINANCIAMIENTO',
-};
-
-// Helper function to get classification
-const getClassification = (stage: OpportunityStage): ClientClassification => {
-    if (stage === 'Primer contacto' || stage === 'Envió de Información') return 'PROSPECTO';
-    if (stage === 'Envió de Cotización' || stage === 'Negociación') return 'CLIENTE POTENCIAL';
-    if (stage === 'Cierre de venta') return 'CLIENTE';
-    if (stage === 'Financiamiento Externo') return 'FINANCIAMIENTO';
-    return 'PROSPECTO';
 };
 
 export default function PipelinePage() {
@@ -737,16 +728,6 @@ export default function PipelinePage() {
   
   const allStagesForFilter: Array<OpportunityStage | 'Todos'> = ['Todos', ...stages, 'Financiamiento Externo'];
 
-  const getBadgeClass = (classification: ClientClassification) => {
-    switch (classification) {
-        case 'PROSPECTO': return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700';
-        case 'CLIENTE POTENCIAL': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/80 dark:text-blue-200 dark:border-blue-800';
-        case 'CLIENTE': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/80 dark:text-green-200 dark:border-green-800';
-        case 'FINANCIAMIENTO': return 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/80 dark:text-amber-200 dark:border-amber-800';
-        default: return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700';
-    }
-  };
-
   const getCardBgClass = (classification: ClientClassification) => {
     switch (classification) {
         case 'PROSPECTO': return 'bg-gray-100/50 dark:bg-gray-800/40';
@@ -800,7 +781,7 @@ export default function PipelinePage() {
         ))}
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-2">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
             <Card key={i}>
@@ -839,7 +820,7 @@ export default function PipelinePage() {
 
             return (
               <Card key={prospect.id} className={cn("border-l-4", tagClass || 'border-l-transparent', cardBgClass)}>
-                <CardHeader className="flex flex-row items-start justify-between p-3">
+                <CardHeader className="flex flex-row items-start justify-between p-3 pb-1">
                   <div>
                     <CardTitle className="text-lg">{prospect.clientName}</CardTitle>
                     <CardDescription className="text-xs">{prospect.contactPerson}</CardDescription>
@@ -880,15 +861,15 @@ export default function PipelinePage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-3 p-3 pt-0">
-                  <div className="space-y-2">
+                <CardContent className="grid md:grid-cols-2 gap-3 p-3 pt-1">
+                  <div className="space-y-1">
                     <div>
                       {prospect.clientType && <Badge variant="secondary" className="text-xs">{prospect.clientType}</Badge>}
-                      <div className="text-xs text-muted-foreground mt-1.5">{prospect.email || 'N/A'}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{prospect.email || 'N/A'}</div>
                       <div className="text-xs text-muted-foreground">{prospect.phone || 'N/A'}</div>
                     </div>
                     
-                    <div className="flex items-center gap-4 pt-1.5 border-t">
+                    <div className="flex items-center gap-4 pt-1 border-t">
                         <a 
                             href={prospect.phone ? `https://wa.me/${(prospect.country === 'US' ? '1' : '52')}${prospect.phone.replace(/\D/g, '')}` : '#'}
                             target="_blank"
@@ -941,14 +922,14 @@ export default function PipelinePage() {
                         </div>
                     </div>
 
-                     <Collapsible className="mt-1" defaultOpen>
+                     <Collapsible className="pt-1" defaultOpen>
                         <CollapsibleTrigger asChild>
                             <Button variant="ghost" className="w-full justify-start text-xs h-8 -ml-2">
                                 <History className="h-4 w-4 mr-2" />
                                 Historial de Seguimiento ({prospect.activities.length})
                             </Button>
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="px-1 py-1 space-y-1 border-t mt-1">
+                        <CollapsibleContent className="px-1 py-1 space-y-1 border-t">
                             <div className="grid grid-cols-2 gap-2">
                                 <Button size="sm" className="w-full h-8" onClick={() => handleNewFollowUpClick(prospect)}>
                                   <PlusCircle className="mr-2 h-4 w-4" />
@@ -1035,7 +1016,7 @@ export default function PipelinePage() {
                                     <div
                                         onClick={() => canMoveTo && requestStageChange(prospect, stage)}
                                         className={cn(
-                                            'relative flex flex-col items-center gap-1.5 text-center transition-opacity w-24',
+                                            'relative flex flex-col items-center gap-1 text-center transition-opacity w-24',
                                             (canMoveTo) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
                                             !isFinancingStage && !isCompleted && !isCurrent && !isNext && 'opacity-50'
                                         )}
@@ -1051,7 +1032,7 @@ export default function PipelinePage() {
                                         </div>
 
                                         <span className={cn(
-                                            'text-xs max-w-full truncate',
+                                            'text-xs max-w-full truncate px-1',
                                             isCurrent ? 'font-bold text-primary' : 'text-muted-foreground'
                                         )}>
                                             {stage}
@@ -1069,12 +1050,12 @@ export default function PipelinePage() {
                             )
                         })}
                     </div>
-                     <div className="mt-2 pt-2 border-t border-dashed">
+                     <div className="mt-1 pt-1 border-t border-dashed">
                       {availableSummaries.length > 0 && (
                         <Tabs defaultValue={defaultTab} className="w-full">
                           <TabsList className="grid w-full" style={{gridTemplateColumns: `repeat(${availableSummaries.length}, minmax(0, 1fr))`}}>
                               {availableSummaries.map((tab) => (
-                                  <TabsTrigger key={tab.key} value={tab.key} className="text-xs">{tab.name}</TabsTrigger>
+                                  <TabsTrigger key={tab.key} value={tab.key} className="text-xs h-8">{tab.name}</TabsTrigger>
                               ))}
                           </TabsList>
                           <TabsContent value="info">

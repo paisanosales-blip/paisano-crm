@@ -31,6 +31,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { getClassification, getBadgeClass } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 export default function QuotationsPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
@@ -122,6 +124,7 @@ export default function QuotationsPage() {
             return {
                 ...quote,
                 clientName: lead ? lead.clientName : 'Cliente no encontrado',
+                opportunityStage: opportunity ? opportunity.stage : null,
             };
         }).sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
 
@@ -228,12 +231,21 @@ export default function QuotationsPage() {
                         <Accordion type="multiple" className="w-full">
                             {Object.entries(groupedQuotations)
                             .sort((a, b) => a[0].localeCompare(b[0]))
-                            .map(([clientName, quotes]) => (
+                            .map(([clientName, quotes]) => {
+                                const opportunityStage = quotes[0]?.opportunityStage;
+                                const classification = opportunityStage ? getClassification(opportunityStage) : null;
+                                
+                                return (
                                 <AccordionItem value={clientName} key={clientName}>
                                     <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 rounded-md">
                                         <div className="flex items-center gap-4">
                                             <span className="font-semibold text-base">{clientName}</span>
                                             <Badge variant="secondary">{quotes.length} {quotes.length === 1 ? 'cotización' : 'cotizaciones'}</Badge>
+                                            {classification && (
+                                                <Badge variant="outline" className={cn('font-bold uppercase text-xs', getBadgeClass(classification))}>
+                                                    {classification}
+                                                </Badge>
+                                            )}
                                         </div>
                                     </AccordionTrigger>
                                     <AccordionContent className="pt-0">
@@ -296,7 +308,7 @@ export default function QuotationsPage() {
                                         </div>
                                     </AccordionContent>
                                 </AccordionItem>
-                            ))}
+                            )})}
                         </Accordion>
                     ) : (
                         <div className="h-24 text-center flex items-center justify-center p-6 pt-0">
