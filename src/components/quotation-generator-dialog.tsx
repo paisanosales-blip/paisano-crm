@@ -167,8 +167,8 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
         const img = new Image();
         img.src = logoUrl;
-        const imgWidth = 50;
-        doc.addImage(logoUrl, format.toUpperCase(), margin, 0, imgWidth, 0, undefined, 'NONE');
+        const imgWidth = 40;
+        doc.addImage(logoUrl, format.toUpperCase(), margin, 3, imgWidth, 0, undefined, 'NONE');
       } catch (e) {
         console.error("Error adding logo image to PDF:", e);
       }
@@ -382,7 +382,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       if (notesContentHeight > 0) doc.rect(col2X, boxStartY, colWidth, sectionHeight, 'F');
     }
     
-    const titleY = boxStartY + colPadding;
+    const titleY = boxStartY + colPadding + 2;
     const bodyY = titleY + lineHeight + 2;
 
     if (termsBody) {
