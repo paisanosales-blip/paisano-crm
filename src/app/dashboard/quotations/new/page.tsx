@@ -261,11 +261,12 @@ export default function NewQuotationPage() {
       docPdf.text(quotationDetails.number.toUpperCase(), quoteDetailsX, currentY, { align: 'right' });
       docPdf.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, currentY + 6, { align: 'right' });
       docPdf.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, currentY + 12, { align: 'right' });
+
+      currentY += 12 + 8;
       
-      currentY = separatorY + 8;
       const infoStartY = currentY;
       const rightColX = docWidth / 2 + 10;
-      const infoBoxHeight = 35;
+      const infoBoxHeight = 40;
       const titleBoxHeight = 7;
       const contentStartY = infoStartY + titleBoxHeight;
       
@@ -273,9 +274,9 @@ export default function NewQuotationPage() {
       const buyerBoxWidth = (docWidth / 2) - margin - 10;
 
       // --- Sales Person Box ---
-      docPdf.setFillColor(RED); // Red header bg
+      docPdf.setFillColor(RED);
       docPdf.rect(margin, infoStartY - 2, salesPersonBoxWidth, titleBoxHeight, 'F');
-      docPdf.setFillColor(LIGHT_GRAY); // Gray content bg
+      docPdf.setFillColor(LIGHT_GRAY);
       docPdf.rect(margin, contentStartY - 2, salesPersonBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
       
       docPdf.setFont('helvetica', 'bold');
@@ -292,9 +293,9 @@ export default function NewQuotationPage() {
       }
 
       // --- Buyer Box ---
-      docPdf.setFillColor(RED); // Red header bg
+      docPdf.setFillColor(RED);
       docPdf.rect(rightColX, infoStartY - 2, buyerBoxWidth, titleBoxHeight, 'F');
-      docPdf.setFillColor(LIGHT_GRAY); // Gray content bg
+      docPdf.setFillColor(LIGHT_GRAY);
       docPdf.rect(rightColX, contentStartY - 2, buyerBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
 
       docPdf.setFont('helvetica', 'bold');
@@ -465,7 +466,7 @@ export default function NewQuotationPage() {
           docPdf.addPage();
           currentY = margin;
       }
-      currentY += 25;
+      currentY += 40;
       const sigWidth = 80;
       const sigXStart = (docWidth - sigWidth) / 2;
       docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);

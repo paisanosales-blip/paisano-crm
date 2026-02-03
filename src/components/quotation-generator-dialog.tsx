@@ -198,7 +198,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.line(margin, separatorY + 1.5, docWidth - margin, separatorY + 1.5);
     
     currentY = separatorY + 8;
-
+    
     const quoteDetailsX = docWidth - margin;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
@@ -210,11 +210,12 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.text(quotationDetails.number.toUpperCase(), quoteDetailsX, currentY, { align: 'right' });
     doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, currentY + 6, { align: 'right' });
     doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, currentY + 12, { align: 'right' });
-
-    currentY = separatorY + 8;
+    
+    currentY += 12 + 8;
+    
     const infoStartY = currentY;
     const rightColX = docWidth / 2 + 10;
-    const infoBoxHeight = 35;
+    const infoBoxHeight = 40;
     const titleBoxHeight = 7;
     const contentStartY = infoStartY + titleBoxHeight;
     
@@ -222,9 +223,9 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     const buyerBoxWidth = (docWidth / 2) - margin - 10;
 
     // --- Sales Person Box ---
-    doc.setFillColor(RED); // Red header bg
+    doc.setFillColor(RED);
     doc.rect(margin, infoStartY - 2, salesPersonBoxWidth, titleBoxHeight, 'F');
-    doc.setFillColor(LIGHT_GRAY); // Gray content bg
+    doc.setFillColor(LIGHT_GRAY);
     doc.rect(margin, contentStartY - 2, salesPersonBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
     
     doc.setFont('helvetica', 'bold');
@@ -241,9 +242,9 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     }
 
     // --- Buyer Box ---
-    doc.setFillColor(RED); // Red header bg
+    doc.setFillColor(RED);
     doc.rect(rightColX, infoStartY - 2, buyerBoxWidth, titleBoxHeight, 'F');
-    doc.setFillColor(LIGHT_GRAY); // Gray content bg
+    doc.setFillColor(LIGHT_GRAY);
     doc.rect(rightColX, contentStartY - 2, buyerBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
 
     doc.setFont('helvetica', 'bold');
@@ -423,7 +424,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         doc.addPage();
         currentY = margin;
     }
-    currentY += 25;
+    currentY += 40;
     
     const sigWidth = 80;
     const sigXStart = (docWidth - sigWidth) / 2;
