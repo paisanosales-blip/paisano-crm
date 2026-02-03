@@ -749,7 +749,8 @@ export default function PipelinePage() {
 
   const clientProspects = React.useMemo(() => {
     if (!leads || !opportunities || !quotations || !activities) return [];
-    return (leads as any[]).map(lead => {
+    
+    const mappedProspects = (leads as any[]).map(lead => {
       const opportunity = (opportunities as any[]).find(op => op.leadId === lead.id);
       const opportunityQuotations = (quotations as any[])
         .filter(q => q.opportunityId === opportunity?.id)
@@ -761,6 +762,13 @@ export default function PipelinePage() {
       
       return { ...lead, opportunity, quotation, activities: relatedActivities };
     }).filter(item => item.opportunity);
+
+    // Sort by opportunity creation date, newest first
+    return mappedProspects.sort((a, b) => {
+      if (!a.opportunity?.createdDate || !b.opportunity?.createdDate) return 0;
+      return new Date(b.opportunity.createdDate).getTime() - new Date(a.opportunity.createdDate).getTime();
+    });
+
   }, [leads, opportunities, quotations, activities]);
 
   const filteredProspects = React.useMemo(() => {
@@ -770,7 +778,7 @@ export default function PipelinePage() {
       // Stage filter
       const stage = prospect.opportunity?.stage;
       const stageMatch = filterStage === 'Todos' 
-        ? stage !== 'Descartado' 
+        ? (stage !== 'Descartado' && stage !== 'Financiamiento Externo')
         : stage === filterStage;
 
       if (!stageMatch) {
