@@ -749,7 +749,7 @@ export default function PipelinePage() {
 
   const getCardBgClass = (classification: ClientClassification) => {
     switch (classification) {
-        case 'PROSPECTO': return 'bg-gray-100 dark:bg-gray-800/40';
+        case 'PROSPECTO': return 'bg-gray-100/50 dark:bg-gray-800/40';
         case 'CLIENTE POTENCIAL': return 'bg-blue-50 dark:bg-blue-950/40';
         case 'CLIENTE': return 'bg-green-50 dark:bg-green-950/40';
         case 'FINANCIAMIENTO': return 'bg-amber-50 dark:bg-amber-950/40';
@@ -839,7 +839,7 @@ export default function PipelinePage() {
 
             return (
               <Card key={prospect.id} className={cn("border-2 border-l-4", tagClass || 'border-l-transparent', cardBgClass)}>
-                <CardHeader className="flex flex-row items-start justify-between">
+                <CardHeader className="flex flex-row items-start justify-between p-4">
                   <div>
                     <CardTitle className="text-xl">{prospect.clientName}</CardTitle>
                     <CardDescription>{prospect.contactPerson}</CardDescription>
@@ -880,8 +880,8 @@ export default function PipelinePage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
+                <CardContent className="grid md:grid-cols-2 gap-4 p-4 pt-0">
+                  <div className="space-y-3">
                     <div>
                       {prospect.clientType && <Badge variant="secondary">{prospect.clientType}</Badge>}
                       <div className="text-sm text-muted-foreground mt-2">{prospect.email || 'N/A'}</div>
@@ -941,14 +941,14 @@ export default function PipelinePage() {
                         </div>
                     </div>
 
-                     <Collapsible className="mt-2" defaultOpen>
+                     <Collapsible className="mt-1" defaultOpen>
                         <CollapsibleTrigger asChild>
                             <Button variant="ghost" className="w-full justify-start text-sm h-9 -ml-2">
                                 <History className="h-4 w-4 mr-2" />
                                 Historial de Seguimiento ({prospect.activities.length})
                             </Button>
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="px-1 py-2 space-y-2 border-t mt-1">
+                        <CollapsibleContent className="px-1 py-1 space-y-2 border-t mt-1">
                             <div className="grid grid-cols-2 gap-2">
                                 <Button size="sm" className="w-full h-8" onClick={() => handleNewFollowUpClick(prospect)}>
                                   <PlusCircle className="mr-2 h-4 w-4" />
@@ -973,7 +973,7 @@ export default function PipelinePage() {
                                 <Accordion type="single" collapsible className="w-full" defaultValue={prospect.activities[0]?.id}>
                                   {prospect.activities.map((act: any) => (
                                     <AccordionItem value={act.id} key={act.id} className="border-b-0">
-                                      <div className="flex w-full items-center p-2 text-xs rounded-md data-[state=open]:bg-muted/50 hover:bg-muted/50">
+                                      <div className="flex w-full items-center p-1.5 text-xs rounded-md data-[state=open]:bg-muted/50 hover:bg-muted/50">
                                         <Checkbox
                                             id={`activity-check-${act.id}`}
                                             checked={act.completed}
@@ -987,8 +987,8 @@ export default function PipelinePage() {
                                             </div>
                                         </AccordionTrigger>
                                       </div>
-                                      <AccordionContent className="pb-2 pt-0 pl-4 pr-2">
-                                        <div className="pl-10 border-l-2 ml-4 py-2">
+                                      <AccordionContent className="pb-1 pt-0 pl-4 pr-2">
+                                        <div className="pl-8 border-l-2 ml-4 py-1">
                                           {act.description && <p className="italic mb-2 text-muted-foreground">"{act.description}"</p>}
                                           {act.contactChannels && act.contactChannels.length > 0 && (
                                             <div className="flex flex-wrap gap-1 mt-1">
@@ -1018,7 +1018,7 @@ export default function PipelinePage() {
                         </CollapsibleContent>
                     </Collapsible>
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <h4 className="font-semibold text-sm text-muted-foreground">PROGRESO DEL PROSPECTO</h4>
                       <Badge variant="outline" className={`font-bold ${getBadgeClass(classification)}`}>{classification}</Badge>
@@ -1035,7 +1035,7 @@ export default function PipelinePage() {
                                     <div
                                         onClick={() => canMoveTo && requestStageChange(prospect, stage)}
                                         className={cn(
-                                            'relative flex flex-col items-center gap-1.5 text-center transition-opacity w-28',
+                                            'relative flex flex-col items-center gap-1.5 text-center transition-opacity w-24',
                                             (canMoveTo) ? 'cursor-pointer hover:opacity-80' : 'cursor-not-allowed',
                                             !isFinancingStage && !isCompleted && !isCurrent && !isNext && 'opacity-50'
                                         )}
@@ -1079,7 +1079,7 @@ export default function PipelinePage() {
                           </TabsList>
                           <TabsContent value="info">
                               {currentIndex >= 1 && prospect.opportunity.sentPrices !== undefined && (
-                                  <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
+                                  <div className="p-2 mt-1 border rounded-md bg-background/50 text-xs text-muted-foreground">
                                       <div className="flex items-center justify-between mb-1">
                                           <div>
                                               <p className="font-bold text-foreground">RESUMEN: ENVIÓ DE INFORMACIÓN</p>
@@ -1120,7 +1120,7 @@ export default function PipelinePage() {
                           </TabsContent>
                            <TabsContent value="quot">
                               {currentIndex >= 2 && prospect.quotation && (
-                                  <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
+                                  <div className="p-2 mt-1 border rounded-md bg-background/50 text-xs text-muted-foreground">
                                       <div className="flex items-center justify-between">
                                           <div>
                                               <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
@@ -1163,7 +1163,7 @@ export default function PipelinePage() {
                           </TabsContent>
                            <TabsContent value="neg">
                               {currentIndex >= 3 && prospect.opportunity.acceptedPrice !== undefined && (
-                                  <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
+                                  <div className="p-2 mt-1 border rounded-md bg-background/50 text-xs text-muted-foreground">
                                       <div className="flex items-center justify-between mb-1">
                                           <div>
                                               <p className="font-bold text-foreground">RESUMEN: NEGOCIACIÓN</p>
@@ -1194,7 +1194,7 @@ export default function PipelinePage() {
                           </TabsContent>
                           <TabsContent value="close">
                               {currentIndex >= 4 && prospect.opportunity.clientMadeDownPayment !== undefined && (
-                                  <div className="p-2 mt-2 border rounded-md bg-background/50 text-xs text-muted-foreground">
+                                  <div className="p-2 mt-1 border rounded-md bg-background/50 text-xs text-muted-foreground">
                                       <div className="flex items-center justify-between mb-1">
                                           <div>
                                               <p className="font-bold text-foreground">RESUMEN: CIERRE DE VENTA</p>

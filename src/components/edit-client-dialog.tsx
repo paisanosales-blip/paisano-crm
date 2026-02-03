@@ -52,8 +52,8 @@ const prospectSchema = z
     contactPerson: z.string().min(1, 'El nombre del cliente es requerido.'),
     clientName: z.string().min(1, 'El nombre de la empresa es requerido.'),
     country: z.string().min(1, 'El país es requerido.'),
-    state: z.string().min(1, 'El estado es requerido.'),
-    city: z.string().min(1, 'La ciudad es requerida.'),
+    state: z.string().optional(),
+    city: z.string().optional(),
     contactMethod: z.string().min(1, 'La forma de contacto es requerida.'),
     language: z.string().min(1, 'El idioma es requerido.'),
     clientType: z.string().min(1, 'El tipo de cliente es requerido.'),
@@ -401,5 +401,3 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     </Dialog>
   );
 }
-
-    
