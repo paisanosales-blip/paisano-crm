@@ -285,6 +285,22 @@ export default function NewQuotationPage() {
       docPdf.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 15);
       if(selectedClient.email) docPdf.text(selectedClient.email.toUpperCase(), rightColX + 3, infoStartY + 20);
       currentY = infoStartY + infoBoxHeight + 8;
+      
+      const tableWidth = docWidth - (margin * 2);
+      const columnStyles4 = {
+        0: { cellWidth: tableWidth * 0.55 }, // Description
+        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const }, // Qty
+        2: { cellWidth: tableWidth * 0.175, halign: 'right' as const }, // Unit Price
+        3: { cellWidth: tableWidth * 0.175, halign: 'right' as const }, // Total
+      };
+      const columnStyles5 = {
+        0: { cellWidth: tableWidth * 0.45 }, // Description
+        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const }, // Qty
+        2: { cellWidth: tableWidth * 0.15, halign: 'right' as const }, // Unit Price
+        3: { cellWidth: tableWidth * 0.15, halign: 'right' as const }, // Unit Freight
+        4: { cellWidth: tableWidth * 0.15, halign: 'right' as const }, // Total
+      };
+
       const tableHead = isIndividualFreight
           ? [["DESCRIPTION", "QTY", "UNIT PRICE", "UNIT FREIGHT", "TOTAL"]]
           : [["DESCRIPTION", "QTY", "UNIT PRICE", "TOTAL"]];
@@ -314,6 +330,7 @@ export default function NewQuotationPage() {
           theme: 'striped',
           headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
           styles: { fontSize: 10, cellPadding: 3 },
+          columnStyles: isIndividualFreight ? columnStyles5 : columnStyles4,
           margin: { left: margin, right: margin }
       });
       currentY = (docPdf as any).autoTable.previous.finalY;
