@@ -184,7 +184,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.setTextColor(100);
 
     const addressY = headerTextY + 8;
-    const addressLineSpacing = 4;
+    const addressLineSpacing = 5;
     doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
     doc.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
