@@ -1091,7 +1091,7 @@ export default function PipelinePage() {
                                     {index < stages.length - 1 && (
                                       <div className={cn(
                                           "h-0.5 w-full flex-1 transition-colors",
-                                          isCompleted ? 'bg-primary' : 'bg-border'
+                                          isCompleted || isCurrent ? 'bg-primary' : 'bg-border'
                                       )} />
                                     )}
                                 </React.Fragment>
