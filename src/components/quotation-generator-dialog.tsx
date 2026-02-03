@@ -167,7 +167,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
         const img = new Image();
         img.src = logoUrl;
-        const imgWidth = 40;
+        const imgWidth = 30;
         doc.addImage(logoUrl, format.toUpperCase(), margin, 3, imgWidth, 0, undefined, 'NONE');
       } catch (e) {
         console.error("Error adding logo image to PDF:", e);
@@ -183,7 +183,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.setFontSize(10);
     doc.setTextColor(100);
 
-    const addressY = headerTextY + 8;
+    const addressY = headerTextY + 10;
     const addressLineSpacing = 5;
     doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
@@ -215,7 +215,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
 
     const infoStartY = currentY;
     const rightColX = docWidth / 2 + 10;
-    const infoBoxHeight = 28;
+    const infoBoxHeight = 35;
 
     doc.setFillColor(LIGHT_GRAY);
     doc.rect(margin, infoStartY - 2, (docWidth / 2) - margin - 5, infoBoxHeight, 'F');
@@ -238,6 +238,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.text(prospect.clientName.toUpperCase(), rightColX + 3, infoStartY + 8);
     doc.text(`ATTN: ${prospect.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 13);
     if(prospect.email) doc.text(prospect.email.toLowerCase(), rightColX + 3, infoStartY + 18);
+    if(prospect.phone) doc.text(prospect.phone, rightColX + 3, infoStartY + 23);
 
     currentY = infoStartY + infoBoxHeight + 6;
     
@@ -410,7 +411,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         doc.addPage();
         currentY = margin;
     }
-    currentY += 15;
+    currentY += 25;
     
     const sigWidth = 80;
     const sigXStart = (docWidth - sigWidth) / 2;

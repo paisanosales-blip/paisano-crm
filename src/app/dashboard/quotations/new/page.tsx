@@ -222,7 +222,7 @@ export default function NewQuotationPage() {
           const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
           const img = new Image();
           img.src = logoUrl;
-          const imgWidth = 40;
+          const imgWidth = 30;
           docPdf.addImage(logoUrl, format.toUpperCase(), margin, 3, imgWidth, 0, undefined, 'NONE');
         } catch (e) {
           console.error("Error adding logo image to PDF:", e);
@@ -236,7 +236,7 @@ export default function NewQuotationPage() {
       docPdf.setFont('helvetica', 'normal');
       docPdf.setFontSize(10);
       docPdf.setTextColor(100);
-      const addressY = headerTextY + 8;
+      const addressY = headerTextY + 10;
       const addressLineSpacing = 5;
       docPdf.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
       docPdf.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
@@ -265,7 +265,7 @@ export default function NewQuotationPage() {
       currentY += 12 + 8;
       const infoStartY = currentY;
       const rightColX = docWidth / 2 + 10;
-      const infoBoxHeight = 28;
+      const infoBoxHeight = 35;
       docPdf.setFillColor(LIGHT_GRAY);
       docPdf.rect(margin, infoStartY - 2, (docWidth / 2) - margin - 5, infoBoxHeight, 'F');
       docPdf.rect(rightColX, infoStartY - 2, (docWidth / 2) - margin - 10, infoBoxHeight, 'F');
@@ -286,6 +286,7 @@ export default function NewQuotationPage() {
       docPdf.text(selectedClient.clientName.toUpperCase(), rightColX + 3, infoStartY + 8);
       docPdf.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 13);
       if(selectedClient.email) docPdf.text(selectedClient.email.toLowerCase(), rightColX + 3, infoStartY + 18);
+      if(selectedClient.phone) docPdf.text(selectedClient.phone, rightColX + 3, infoStartY + 23);
       
       currentY = infoStartY + infoBoxHeight + 6;
       
@@ -449,7 +450,7 @@ export default function NewQuotationPage() {
           docPdf.addPage();
           currentY = margin;
       }
-      currentY += 15;
+      currentY += 25;
       const sigWidth = 80;
       const sigXStart = (docWidth - sigWidth) / 2;
       docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
