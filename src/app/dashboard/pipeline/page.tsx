@@ -638,10 +638,7 @@ export default function PipelinePage() {
 
     setIsSubmitting(true);
 
-    const { id, observations, nextContactDate, nextContactType, contactChannels } = payload;
-    const selectedChannels = contactChannels ? Object.entries(contactChannels)
-      .filter(([, value]) => value)
-      .map(([key]) => key) : [];
+    const { id, observations, nextContactDate, nextContactType } = payload;
     
     const activityData: any = {
         leadId: currentProspect.id,
@@ -649,7 +646,6 @@ export default function PipelinePage() {
         sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
         type: nextContactType || 'Nota',
         description: observations || '',
-        contactChannels: selectedChannels,
         dueDate: nextContactDate ? nextContactDate.toISOString() : null,
         completed: payload.id ? currentActivity.completed : false,
         createdDate: payload.id ? currentActivity.createdDate : new Date().toISOString(),

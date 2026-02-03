@@ -25,18 +25,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { draftFollowUpScript, type DraftFollowUpScriptInput } from '@/ai/flows/draft-follow-up-script';
-
-const contactChannelItems = [
-  'WhatsApp', 'Messenger', 'Llamada', 'Mensaje de Texto', 'Correo Electronico'
-];
 
 export interface FollowUpSubmitPayload {
   id?: string;
   observations: string;
-  contactChannels: { [key: string]: boolean };
   nextContactDate?: Date;
   nextContactType: string;
 }
@@ -61,12 +55,7 @@ export function FollowUpDialog({
 
   const isEditing = !!activity;
   const { toast } = useToast();
-  const initialChannelsState = contactChannelItems.reduce((acc, channel) => {
-    acc[channel] = false;
-    return acc;
-  }, {} as { [key: string]: boolean });
 
-  const [contactChannels, setContactChannels] = useState(initialChannelsState);
   const [observations, setObservations] = useState('');
   const [nextContactDate, setNextContactDate] = useState<Date>();
   const [nextContactType, setNextContactType] = useState('');
@@ -78,23 +67,13 @@ export function FollowUpDialog({
         setObservations(activity.description || '');
         setNextContactDate(activity.dueDate ? new Date(activity.dueDate) : undefined);
         setNextContactType(activity.type || '');
-        const currentChannels = contactChannelItems.reduce((acc, channel) => {
-            acc[channel] = activity.contactChannels?.includes(channel) || false;
-            return acc;
-        }, {} as { [key: string]: boolean });
-        setContactChannels(currentChannels);
       } else {
-        setContactChannels(initialChannelsState);
         setObservations('');
         setNextContactDate(undefined);
         setNextContactType('');
       }
     }
   }, [open, activity, isEditing]);
-
-  const handleChannelChange = (channel: string, checked: boolean) => {
-    setContactChannels((prev) => ({ ...prev, [channel]: checked }));
-  };
 
   const handleGenerateDraft = async () => {
     if (!prospect) {
@@ -159,7 +138,6 @@ export function FollowUpDialog({
     const payload: FollowUpSubmitPayload = {
       id: activity?.id,
       observations,
-      contactChannels,
       nextContactDate,
       nextContactType,
     };
@@ -176,24 +154,6 @@ export function FollowUpDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-6 py-4">
-            <div className="space-y-3 rounded-lg border p-4">
-                <Label className="font-medium text-sm text-foreground">VÍA DE CONTACTO</Label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
-                    {contactChannelItems.map((channel) => (
-                    <div key={channel} className="flex items-center space-x-2">
-                        <Checkbox
-                        id={`follow-up-${channel}`}
-                        checked={contactChannels[channel]}
-                        onCheckedChange={(checked) => handleChannelChange(channel, !!checked)}
-                        />
-                        <Label htmlFor={`follow-up-${channel}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        {channel}
-                        </Label>
-                    </div>
-                    ))}
-                </div>
-            </div>
-            
             <div className="space-y-3">
                 <Label className="font-medium text-sm text-foreground">AGENDAR PRÓXIMO CONTACTO (OPCIONAL)</Label>
                 <div className="grid grid-cols-2 gap-4">
