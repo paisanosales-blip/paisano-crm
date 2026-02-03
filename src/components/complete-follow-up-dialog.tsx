@@ -155,7 +155,7 @@ export function CompleteFollowUpDialog({ open, onOpenChange, onConfirm, isSubmit
             {scheduleNext && (
               <div className="grid gap-4 pt-4 border-t">
                 <div className="grid grid-cols-2 gap-4">
-                  <Popover>
+                  <Popover modal={true}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className={cn('justify-start text-left font-normal', !nextFollowUpDate && 'text-muted-foreground')}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
