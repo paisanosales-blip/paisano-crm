@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, PlusCircle, FileDown } from "lucide-react";
+import { MoreHorizontal, PlusCircle, FileDown, Mail } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -125,6 +125,8 @@ export default function QuotationsPage() {
                 ...quote,
                 clientName: lead ? lead.clientName : 'Cliente no encontrado',
                 opportunityStage: opportunity ? opportunity.stage : null,
+                clientEmail: lead ? lead.email : null,
+                contactPerson: lead ? lead.contactPerson : 'Contacto',
             };
         }).sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
 
@@ -148,6 +150,33 @@ export default function QuotationsPage() {
 
         return groups;
     }, [enrichedQuotations]);
+    
+    const handleSendEmail = (quotation: any) => {
+        if (!quotation.clientEmail) {
+            toast({
+                variant: 'destructive',
+                title: 'Correo no encontrado',
+                description: `No se encontró una dirección de correo para ${quotation.clientName}.`,
+            });
+            return;
+        }
+        if (!quotation.pdfUrl) {
+            toast({
+                variant: 'destructive',
+                title: 'PDF no encontrado',
+                description: `No se encontró el archivo PDF para esta cotización.`,
+            });
+            return;
+        }
+
+        const subject = `Cotización de Paisano Trailer - ${quotation.clientName}`;
+        const body = `Estimado/a ${quotation.contactPerson || quotation.clientName},\n\nAdjunto encontrará el enlace para descargar su cotización (versión ${quotation.version}).\n\nPor favor, haga clic en el siguiente enlace:\n${quotation.pdfUrl}\n\nSi tiene alguna pregunta, no dude en contactarnos.\n\nSaludos cordiales,\n${userProfile?.firstName || ''} ${userProfile?.lastName || ''}\nPaisano Trailer`;
+
+        const mailtoLink = `mailto:${quotation.clientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+        window.location.href = mailtoLink;
+    };
+
 
     const handleDeleteClick = (quotation: any) => {
         setQuotationToDelete(quotation);
@@ -294,6 +323,10 @@ export default function QuotationsPage() {
                                                                     </DropdownMenuTrigger>
                                                                     <DropdownMenuContent align="end">
                                                                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                                         <DropdownMenuItem onSelect={() => handleSendEmail(quote)}>
+                                                                            <Mail className="mr-2 h-4 w-4"/>
+                                                                            Enviar por Correo
+                                                                        </DropdownMenuItem>
                                                                         <DropdownMenuItem disabled>Editar</DropdownMenuItem>
                                                                         <DropdownMenuItem disabled>Crear Nueva Versión</DropdownMenuItem>
                                                                         <DropdownMenuItem className="text-destructive" onSelect={() => handleDeleteClick(quote)}>Eliminar</DropdownMenuItem>
