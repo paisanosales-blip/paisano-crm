@@ -9,6 +9,7 @@ import {
   useMemoFirebase,
   useDoc,
   deleteDocumentNonBlocking,
+  updateDocumentNonBlocking,
 } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { MoreHorizontal, PlusCircle, FileDown, Mail, DollarSign, Send, FileCheck, FileX } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -265,6 +266,16 @@ export default function QuotationsPage() {
         }
     };
 
+    const handleStatusChange = (quotationId: string, status: 'Aceptada' | 'Rechazada' | 'Enviada' | 'Borrador') => {
+        if (!firestore) return;
+        const quotationRef = doc(firestore, 'quotations', quotationId);
+        updateDocumentNonBlocking(quotationRef, { status });
+        toast({
+            title: 'Estado Actualizado',
+            description: `La cotización ha sido marcada como ${status.toLowerCase()}.`,
+        });
+    };
+
     return (
       <>
         <div className="grid gap-6">
@@ -434,6 +445,20 @@ export default function QuotationsPage() {
                                                                             </Button>
                                                                         </DropdownMenuTrigger>
                                                                         <DropdownMenuContent align="end">
+                                                                            <DropdownMenuLabel>Cambiar Estado</DropdownMenuLabel>
+                                                                            <DropdownMenuItem onSelect={() => handleStatusChange(quote.id, 'Aceptada')} disabled={quote.status === 'Aceptada'}>
+                                                                                <FileCheck className="mr-2 h-4 w-4" />
+                                                                                <span>Aceptada</span>
+                                                                            </DropdownMenuItem>
+                                                                            <DropdownMenuItem onSelect={() => handleStatusChange(quote.id, 'Rechazada')} disabled={quote.status === 'Rechazada'}>
+                                                                                <FileX className="mr-2 h-4 w-4" />
+                                                                                <span>Rechazada</span>
+                                                                            </DropdownMenuItem>
+                                                                            <DropdownMenuItem onSelect={() => handleStatusChange(quote.id, 'Enviada')} disabled={quote.status === 'Enviada'}>
+                                                                                <Send className="mr-2 h-4 w-4" />
+                                                                                <span>Enviada</span>
+                                                                            </DropdownMenuItem>
+                                                                            <DropdownMenuSeparator />
                                                                             <DropdownMenuLabel>Otras Acciones</DropdownMenuLabel>
                                                                             <DropdownMenuItem disabled>Editar</DropdownMenuItem>
                                                                             <DropdownMenuItem disabled>Crear Nueva Versión</DropdownMenuItem>
