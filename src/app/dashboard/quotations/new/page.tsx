@@ -222,7 +222,7 @@ export default function NewQuotationPage() {
           const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
           const img = new Image();
           img.src = logoUrl;
-          const imgWidth = 35;
+          const imgWidth = 65;
           docPdf.addImage(logoUrl, format.toUpperCase(), margin, 3, imgWidth, 0, undefined, 'NONE');
         } catch (e) {
           console.error("Error adding logo image to PDF:", e);
