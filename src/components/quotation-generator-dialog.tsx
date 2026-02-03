@@ -97,10 +97,14 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       if (!selectedProd) return;
 
       const newItems = [...items];
+      const description = selectedProd.summary
+        ? `${selectedProd.name}\n${selectedProd.summary}`
+        : selectedProd.name;
+        
       newItems[index] = {
           ...newItems[index],
           productId: newProductId,
-          description: selectedProd.name,
+          description: description,
           price: selectedProd.price,
       };
       setItems(newItems);
@@ -253,7 +257,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         if (isIndividualFreight) {
             const totalFreightForItem = item.individualFreight * item.quantity;
             return [
-                item.description.toUpperCase(),
+                item.description,
                 item.quantity,
                 `$${item.price.toFixed(2)}`,
                 `$${item.individualFreight.toFixed(2)}`,
@@ -261,7 +265,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
             ];
         }
         return [
-            item.description.toUpperCase(),
+            item.description,
             item.quantity,
             `$${item.price.toFixed(2)}`,
             `$${itemTotal.toFixed(2)}`
