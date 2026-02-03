@@ -970,7 +970,7 @@ export default function PipelinePage() {
             const tagClass = prospect.tag ? tagClasses[prospect.tag as keyof typeof tagClasses] : '';
 
             return (
-              <Card key={prospect.id} className={cn("border-l-4", tagClass || 'border-l-transparent', cardBgClass)}>
+              <Card key={prospect.id} className={cn("border-4 border-black", tagClass || 'border-l-transparent', cardBgClass)}>
                 <CardHeader className="flex flex-row items-start justify-between p-2 pb-0">
                   <div>
                     <CardTitle className="text-base">{prospect.clientName}</CardTitle>
