@@ -65,10 +65,10 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (isDataReady && userProfile) {
-      // const today = new Date().toISOString().split('T')[0];
-      // const lastShown = localStorage.getItem('dailySummaryLastShown');
+      const today = new Date().toISOString().split('T')[0];
+      const lastShown = localStorage.getItem('dailySummaryLastShown');
 
-      // if (lastShown !== today) {
+      if (lastShown !== today) {
         const fetchSummary = async () => {
           setIsSummaryOpen(true);
           setIsSummaryLoading(true);
@@ -94,12 +94,12 @@ export default function DashboardLayout({
             setSummaryText("No se pudo cargar tu resumen diario. ¡Pero te deseamos un gran día de ventas!");
           } finally {
             setIsSummaryLoading(false);
-            // localStorage.setItem('dailySummaryLastShown', today);
+            localStorage.setItem('dailySummaryLastShown', today);
           }
         };
 
         fetchSummary();
-      // }
+      }
     }
   }, [isDataReady, userProfile, activities, opportunities]);
 
