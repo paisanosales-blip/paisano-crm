@@ -211,51 +211,68 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, currentY + 6, { align: 'right' });
     doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, currentY + 12, { align: 'right' });
 
-    currentY += 12 + 8;
-
+    currentY = separatorY + 8;
     const infoStartY = currentY;
     const rightColX = docWidth / 2 + 10;
     const infoBoxHeight = 35;
+    const titleBoxHeight = 7;
+    const contentStartY = infoStartY + titleBoxHeight;
+    
+    const salesPersonBoxWidth = (docWidth / 2) - margin - 5;
+    const buyerBoxWidth = (docWidth / 2) - margin - 10;
 
-    doc.setFillColor(LIGHT_GRAY);
-    doc.rect(margin, infoStartY - 2, (docWidth / 2) - margin - 5, infoBoxHeight, 'F');
-    doc.rect(rightColX, infoStartY - 2, (docWidth / 2) - margin - 10, infoBoxHeight, 'F');
+    // --- Sales Person Box ---
+    doc.setFillColor(RED); // Red header bg
+    doc.rect(margin, infoStartY - 2, salesPersonBoxWidth, titleBoxHeight, 'F');
+    doc.setFillColor(LIGHT_GRAY); // Gray content bg
+    doc.rect(margin, contentStartY - 2, salesPersonBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
     
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.setTextColor(BLACK);
-    doc.text('SALES PERSON:', margin + 3, infoStartY + 3);
+    doc.setTextColor('#FFFFFF');
+    doc.text('SALES PERSON:', margin + 3, infoStartY + 2.5);
+    
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(BLACK);
     if (userProfile) {
-        doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, infoStartY + 8);
-        if (userProfile.email) doc.text(userProfile.email.toLowerCase(), margin + 3, infoStartY + 13);
-        if (userProfile.phone) doc.text(userProfile.phone, margin + 3, infoStartY + 18);
+        doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, contentStartY + 3);
+        if (userProfile.email) doc.text(userProfile.email.toLowerCase(), margin + 3, contentStartY + 8);
+        if (userProfile.phone) doc.text(userProfile.phone, margin + 3, contentStartY + 13);
     }
 
-    doc.setFont('helvetica', 'bold');
-    doc.text('BUYER:', rightColX + 3, infoStartY + 3);
-    doc.setFont('helvetica', 'normal');
-    doc.text(prospect.clientName.toUpperCase(), rightColX + 3, infoStartY + 8);
-    doc.text(`ATTN: ${prospect.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 13);
-    if(prospect.email) doc.text(prospect.email.toLowerCase(), rightColX + 3, infoStartY + 18);
-    if(prospect.phone) doc.text(prospect.phone, rightColX + 3, infoStartY + 23);
+    // --- Buyer Box ---
+    doc.setFillColor(RED); // Red header bg
+    doc.rect(rightColX, infoStartY - 2, buyerBoxWidth, titleBoxHeight, 'F');
+    doc.setFillColor(LIGHT_GRAY); // Gray content bg
+    doc.rect(rightColX, contentStartY - 2, buyerBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
 
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor('#FFFFFF');
+    doc.text('BUYER:', rightColX + 3, infoStartY + 2.5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(BLACK);
+    doc.text(prospect.clientName.toUpperCase(), rightColX + 3, contentStartY + 3);
+    doc.text(`ATTN: ${prospect.contactPerson.toUpperCase()}`, rightColX + 3, contentStartY + 8);
+    if(prospect.email) doc.text(prospect.email.toLowerCase(), rightColX + 3, contentStartY + 13);
+    if(prospect.phone) doc.text(prospect.phone, rightColX + 3, contentStartY + 18);
+    
     currentY = infoStartY + infoBoxHeight + 6;
     
     const tableWidth = docWidth - (margin * 2);
     const columnStyles4 = {
-      0: { cellWidth: tableWidth * 0.45, halign: 'left' as const },
-      1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
-      2: { cellWidth: tableWidth * 0.225, halign: 'right' as const },
-      3: { cellWidth: tableWidth * 0.225, halign: 'right' as const },
-    };
-    const columnStyles5 = {
-      0: { cellWidth: tableWidth * 0.40, halign: 'left' as const },
-      1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
-      2: { cellWidth: tableWidth * 0.16, halign: 'right' as const },
-      3: { cellWidth: tableWidth * 0.16, halign: 'right' as const },
-      4: { cellWidth: tableWidth * 0.18, halign: 'right' as const },
-    };
+        0: { cellWidth: tableWidth * 0.50, halign: 'justify' as const },
+        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
+        2: { cellWidth: tableWidth * 0.20, halign: 'right' as const },
+        3: { cellWidth: tableWidth * 0.20, halign: 'right' as const },
+      };
+      const columnStyles5 = {
+        0: { cellWidth: tableWidth * 0.45, halign: 'justify' as const },
+        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
+        2: { cellWidth: tableWidth * 0.16, halign: 'right' as const },
+        3: { cellWidth: tableWidth * 0.16, halign: 'right' as const },
+        4: { cellWidth: tableWidth * 0.13, halign: 'right' as const },
+      };
     
     const tableHead = isIndividualFreight
         ? [["DESCRIPTION", "QTY", "UNIT PRICE", "UNIT FREIGHT", "TOTAL"]]
@@ -286,11 +303,6 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         body: tableBody,
         startY: currentY,
         theme: 'striped',
-        didParseCell: function (data) {
-          if (data.column.dataKey === 0) {
-            data.cell.styles.halign = 'justify';
-          }
-        },
         headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
         styles: { fontSize: 10, cellPadding: 3 },
         columnStyles: isIndividualFreight ? columnStyles5 : columnStyles4,

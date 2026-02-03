@@ -262,47 +262,67 @@ export default function NewQuotationPage() {
       docPdf.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, currentY + 6, { align: 'right' });
       docPdf.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, currentY + 12, { align: 'right' });
       
-      currentY += 12 + 8;
+      currentY = separatorY + 8;
       const infoStartY = currentY;
       const rightColX = docWidth / 2 + 10;
       const infoBoxHeight = 35;
-      docPdf.setFillColor(LIGHT_GRAY);
-      docPdf.rect(margin, infoStartY - 2, (docWidth / 2) - margin - 5, infoBoxHeight, 'F');
-      docPdf.rect(rightColX, infoStartY - 2, (docWidth / 2) - margin - 10, infoBoxHeight, 'F');
+      const titleBoxHeight = 7;
+      const contentStartY = infoStartY + titleBoxHeight;
+      
+      const salesPersonBoxWidth = (docWidth / 2) - margin - 5;
+      const buyerBoxWidth = (docWidth / 2) - margin - 10;
+
+      // --- Sales Person Box ---
+      docPdf.setFillColor(RED); // Red header bg
+      docPdf.rect(margin, infoStartY - 2, salesPersonBoxWidth, titleBoxHeight, 'F');
+      docPdf.setFillColor(LIGHT_GRAY); // Gray content bg
+      docPdf.rect(margin, contentStartY - 2, salesPersonBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
       
       docPdf.setFont('helvetica', 'bold');
       docPdf.setFontSize(9);
+      docPdf.setTextColor('#FFFFFF');
+      docPdf.text('SALES PERSON:', margin + 3, infoStartY + 2.5);
+      
+      docPdf.setFont('helvetica', 'normal');
       docPdf.setTextColor(BLACK);
-      docPdf.text('SALES PERSON:', margin + 3, infoStartY + 3);
-      docPdf.setFont('helvetica', 'normal');
       if (userProfile) {
-          docPdf.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, infoStartY + 8);
-          if (userProfile.email) docPdf.text(userProfile.email.toLowerCase(), margin + 3, infoStartY + 13);
-          if (userProfile.phone) docPdf.text(userProfile.phone, margin + 3, infoStartY + 18);
+          docPdf.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, contentStartY + 3);
+          if (userProfile.email) docPdf.text(userProfile.email.toLowerCase(), margin + 3, contentStartY + 8);
+          if (userProfile.phone) docPdf.text(userProfile.phone, margin + 3, contentStartY + 13);
       }
+
+      // --- Buyer Box ---
+      docPdf.setFillColor(RED); // Red header bg
+      docPdf.rect(rightColX, infoStartY - 2, buyerBoxWidth, titleBoxHeight, 'F');
+      docPdf.setFillColor(LIGHT_GRAY); // Gray content bg
+      docPdf.rect(rightColX, contentStartY - 2, buyerBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
+
       docPdf.setFont('helvetica', 'bold');
-      docPdf.text('BUYER:', rightColX + 3, infoStartY + 3);
+      docPdf.setTextColor('#FFFFFF');
+      docPdf.text('BUYER:', rightColX + 3, infoStartY + 2.5);
+
       docPdf.setFont('helvetica', 'normal');
-      docPdf.text(selectedClient.clientName.toUpperCase(), rightColX + 3, infoStartY + 8);
-      docPdf.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 13);
-      if(selectedClient.email) docPdf.text(selectedClient.email.toLowerCase(), rightColX + 3, infoStartY + 18);
-      if(selectedClient.phone) docPdf.text(selectedClient.phone, rightColX + 3, infoStartY + 23);
+      docPdf.setTextColor(BLACK);
+      docPdf.text(selectedClient.clientName.toUpperCase(), rightColX + 3, contentStartY + 3);
+      docPdf.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, contentStartY + 8);
+      if(selectedClient.email) docPdf.text(selectedClient.email.toLowerCase(), rightColX + 3, contentStartY + 13);
+      if(selectedClient.phone) docPdf.text(selectedClient.phone, rightColX + 3, contentStartY + 18);
       
       currentY = infoStartY + infoBoxHeight + 6;
       
       const tableWidth = docWidth - (margin * 2);
       const columnStyles4 = {
-        0: { cellWidth: tableWidth * 0.45, halign: 'left' as const },
+        0: { cellWidth: tableWidth * 0.50, halign: 'justify' as const },
         1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
-        2: { cellWidth: tableWidth * 0.225, halign: 'right' as const },
-        3: { cellWidth: tableWidth * 0.225, halign: 'right' as const },
+        2: { cellWidth: tableWidth * 0.20, halign: 'right' as const },
+        3: { cellWidth: tableWidth * 0.20, halign: 'right' as const },
       };
       const columnStyles5 = {
-        0: { cellWidth: tableWidth * 0.40, halign: 'left' as const },
+        0: { cellWidth: tableWidth * 0.45, halign: 'justify' as const },
         1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
         2: { cellWidth: tableWidth * 0.16, halign: 'right' as const },
         3: { cellWidth: tableWidth * 0.16, halign: 'right' as const },
-        4: { cellWidth: tableWidth * 0.18, halign: 'right' as const },
+        4: { cellWidth: tableWidth * 0.13, halign: 'right' as const },
       };
 
       const tableHead = isIndividualFreight
@@ -332,11 +352,6 @@ export default function NewQuotationPage() {
           body: tableBody,
           startY: currentY,
           theme: 'striped',
-          didParseCell: function (data) {
-            if (data.column.dataKey === 0) {
-              data.cell.styles.halign = 'justify';
-            }
-          },
           headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
           styles: { fontSize: 10, cellPadding: 3 },
           columnStyles: isIndividualFreight ? columnStyles5 : columnStyles4,
