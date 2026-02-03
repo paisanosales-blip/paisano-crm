@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Tag, Sparkles, Loader2 } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Tag, Sparkles, Loader2, ArchiveX } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -91,6 +91,7 @@ const filterButtonLabels: Record<OpportunityStage | 'Todos', string> = {
     'Negociación': 'NEGOCIACIÓN',
     'Cierre de venta': 'CIERRE',
     'Financiamiento Externo': 'FINANCIAMIENTO',
+    'Descartado': 'DESCARTADOS',
 };
 
 export default function PipelinePage() {
@@ -120,6 +121,8 @@ export default function PipelinePage() {
   const [suggestion, setSuggestion] = useState<{ nextAction: string; rationale: string } | null>(null);
   const [isSuggestionDialogOpen, setIsSuggestionDialogOpen] = useState(false);
   const [prospectForSuggestion, setProspectForSuggestion] = useState<any | null>(null);
+  const [prospectToDiscard, setProspectToDiscard] = useState<any | null>(null);
+  const [isDiscardDialogOpen, setIsDiscardDialogOpen] = useState(false);
 
 
   const { toast } = useToast();
@@ -248,6 +251,41 @@ export default function PipelinePage() {
     } else if (newIndex > currentIndex) {
         // Allow jumping forward only if editing an already passed stage
         handleStageChange(prospect.opportunity.id, newStage);
+    }
+  };
+  
+  const handleDiscardClick = (prospect: any) => {
+    setProspectToDiscard(prospect);
+    setIsDiscardDialogOpen(true);
+  };
+
+  const handleDiscardConfirm = async () => {
+    if (!prospectToDiscard || !firestore || !user) return;
+
+    setIsSubmitting(true);
+    try {
+      const opportunityRef = doc(firestore, 'opportunities', prospectToDiscard.opportunity.id);
+      
+      const updateData = {
+        stage: 'Descartado',
+        discardedDate: new Date().toISOString(),
+        sellerId: user.uid,
+      };
+
+      await updateDoc(opportunityRef, updateData);
+
+      toast({
+        title: 'Prospecto Descartado',
+        description: `${prospectToDiscard.clientName} ha sido movido a descartados.`,
+      });
+      router.refresh();
+    } catch (error) {
+      console.error("Error discarding prospect:", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo descartar el prospecto.' });
+    } finally {
+      setIsDiscardDialogOpen(false);
+      setProspectToDiscard(null);
+      setIsSubmitting(false);
     }
   };
 
@@ -722,11 +760,13 @@ export default function PipelinePage() {
   }, [leads, opportunities, quotations, activities]);
 
   const filteredProspects = clientProspects.filter(prospect => {
-    if (filterStage === 'Todos') return true;
+    if (filterStage === 'Todos') {
+      return prospect.opportunity?.stage !== 'Descartado';
+    }
     return prospect.opportunity?.stage === filterStage;
   });
   
-  const allStagesForFilter: Array<OpportunityStage | 'Todos'> = ['Todos', ...stages, 'Financiamiento Externo'];
+  const allStagesForFilter: Array<OpportunityStage | 'Todos'> = ['Todos', ...stages, 'Financiamiento Externo', 'Descartado'];
 
   const getCardBgClass = (classification: ClientClassification) => {
     switch (classification) {
@@ -734,6 +774,7 @@ export default function PipelinePage() {
         case 'CLIENTE POTENCIAL': return 'bg-blue-50 dark:bg-blue-950/40';
         case 'CLIENTE': return 'bg-green-50 dark:bg-green-950/40';
         case 'FINANCIAMIENTO': return 'bg-amber-50 dark:bg-amber-950/40';
+        case 'PERDIDO': return 'bg-red-50 dark:bg-red-950/40';
         default: return 'bg-card';
     }
   };
@@ -820,7 +861,7 @@ export default function PipelinePage() {
 
             return (
               <Card key={prospect.id} className={cn("border-l-4", tagClass || 'border-l-transparent', cardBgClass)}>
-                <CardHeader className="flex flex-row items-start justify-between p-3 pb-1">
+                <CardHeader className="flex flex-row items-start justify-between p-2 pb-0 pt-2">
                   <div>
                     <CardTitle className="text-lg">{prospect.clientName}</CardTitle>
                     <CardDescription className="text-xs">{prospect.contactPerson}</CardDescription>
@@ -858,10 +899,15 @@ export default function PipelinePage() {
                             <Landmark className="mr-2 h-4 w-4" />
                             <span>Financiamiento Externo</span>
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                         <DropdownMenuItem className="text-destructive" onSelect={() => handleDiscardClick(prospect)}>
+                            <ArchiveX className="mr-2 h-4 w-4" />
+                            <span>Descartar Prospecto</span>
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-3 p-3 pt-1">
+                <CardContent className="grid md:grid-cols-2 gap-2 p-2">
                   <div className="space-y-1">
                     <div>
                       {prospect.clientType && <Badge variant="secondary" className="text-xs">{prospect.clientType}</Badge>}
@@ -1406,6 +1452,22 @@ export default function PipelinePage() {
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={isDiscardDialogOpen} onOpenChange={setIsDiscardDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Está seguro de descartar este prospecto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción moverá el prospecto a un estado de "Descartado" y lo ocultará de la vista principal del flujo de ventas. Podrá verlo nuevamente usando el filtro "Descartados".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDiscardConfirm} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">
+              {isSubmitting ? 'Descartando...' : 'Sí, Descartar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
     </>
   );
