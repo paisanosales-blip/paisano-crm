@@ -800,12 +800,12 @@ export default function PipelinePage() {
         ))}
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
             <Card key={i}>
-              <CardContent className="p-6">
-                <Skeleton className="h-48 w-full" />
+              <CardContent className="p-4">
+                <Skeleton className="h-40 w-full" />
               </CardContent>
             </Card>
           ))
@@ -838,14 +838,14 @@ export default function PipelinePage() {
             const tagClass = prospect.tag ? tagClasses[prospect.tag as keyof typeof tagClasses] : '';
 
             return (
-              <Card key={prospect.id} className={cn("border-2 border-l-4", tagClass || 'border-l-transparent', cardBgClass)}>
-                <CardHeader className="flex flex-row items-start justify-between p-4">
+              <Card key={prospect.id} className={cn("border-l-4", tagClass || 'border-l-transparent', cardBgClass)}>
+                <CardHeader className="flex flex-row items-start justify-between p-3">
                   <div>
-                    <CardTitle className="text-xl">{prospect.clientName}</CardTitle>
-                    <CardDescription>{prospect.contactPerson}</CardDescription>
+                    <CardTitle className="text-lg">{prospect.clientName}</CardTitle>
+                    <CardDescription className="text-xs">{prospect.contactPerson}</CardDescription>
                   </div>
                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild><Button size="icon" variant="ghost"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                      <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-7 w-7"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent>
                         <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                         <DropdownMenuItem onSelect={() => handleEditClick(prospect)}>Editar</DropdownMenuItem>
@@ -880,15 +880,15 @@ export default function PipelinePage() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                 </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-4 p-4 pt-0">
-                  <div className="space-y-3">
+                <CardContent className="grid md:grid-cols-2 gap-3 p-3 pt-0">
+                  <div className="space-y-2">
                     <div>
-                      {prospect.clientType && <Badge variant="secondary">{prospect.clientType}</Badge>}
-                      <div className="text-sm text-muted-foreground mt-2">{prospect.email || 'N/A'}</div>
-                      <div className="text-sm text-muted-foreground">{prospect.phone || 'N/A'}</div>
+                      {prospect.clientType && <Badge variant="secondary" className="text-xs">{prospect.clientType}</Badge>}
+                      <div className="text-xs text-muted-foreground mt-1.5">{prospect.email || 'N/A'}</div>
+                      <div className="text-xs text-muted-foreground">{prospect.phone || 'N/A'}</div>
                     </div>
                     
-                    <div className="flex items-center gap-4 pt-2 border-t">
+                    <div className="flex items-center gap-4 pt-1.5 border-t">
                         <a 
                             href={prospect.phone ? `https://wa.me/${(prospect.country === 'US' ? '1' : '52')}${prospect.phone.replace(/\D/g, '')}` : '#'}
                             target="_blank"
@@ -933,7 +933,7 @@ export default function PipelinePage() {
                             <Phone className="h-5 w-5" />
                         </a>
                         <div className={cn(
-                            "flex items-center gap-1.5 text-sm ml-auto pr-2",
+                            "flex items-center gap-1.5 text-xs ml-auto pr-2",
                              prospect.language ? "text-muted-foreground" : "text-muted-foreground/40"
                         )}>
                             <Globe className="h-4 w-4" />
@@ -943,12 +943,12 @@ export default function PipelinePage() {
 
                      <Collapsible className="mt-1" defaultOpen>
                         <CollapsibleTrigger asChild>
-                            <Button variant="ghost" className="w-full justify-start text-sm h-9 -ml-2">
+                            <Button variant="ghost" className="w-full justify-start text-xs h-8 -ml-2">
                                 <History className="h-4 w-4 mr-2" />
                                 Historial de Seguimiento ({prospect.activities.length})
                             </Button>
                         </CollapsibleTrigger>
-                        <CollapsibleContent className="px-1 py-1 space-y-2 border-t mt-1">
+                        <CollapsibleContent className="px-1 py-1 space-y-1 border-t mt-1">
                             <div className="grid grid-cols-2 gap-2">
                                 <Button size="sm" className="w-full h-8" onClick={() => handleNewFollowUpClick(prospect)}>
                                   <PlusCircle className="mr-2 h-4 w-4" />
@@ -1018,9 +1018,9 @@ export default function PipelinePage() {
                         </CollapsibleContent>
                     </Collapsible>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-semibold text-sm text-muted-foreground">PROGRESO DEL PROSPECTO</h4>
+                      <h4 className="font-semibold text-xs text-muted-foreground">PROGRESO DEL PROSPECTO</h4>
                       <Badge variant="outline" className={`font-bold ${getBadgeClass(classification)}`}>{classification}</Badge>
                     </div>
                     <div className="flex items-center">
@@ -1069,7 +1069,7 @@ export default function PipelinePage() {
                             )
                         })}
                     </div>
-                     <div className="mt-4 pt-4 border-t border-dashed">
+                     <div className="mt-2 pt-2 border-t border-dashed">
                       {availableSummaries.length > 0 && (
                         <Tabs defaultValue={defaultTab} className="w-full">
                           <TabsList className="grid w-full" style={{gridTemplateColumns: `repeat(${availableSummaries.length}, minmax(0, 1fr))`}}>
