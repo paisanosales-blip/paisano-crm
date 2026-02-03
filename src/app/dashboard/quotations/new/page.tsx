@@ -222,8 +222,8 @@ export default function NewQuotationPage() {
           const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
           const img = new Image();
           img.src = logoUrl;
-          const imgWidth = 80;
-          docPdf.addImage(logoUrl, format.toUpperCase(), margin, 0, imgWidth, 0, undefined, 'NONE');
+          const imgWidth = 60;
+          docPdf.addImage(logoUrl, format.toUpperCase(), margin, 5, imgWidth, 0, undefined, 'NONE');
         } catch (e) {
           console.error("Error adding logo image to PDF:", e);
         }
@@ -241,14 +241,16 @@ export default function NewQuotationPage() {
       docPdf.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
       docPdf.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
       docPdf.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
-      const separatorY = 45;
+      
+      const separatorY = 40;
       docPdf.setDrawColor(RED);
       docPdf.setLineWidth(0.8);
       docPdf.line(margin, separatorY, docWidth - margin, separatorY);
       docPdf.setDrawColor(BLACK);
       docPdf.setLineWidth(0.3);
       docPdf.line(margin, separatorY + 1.5, docWidth - margin, separatorY + 1.5);
-      currentY = separatorY + 10;
+      
+      currentY = separatorY + 8;
       const quoteDetailsX = docWidth - margin;
       docPdf.setFont('helvetica', 'bold');
       docPdf.setFontSize(10);
@@ -259,32 +261,32 @@ export default function NewQuotationPage() {
       docPdf.text(quotationDetails.number.toUpperCase(), quoteDetailsX, currentY, { align: 'right' });
       docPdf.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, currentY + 6, { align: 'right' });
       docPdf.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, currentY + 12, { align: 'right' });
-      currentY += 12 + 10;
+      
+      currentY += 12 + 8;
       const infoStartY = currentY;
       const rightColX = docWidth / 2 + 10;
-      const infoBoxHeight = 32;
+      const infoBoxHeight = 28;
       docPdf.setFillColor(LIGHT_GRAY);
       docPdf.rect(margin, infoStartY - 2, (docWidth / 2) - margin - 5, infoBoxHeight, 'F');
       docPdf.rect(rightColX, infoStartY - 2, (docWidth / 2) - margin - 10, infoBoxHeight, 'F');
+      
       docPdf.setFont('helvetica', 'bold');
-      docPdf.setFontSize(10);
+      docPdf.setFontSize(9);
       docPdf.setTextColor(BLACK);
-      docPdf.text('SALES PERSON:', margin + 3, infoStartY + 4);
+      docPdf.text('SALES PERSON:', margin + 3, infoStartY + 3);
       docPdf.setFont('helvetica', 'normal');
-      docPdf.setFontSize(10);
       if (userProfile) {
-          docPdf.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, infoStartY + 9);
-          if (userProfile.email) docPdf.text(userProfile.email.toLowerCase(), margin + 3, infoStartY + 14);
-          if (userProfile.phone) docPdf.text(userProfile.phone, margin + 3, infoStartY + 19);
+          docPdf.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, infoStartY + 8);
+          if (userProfile.email) docPdf.text(userProfile.email.toLowerCase(), margin + 3, infoStartY + 13);
+          if (userProfile.phone) docPdf.text(userProfile.phone, margin + 3, infoStartY + 18);
       }
       docPdf.setFont('helvetica', 'bold');
-      docPdf.setFontSize(10);
-      docPdf.text('BUYER:', rightColX + 3, infoStartY + 4);
+      docPdf.text('BUYER:', rightColX + 3, infoStartY + 3);
       docPdf.setFont('helvetica', 'normal');
-      docPdf.setFontSize(10);
-      docPdf.text(selectedClient.clientName.toUpperCase(), rightColX + 3, infoStartY + 9);
-      docPdf.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 14);
-      if(selectedClient.email) docPdf.text(selectedClient.email.toLowerCase(), rightColX + 3, infoStartY + 19);
+      docPdf.text(selectedClient.clientName.toUpperCase(), rightColX + 3, infoStartY + 8);
+      docPdf.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 13);
+      if(selectedClient.email) docPdf.text(selectedClient.email.toLowerCase(), rightColX + 3, infoStartY + 18);
+      
       currentY = infoStartY + infoBoxHeight + 6;
       
       const tableWidth = docWidth - (margin * 2);
@@ -419,8 +421,8 @@ export default function NewQuotationPage() {
         if (notesContentHeight > 0) docPdf.rect(col2X, boxStartY, colWidth, sectionHeight, 'F');
       }
       
-      const titleY = boxStartY + colPadding + lineHeight;
-      const bodyY = titleY + lineHeight + 1; // Start body one line height + 1pt below the title
+      const titleY = boxStartY + colPadding;
+      const bodyY = titleY + lineHeight + 2;
 
       if (termsBody) {
         docPdf.setFont('helvetica', 'bold');
@@ -454,17 +456,21 @@ export default function NewQuotationPage() {
       docPdf.setFontSize(9);
       docPdf.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
       let pageCount = (docPdf as any).internal.getNumberOfPages();
+      const footerHeight = 20;
       for (let i = 1; i <= pageCount; i++) {
           docPdf.setPage(i);
-          const footerY = pageHeight - 25;
-          docPdf.setDrawColor(RED);
-          docPdf.setLineWidth(0.5);
-          docPdf.line(margin, footerY, docWidth - margin, footerY);
+          const footerStartY = pageHeight - footerHeight;
+          
+          docPdf.setFillColor(RED);
+          docPdf.rect(0, footerStartY, docWidth, footerHeight, 'F');
+          
           docPdf.setFontSize(9);
-          docPdf.setTextColor(RED);
+          docPdf.setTextColor('#FFFFFF');
+
+          const footerTextY = footerStartY + (footerHeight / 2);
           const footerText = `paisanosales@gmail.com | 915 408 7478 | www.paisanotrailer.com`;
-          docPdf.text(footerText, docWidth / 2, footerY + 8, { align: 'center' });
-          docPdf.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerY + 8, { align: 'right' });
+          docPdf.text(footerText, docWidth / 2, footerTextY, { align: 'center', baseline: 'middle' });
+          docPdf.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerTextY, { align: 'right', baseline: 'middle' });
       }
 
       const pdfBlob = docPdf.output('blob');

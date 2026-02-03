@@ -167,8 +167,8 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
         const img = new Image();
         img.src = logoUrl;
-        const imgWidth = 80;
-        doc.addImage(logoUrl, format.toUpperCase(), margin, 0, imgWidth, 0, undefined, 'NONE');
+        const imgWidth = 60;
+        doc.addImage(logoUrl, format.toUpperCase(), margin, 5, imgWidth, 0, undefined, 'NONE');
       } catch (e) {
         console.error("Error adding logo image to PDF:", e);
       }
@@ -189,7 +189,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
     doc.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
 
-    const separatorY = 45;
+    const separatorY = 40;
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
     doc.line(margin, separatorY, docWidth - margin, separatorY);
@@ -197,7 +197,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.setLineWidth(0.3);
     doc.line(margin, separatorY + 1.5, docWidth - margin, separatorY + 1.5);
     
-    currentY = separatorY + 10;
+    currentY = separatorY + 8;
 
     const quoteDetailsX = docWidth - margin;
     doc.setFont('helvetica', 'bold');
@@ -211,39 +211,36 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, currentY + 6, { align: 'right' });
     doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, currentY + 12, { align: 'right' });
 
-    currentY += 12 + 10;
+    currentY += 12 + 8;
 
     const infoStartY = currentY;
     const rightColX = docWidth / 2 + 10;
-    const infoBoxHeight = 32;
+    const infoBoxHeight = 28;
 
     doc.setFillColor(LIGHT_GRAY);
     doc.rect(margin, infoStartY - 2, (docWidth / 2) - margin - 5, infoBoxHeight, 'F');
     doc.rect(rightColX, infoStartY - 2, (docWidth / 2) - margin - 10, infoBoxHeight, 'F');
     
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(BLACK);
-    doc.text('SALES PERSON:', margin + 3, infoStartY + 4);
+    doc.text('SALES PERSON:', margin + 3, infoStartY + 3);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
     if (userProfile) {
-        doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, infoStartY + 9);
-        if (userProfile.email) doc.text(userProfile.email.toLowerCase(), margin + 3, infoStartY + 14);
-        if (userProfile.phone) doc.text(userProfile.phone, margin + 3, infoStartY + 19);
+        doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, infoStartY + 8);
+        if (userProfile.email) doc.text(userProfile.email.toLowerCase(), margin + 3, infoStartY + 13);
+        if (userProfile.phone) doc.text(userProfile.phone, margin + 3, infoStartY + 18);
     }
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text('BUYER:', rightColX + 3, infoStartY + 4);
+    doc.text('BUYER:', rightColX + 3, infoStartY + 3);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(prospect.clientName.toUpperCase(), rightColX + 3, infoStartY + 9);
-    doc.text(`ATTN: ${prospect.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 14);
-    if(prospect.email) doc.text(prospect.email.toLowerCase(), rightColX + 3, infoStartY + 19);
+    doc.text(prospect.clientName.toUpperCase(), rightColX + 3, infoStartY + 8);
+    doc.text(`ATTN: ${prospect.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 13);
+    if(prospect.email) doc.text(prospect.email.toLowerCase(), rightColX + 3, infoStartY + 18);
 
     currentY = infoStartY + infoBoxHeight + 6;
-
+    
     const tableWidth = docWidth - (margin * 2);
     const columnStyles4 = {
       0: { cellWidth: tableWidth * 0.45, halign: 'left' as const },
@@ -385,8 +382,8 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       if (notesContentHeight > 0) doc.rect(col2X, boxStartY, colWidth, sectionHeight, 'F');
     }
     
-    const titleY = boxStartY + colPadding + lineHeight;
-    const bodyY = titleY + lineHeight + 1; // Start body one line height + 1pt below the title
+    const titleY = boxStartY + colPadding;
+    const bodyY = titleY + lineHeight + 2;
 
     if (termsBody) {
       doc.setFont('helvetica', 'bold');
@@ -422,17 +419,21 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
     
     let pageCount = (doc as any).internal.getNumberOfPages();
+    const footerHeight = 20;
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
-        const footerY = pageHeight - 25;
-        doc.setDrawColor(RED);
-        doc.setLineWidth(0.5);
-        doc.line(margin, footerY, docWidth - margin, footerY);
+        const footerStartY = pageHeight - footerHeight;
+
+        doc.setFillColor(RED);
+        doc.rect(0, footerStartY, docWidth, footerHeight, 'F');
+        
         doc.setFontSize(9);
-        doc.setTextColor(RED);
+        doc.setTextColor('#FFFFFF');
+
+        const footerTextY = footerStartY + (footerHeight / 2);
         const footerText = `paisanosales@gmail.com | 915 408 7478 | www.paisanotrailer.com`;
-        doc.text(footerText, docWidth / 2, footerY + 8, { align: 'center' });
-        doc.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerY + 8, { align: 'right' });
+        doc.text(footerText, docWidth / 2, footerTextY, { align: 'center', baseline: 'middle' });
+        doc.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerTextY, { align: 'right', baseline: 'middle' });
     }
 
     const pdfFile = new File([doc.output('blob')], `QT-${quotationDetails.number}-${prospect.clientName.replace(/\s/g, '_')}.pdf`, { type: 'application/pdf' });
