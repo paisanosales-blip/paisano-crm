@@ -477,6 +477,10 @@
           "type": "string",
           "description": "Description of the product."
         },
+        "summary": {
+          "type": "string",
+          "description": "AI-generated summary of the product description, for use in quotations."
+        },
         "price": {
           "type": "number",
           "description": "Price of the product."

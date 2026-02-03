@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -29,10 +29,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { Product } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { generateProductSummary } from '@/ai/flows/generate-product-summary';
+import { Sparkles, Loader2 } from 'lucide-react';
 
 const productSchema = z.object({
   name: z.string().min(1, 'El nombre del producto es requerido.'),
   description: z.string().optional(),
+  summary: z.string().optional(),
   price: z.coerce.number().min(0, 'El precio debe ser un número positivo.'),
   currency: z.string().min(2, 'La moneda es requerida.').default('USD'),
 });
@@ -50,6 +53,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
   const firestore = useFirestore();
   const { user } = useUser();
   const isEditing = !!product;
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -62,10 +66,13 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
     defaultValues: {
       name: '',
       description: '',
+      summary: '',
       price: 0,
       currency: 'USD',
     },
   });
+  
+  const descriptionValue = form.watch('description');
 
   useEffect(() => {
     if (open) {
@@ -75,6 +82,7 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         form.reset({
           name: '',
           description: '',
+          summary: '',
           price: 0,
           currency: 'USD',
         });
@@ -83,8 +91,38 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
   }, [product, isEditing, open, form]);
 
   const handleClose = (isOpen: boolean) => {
-    if (form.formState.isSubmitting) return;
+    if (form.formState.isSubmitting || isGenerating) return;
     onOpenChange(isOpen);
+  };
+  
+  const handleGenerateSummary = async () => {
+    const description = form.getValues('description');
+    if (!description) {
+      toast({
+        variant: 'destructive',
+        title: 'Descripción requerida',
+        description: 'Por favor, escriba una descripción antes de generar un resumen.',
+      });
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const result = await generateProductSummary({ description });
+      form.setValue('summary', result.summary);
+      toast({
+        title: 'Resumen generado',
+        description: 'La IA ha creado un resumen del producto.',
+      });
+    } catch (error) {
+      console.error("Error generating summary:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error de IA',
+        description: 'No se pudo generar el resumen.',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   function onSubmit(values: ProductFormValues) {
@@ -158,6 +196,35 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
                 </FormItem>
               )}
             />
+             <FormField
+              control={form.control}
+              name="summary"
+              render={({ field }) => (
+                <FormItem>
+                   <div className="flex justify-between items-center">
+                    <FormLabel>Resumen para Cotización (IA)</FormLabel>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateSummary}
+                        disabled={isGenerating || !descriptionValue}
+                    >
+                        {isGenerating ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Sparkles className="mr-2 h-4 w-4" />
+                        )}
+                        Generar Resumen
+                    </Button>
+                  </div>
+                  <FormControl>
+                    <Textarea placeholder="Resumen generado por IA para mostrar en la cotización..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -196,9 +263,9 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
             </div>
             <DialogFooter>
               <DialogClose asChild>
-                <Button type="button" variant="secondary" disabled={form.formState.isSubmitting}>CANCELAR</Button>
+                <Button type="button" variant="secondary" disabled={form.formState.isSubmitting || isGenerating}>CANCELAR</Button>
               </DialogClose>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button type="submit" disabled={form.formState.isSubmitting || isGenerating}>
                 {form.formState.isSubmitting ? 'GUARDANDO...' : (isEditing ? 'GUARDAR CAMBIOS' : 'CREAR PRODUCTO')}
               </Button>
             </DialogFooter>

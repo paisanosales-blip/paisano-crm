@@ -160,6 +160,11 @@ export default function ProductsPage() {
                     <TableRow key={product.id}>
                       <TableCell className="font-semibold">
                         {product.name}
+                        {product.summary && (
+                          <p className="text-xs text-muted-foreground font-normal mt-1 max-w-[250px] truncate" title={product.summary}>
+                            <span className="font-bold text-primary/80">IA:</span> {product.summary}
+                          </p>
+                        )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-sm truncate">{product.description || 'N/A'}</TableCell>
                       <TableCell>{new Intl.NumberFormat('en-US', { style: 'currency', currency: product.currency || 'USD' }).format(product.price)}</TableCell>

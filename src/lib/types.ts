@@ -109,6 +109,7 @@ export type Product = {
   sellerName: string;
   name: string;
   description: string;
+  summary?: string;
   price: number;
   currency: 'USD' | 'MXN';
   createdAt: string;
