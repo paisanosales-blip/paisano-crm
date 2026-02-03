@@ -171,10 +171,10 @@ export default function QuotationsPage() {
 
         const subject = `Cotización de Paisano Trailer - ${quotation.clientName}`;
         const body = `Estimado/a ${quotation.contactPerson || quotation.clientName},\n\nAdjunto encontrará el enlace para descargar su cotización (versión ${quotation.version}).\n\nPor favor, haga clic en el siguiente enlace:\n${quotation.pdfUrl}\n\nSi tiene alguna pregunta, no dude en contactarnos.\n\nSaludos cordiales,\n${userProfile?.firstName || ''} ${userProfile?.lastName || ''}\nPaisano Trailer`;
+        
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${quotation.clientEmail}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-        const mailtoLink = `mailto:${quotation.clientEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-        window.location.href = mailtoLink;
+        window.open(gmailUrl, '_blank', 'noopener,noreferrer');
     };
 
 
@@ -314,24 +314,32 @@ export default function QuotationsPage() {
                                                                 </Button>
                                                             </TableCell>
                                                             <TableCell className="text-right">
-                                                                <DropdownMenu>
-                                                                    <DropdownMenuTrigger asChild>
-                                                                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                                                                            <MoreHorizontal className="h-4 w-4" />
-                                                                            <span className="sr-only">Toggle menu</span>
-                                                                        </Button>
-                                                                    </DropdownMenuTrigger>
-                                                                    <DropdownMenuContent align="end">
-                                                                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                                                         <DropdownMenuItem onSelect={() => handleSendEmail(quote)}>
-                                                                            <Mail className="mr-2 h-4 w-4"/>
-                                                                            Enviar por Correo
-                                                                        </DropdownMenuItem>
-                                                                        <DropdownMenuItem disabled>Editar</DropdownMenuItem>
-                                                                        <DropdownMenuItem disabled>Crear Nueva Versión</DropdownMenuItem>
-                                                                        <DropdownMenuItem className="text-destructive" onSelect={() => handleDeleteClick(quote)}>Eliminar</DropdownMenuItem>
-                                                                    </DropdownMenuContent>
-                                                                </DropdownMenu>
+                                                                <div className="flex items-center justify-end gap-2">
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => handleSendEmail(quote)}
+                                                                        disabled={!quote.clientEmail}
+                                                                        title={quote.clientEmail ? 'Enviar por correo' : 'Correo no disponible'}
+                                                                    >
+                                                                        <Mail className="h-4 w-4" />
+                                                                        <span className="sr-only">Enviar por Correo</span>
+                                                                    </Button>
+                                                                    <DropdownMenu>
+                                                                        <DropdownMenuTrigger asChild>
+                                                                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                                                <MoreHorizontal className="h-4 w-4" />
+                                                                                <span className="sr-only">Toggle menu</span>
+                                                                            </Button>
+                                                                        </DropdownMenuTrigger>
+                                                                        <DropdownMenuContent align="end">
+                                                                            <DropdownMenuLabel>Otras Acciones</DropdownMenuLabel>
+                                                                            <DropdownMenuItem disabled>Editar</DropdownMenuItem>
+                                                                            <DropdownMenuItem disabled>Crear Nueva Versión</DropdownMenuItem>
+                                                                            <DropdownMenuItem className="text-destructive" onSelect={() => handleDeleteClick(quote)}>Eliminar</DropdownMenuItem>
+                                                                        </DropdownMenuContent>
+                                                                    </DropdownMenu>
+                                                                </div>
                                                             </TableCell>
                                                         </TableRow>
                                                         )
