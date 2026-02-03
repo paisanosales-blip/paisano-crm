@@ -18,6 +18,7 @@ import { es } from 'date-fns/locale';
 import { getClassification } from '@/lib/types';
 import { DashboardCharts } from '@/components/dashboard-charts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { LostOpportunitiesAnalysis } from '@/components/lost-opportunities-analysis';
 
 export default function DashboardPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
@@ -299,8 +300,11 @@ export default function DashboardPage() {
                     </Card>
                 </div>
             )}
-            <div className="mt-4">
+            <div className="grid gap-6 mt-4">
                 <DashboardCharts opportunities={allOpportunities} leads={allLeads} isLoading={isLoading} />
+                {!isLoading && (
+                  <LostOpportunitiesAnalysis discardedOpportunities={monthlyData.discardedOpportunities} />
+                )}
             </div>
         </div>
     );
