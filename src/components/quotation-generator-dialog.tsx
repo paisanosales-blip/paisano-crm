@@ -423,7 +423,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         doc.setLineWidth(0.5);
         doc.line(margin, footerY, docWidth - margin, footerY);
         doc.setFontSize(9);
-        doc.setTextColor(100);
+        doc.setTextColor(RED);
         const footerText = `PAISANOSALES@GMAIL.COM | 915 408 7478 | WWW.PAISANOTRAILER.COM`;
         doc.text(footerText, docWidth / 2, footerY + 8, { align: 'center' });
         doc.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerY + 8, { align: 'right' });

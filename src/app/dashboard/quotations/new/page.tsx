@@ -455,7 +455,7 @@ export default function NewQuotationPage() {
           docPdf.setLineWidth(0.5);
           docPdf.line(margin, footerY, docWidth - margin, footerY);
           docPdf.setFontSize(9);
-          docPdf.setTextColor(100);
+          docPdf.setTextColor(RED);
           const footerText = `PAISANOSALES@GMAIL.COM | 915 408 7478 | WWW.PAISANOTRAILER.COM`;
           docPdf.text(footerText, docWidth / 2, footerY + 8, { align: 'center' });
           docPdf.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerY + 8, { align: 'right' });
