@@ -1002,48 +1002,54 @@ export default function PipelinePage() {
                                 </Button>
                             </div>
                             {prospect.activities.length > 0 ? (
-                                <Accordion type="single" collapsible className="w-full" defaultValue={prospect.activities[0]?.id}>
-                                  {prospect.activities.map((act: any) => (
-                                    <AccordionItem value={act.id} key={act.id} className="border-b-0">
-                                      <div className="flex w-full items-center p-1.5 text-xs rounded-md data-[state=open]:bg-muted/50 hover:bg-muted/50">
-                                        <Checkbox
-                                            id={`activity-check-${act.id}`}
-                                            checked={act.completed}
-                                            onCheckedChange={(checked) => handleToggleActivityComplete(act.id, !!checked)}
-                                            className="mr-3"
-                                        />
-                                        <AccordionTrigger className="p-0 flex-1 justify-between">
-                                            <div className={cn("grid gap-0.5 text-left", act.completed && "line-through text-muted-foreground")}>
-                                                <span className="font-bold text-foreground text-xs">{act.type} {act.dueDate ? `- ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
-                                                <span className="text-xs text-muted-foreground">Creado: {format(new Date(act.createdDate), "dd/MM/yy")}</span>
-                                            </div>
-                                        </AccordionTrigger>
-                                      </div>
-                                      <AccordionContent className="pb-1 pt-0 pl-4 pr-2">
-                                        <div className="pl-8 border-l-2 ml-4 py-1">
-                                          {act.description && <p className="italic mb-2 text-muted-foreground">"{act.description}"</p>}
-                                          {act.contactChannels && act.contactChannels.length > 0 && (
-                                            <div className="flex flex-wrap gap-1 mt-1">
-                                              {act.contactChannels.map((channel: string) => (
-                                                <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
-                                              ))}
-                                            </div>
-                                          )}
-                                          <div className="flex justify-end gap-1 mt-2">
-                                            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleEditActivityClick(act, prospect)}>
-                                              <Pencil className="h-3 w-3 mr-1" />
-                                              Editar
-                                            </Button>
-                                            <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => handleDeleteActivityClick(act)}>
-                                              <X className="h-3 w-3 mr-1" />
-                                              Eliminar
-                                            </Button>
-                                          </div>
+                                <div className="space-y-1 pt-2">
+                                    <p className="px-2 text-xs font-semibold text-muted-foreground">HISTORIAL DE SEGUIMIENTO:</p>
+                                    <Accordion type="single" collapsible className="w-full" defaultValue={prospect.activities[0]?.id}>
+                                    {prospect.activities.map((act: any, index: number) => (
+                                        <AccordionItem value={act.id} key={act.id} className={cn(
+                                            "border-b-0",
+                                            index === 0 && "rounded-md border bg-muted/30"
+                                        )}>
+                                        <div className="flex w-full items-center p-1.5 text-xs rounded-md hover:bg-muted/50 data-[state=open]:bg-muted/50">
+                                            <Checkbox
+                                                id={`activity-check-${act.id}`}
+                                                checked={act.completed}
+                                                onCheckedChange={(checked) => handleToggleActivityComplete(act.id, !!checked)}
+                                                className="mr-3"
+                                            />
+                                            <AccordionTrigger className="p-0 flex-1 justify-between">
+                                                <div className={cn("grid gap-0.5 text-left", act.completed && "line-through text-muted-foreground")}>
+                                                    <span className="font-bold text-foreground text-xs">{act.type} {act.dueDate ? `- ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
+                                                    <span className="text-xs text-muted-foreground">Creado: {format(new Date(act.createdDate), "dd/MM/yy")}</span>
+                                                </div>
+                                            </AccordionTrigger>
                                         </div>
-                                      </AccordionContent>
-                                    </AccordionItem>
-                                  ))}
-                                </Accordion>
+                                        <AccordionContent className="pb-1 pt-0 pl-4 pr-2">
+                                            <div className="pl-8 border-l-2 ml-4 py-1">
+                                            {act.description && <p className="italic mb-2 text-muted-foreground">"{act.description}"</p>}
+                                            {act.contactChannels && act.contactChannels.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                {act.contactChannels.map((channel: string) => (
+                                                    <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
+                                                ))}
+                                                </div>
+                                            )}
+                                            <div className="flex justify-end gap-1 mt-2">
+                                                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleEditActivityClick(act, prospect)}>
+                                                <Pencil className="h-3 w-3 mr-1" />
+                                                Editar
+                                                </Button>
+                                                <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => handleDeleteActivityClick(act)}>
+                                                <X className="h-3 w-3 mr-1" />
+                                                Eliminar
+                                                </Button>
+                                            </div>
+                                            </div>
+                                        </AccordionContent>
+                                        </AccordionItem>
+                                    ))}
+                                    </Accordion>
+                                </div>
                             ) : (
                                 <div className="py-2 text-xs text-center text-muted-foreground">No hay seguimientos registrados.</div>
                             )}
