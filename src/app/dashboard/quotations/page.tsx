@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, PlusCircle, FileDown, Mail } from "lucide-react";
+import { MoreHorizontal, PlusCircle, FileDown, Mail, DollarSign, Send, FileCheck, FileX } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -131,6 +131,55 @@ export default function QuotationsPage() {
         }).sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
 
     }, [quotations, opportunities, leads, isLoading]);
+
+    const quotationStats = React.useMemo(() => {
+        if (!enrichedQuotations) {
+            return {
+                sentValueUSD: 0,
+                acceptedValueUSD: 0,
+                sentValueMXN: 0,
+                acceptedValueMXN: 0,
+                sentCount: 0,
+                acceptedCount: 0,
+                rejectedCount: 0,
+                draftCount: 0,
+            };
+        }
+    
+        return enrichedQuotations.reduce((acc, quote) => {
+            const value = quote.value || 0;
+            const isUSD = quote.currency === 'USD';
+    
+            switch (quote.status) {
+                case 'Enviada':
+                    acc.sentCount++;
+                    if (isUSD) acc.sentValueUSD += value;
+                    else acc.sentValueMXN += value;
+                    break;
+                case 'Aceptada':
+                    acc.acceptedCount++;
+                    if (isUSD) acc.acceptedValueUSD += value;
+                    else acc.acceptedValueMXN += value;
+                    break;
+                case 'Rechazada':
+                    acc.rejectedCount++;
+                    break;
+                case 'Borrador':
+                    acc.draftCount++;
+                    break;
+            }
+            return acc;
+        }, {
+            sentValueUSD: 0,
+            acceptedValueUSD: 0,
+            sentValueMXN: 0,
+            acceptedValueMXN: 0,
+            sentCount: 0,
+            acceptedCount: 0,
+            rejectedCount: 0,
+            draftCount: 0,
+        });
+    }, [enrichedQuotations]);
 
     const groupedQuotations = React.useMemo(() => {
         if (!enrichedQuotations) return {};
@@ -246,6 +295,58 @@ export default function QuotationsPage() {
                     </Button>
                 </div>
             </div>
+
+            {isLoading ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                    {Array.from({length: 4}).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
+                </div>
+            ) : (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Valor Total Enviado</CardTitle>
+                            <Send className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(quotationStats.sentValueUSD)}</div>
+                            <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(quotationStats.sentValueMXN)}</p>
+                            <p className="text-xs text-muted-foreground mt-1">en {quotationStats.sentCount} cotizaciones</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Valor Total Aceptado</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(quotationStats.acceptedValueUSD)}</div>
+                            <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(quotationStats.acceptedValueMXN)}</p>
+                            <p className="text-xs text-muted-foreground mt-1">de {quotationStats.acceptedCount} cotizaciones</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Cotizaciones Aceptadas</CardTitle>
+                            <FileCheck className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{quotationStats.acceptedCount}</div>
+                            <p className="text-xs text-muted-foreground">De un total de {enrichedQuotations.length} cotizaciones</p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Rechazadas / Borrador</CardTitle>
+                            <FileX className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{quotationStats.rejectedCount}</div>
+                            <p className="text-xs text-muted-foreground">{quotationStats.draftCount} en borrador</p>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
             <Card>
                 <CardHeader>
                     <CardTitle>Historial de Cotizaciones</CardTitle>
