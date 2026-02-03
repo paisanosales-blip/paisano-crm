@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -757,6 +757,38 @@ export default function PipelinePage() {
 
   }, [leads, opportunities, quotations, activities]);
 
+  const pipelineStats = React.useMemo(() => {
+    if (!clientProspects) {
+      return {
+        activeProspects: 0,
+        pipelineValue: 0,
+        potentialClients: 0,
+        initialContact: 0,
+      };
+    }
+
+    const active = clientProspects.filter(
+      p => p.opportunity && p.opportunity.stage !== 'Cierre de venta' && p.opportunity.stage !== 'Descartado' && p.opportunity.stage !== 'Financiamiento Externo'
+    );
+
+    const pipelineValue = active.reduce((sum, p) => sum + (p.opportunity?.value || 0), 0);
+
+    const potentialClients = active.filter(
+      p => p.opportunity?.stage === 'Envió de Cotización' || p.opportunity?.stage === 'Negociación'
+    ).length;
+    
+    const initialContact = active.filter(
+      p => p.opportunity?.stage === 'Primer contacto' || p.opportunity?.stage === 'Envió de Información'
+    ).length;
+
+    return {
+      activeProspects: active.length,
+      pipelineValue,
+      potentialClients,
+      initialContact,
+    };
+  }, [clientProspects]);
+
   const filteredProspects = React.useMemo(() => {
     const lowercasedQuery = searchQuery.toLowerCase();
     
@@ -820,6 +852,56 @@ export default function PipelinePage() {
           <NewProspectDialog />
         </div>
       </div>
+
+      {isLoading ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                {Array.from({length: 4}).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
+            </div>
+        ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Prospectos Activos</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{pipelineStats.activeProspects}</div>
+                        <p className="text-xs text-muted-foreground">Oportunidades en el flujo de ventas.</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Valor del Pipeline</CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(pipelineStats.pipelineValue)}</div>
+                        <p className="text-xs text-muted-foreground">Suma de oportunidades activas (USD/MXN sin convertir).</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Clientes Potenciales</CardTitle>
+                        <Target className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{pipelineStats.potentialClients}</div>
+                        <p className="text-xs text-muted-foreground">En cotización o negociación.</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">En Etapas Iniciales</CardTitle>
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{pipelineStats.initialContact}</div>
+                        <p className="text-xs text-muted-foreground">Contacto inicial o envío de info.</p>
+                    </CardContent>
+                </Card>
+            </div>
+        )}
+
       <div className="mb-4">
         <h2 className="text-lg font-semibold">Seguimiento de Prospectos</h2>
         <p className="text-sm text-muted-foreground">Administra el ciclo de vida de tus clientes, desde el primer contacto hasta el cierre.</p>
