@@ -31,11 +31,11 @@ const prompt = ai.definePrompt({
   name: 'generateProductSummaryPrompt',
   input: {schema: GenerateProductSummaryInputSchema},
   output: {schema: GenerateProductSummaryOutputSchema},
-  prompt: `Eres un experto en marketing y ventas. Tu tarea es crear un resumen conciso y atractivo de la descripción de un producto para incluirlo en una cotización.
+  prompt: `You are an expert copy editor. Your task is to create a concise summary of a product description for a quotation.
 
-El resumen debe ser breve (2-3 frases), destacar las características y beneficios más importantes, y estar redactado en un lenguaje claro y persuasivo.
+The summary must be in English. It should be brief (2-3 sentences), highlight the most important features and benefits, and use only words found in the original description. Do not add any new words or marketing language.
 
-Descripción Completa del Producto:
+Full Product Description:
 {{{description}}}
 `,
 });
