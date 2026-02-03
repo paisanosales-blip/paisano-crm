@@ -215,15 +215,15 @@ export default function NewQuotationPage() {
       const RED = '#8B0000';
       const BLACK = '#000000';
       const LIGHT_GRAY = '#F5F5F5';
-      const headerTextY = 20;
+      const headerTextY = 15;
 
       if (logoUrl) {
         try {
           const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
           const img = new Image();
           img.src = logoUrl;
-          const imgWidth = 90;
-          docPdf.addImage(logoUrl, format.toUpperCase(), margin, -5, imgWidth, 0, undefined, 'NONE');
+          const imgWidth = 80;
+          docPdf.addImage(logoUrl, format.toUpperCase(), margin, 0, imgWidth, 0, undefined, 'NONE');
         } catch (e) {
           console.error("Error adding logo image to PDF:", e);
         }
@@ -241,14 +241,14 @@ export default function NewQuotationPage() {
       docPdf.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
       docPdf.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
       docPdf.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
-      const separatorY = 50;
+      const separatorY = 45;
       docPdf.setDrawColor(RED);
       docPdf.setLineWidth(0.8);
       docPdf.line(margin, separatorY, docWidth - margin, separatorY);
       docPdf.setDrawColor(BLACK);
       docPdf.setLineWidth(0.3);
       docPdf.line(margin, separatorY + 1.5, docWidth - margin, separatorY + 1.5);
-      currentY = separatorY + 12;
+      currentY = separatorY + 10;
       const quoteDetailsX = docWidth - margin;
       docPdf.setFont('helvetica', 'bold');
       docPdf.setFontSize(10);
@@ -262,7 +262,7 @@ export default function NewQuotationPage() {
       currentY += 12 + 10;
       const infoStartY = currentY;
       const rightColX = docWidth / 2 + 10;
-      const infoBoxHeight = 28;
+      const infoBoxHeight = 32;
       docPdf.setFillColor(LIGHT_GRAY);
       docPdf.rect(margin, infoStartY - 2, (docWidth / 2) - margin - 5, infoBoxHeight, 'F');
       docPdf.rect(rightColX, infoStartY - 2, (docWidth / 2) - margin - 10, infoBoxHeight, 'F');
@@ -273,18 +273,19 @@ export default function NewQuotationPage() {
       docPdf.setFont('helvetica', 'normal');
       docPdf.setFontSize(10);
       if (userProfile) {
-          docPdf.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, infoStartY + 10);
-          if (userProfile.email) docPdf.text(userProfile.email.toUpperCase(), margin + 3, infoStartY + 15);
+          docPdf.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, infoStartY + 9);
+          if (userProfile.email) docPdf.text(userProfile.email.toLowerCase(), margin + 3, infoStartY + 14);
+          if (userProfile.phone) docPdf.text(userProfile.phone, margin + 3, infoStartY + 19);
       }
       docPdf.setFont('helvetica', 'bold');
       docPdf.setFontSize(10);
       docPdf.text('BUYER:', rightColX + 3, infoStartY + 4);
       docPdf.setFont('helvetica', 'normal');
       docPdf.setFontSize(10);
-      docPdf.text(selectedClient.clientName.toUpperCase(), rightColX + 3, infoStartY + 10);
-      docPdf.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 15);
-      if(selectedClient.email) docPdf.text(selectedClient.email.toUpperCase(), rightColX + 3, infoStartY + 20);
-      currentY = infoStartY + infoBoxHeight + 8;
+      docPdf.text(selectedClient.clientName.toUpperCase(), rightColX + 3, infoStartY + 9);
+      docPdf.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 14);
+      if(selectedClient.email) docPdf.text(selectedClient.email.toLowerCase(), rightColX + 3, infoStartY + 19);
+      currentY = infoStartY + infoBoxHeight + 6;
       
       const tableWidth = docWidth - (margin * 2);
       const columnStyles4 = {
@@ -339,7 +340,7 @@ export default function NewQuotationPage() {
           margin: { left: margin, right: margin }
       });
       currentY = (docPdf as any).autoTable.previous.finalY;
-      currentY += 6;
+      currentY += 4;
       const totalsY = currentY;
       let lineY = totalsY;
       docPdf.setFontSize(11);
@@ -388,22 +389,24 @@ export default function NewQuotationPage() {
 
       docPdf.setFontSize(8);
       const lineHeight = docPdf.getLineHeight() / docPdf.internal.scaleFactor;
-      const titleHeight = lineHeight + 2; // Space for title
-
+      
       const textOptions = {
           align: 'justify' as const,
           maxWidth: textMaxWidth
       };
-      
-      const termsDim = quotationDetails.terms ? docPdf.getTextDimensions(quotationDetails.terms.toUpperCase(), { ...textOptions, fontSize: 8, font: docPdf.getFont('helvetica', 'normal') }) : { h: 0 };
-      const notesDim = quotationDetails.notes ? docPdf.getTextDimensions(quotationDetails.notes.toUpperCase(), { ...textOptions, fontSize: 8, font: docPdf.getFont('helvetica', 'normal') }) : { h: 0 };
-      
-      const termsContentHeight = termsDim.h;
-      const notesContentHeight = notesDim.h;
-      
-      const sectionHeight = Math.max(termsContentHeight, notesContentHeight) + titleHeight + (colPadding * 2);
 
-      if (currentY + sectionHeight > pageHeight - 45) { // 45 for footer
+      const termsBody = quotationDetails.terms ? quotationDetails.terms.toUpperCase() : '';
+      const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
+
+      const termsDim = docPdf.getTextDimensions(termsBody, { ...textOptions, fontSize: 8 });
+      const notesDim = docPdf.getTextDimensions(notesBody, { ...textOptions, fontSize: 8 });
+
+      const termsContentHeight = termsBody ? (lineHeight * 2) + termsDim.h : 0;
+      const notesContentHeight = notesBody ? (lineHeight * 2) + notesDim.h : 0;
+      
+      const sectionHeight = Math.max(termsContentHeight, notesContentHeight) + (colPadding * 2);
+
+      if (currentY + sectionHeight > pageHeight - 35) { // 35 for footer
           docPdf.addPage();
           currentY = margin;
       }
@@ -416,20 +419,23 @@ export default function NewQuotationPage() {
         if (notesContentHeight > 0) docPdf.rect(col2X, boxStartY, colWidth, sectionHeight, 'F');
       }
       
-      if (quotationDetails.terms) {
+      const titleY = boxStartY + colPadding + lineHeight;
+      const bodyY = titleY + lineHeight + 1; // Start body one line height + 1pt below the title
+
+      if (termsBody) {
         docPdf.setFont('helvetica', 'bold');
         docPdf.setTextColor(BLACK);
-        docPdf.text('TERMS AND CONDITIONS', col1X + colPadding, boxStartY + colPadding + lineHeight);
+        docPdf.text('TERMS AND CONDITIONS', col1X + colPadding, titleY);
         docPdf.setFont('helvetica', 'normal');
-        docPdf.text(quotationDetails.terms.toUpperCase(), col1X + colPadding, boxStartY + colPadding + titleHeight, textOptions);
+        docPdf.text(termsBody, col1X + colPadding, bodyY, textOptions);
       }
 
-      if (quotationDetails.notes) {
+      if (notesBody) {
         docPdf.setFont('helvetica', 'bold');
         docPdf.setTextColor(BLACK);
-        docPdf.text('ADDITIONAL NOTES', col2X + colPadding, boxStartY + colPadding + lineHeight);
+        docPdf.text('ADDITIONAL NOTES', col2X + colPadding, titleY);
         docPdf.setFont('helvetica', 'normal');
-        docPdf.text(quotationDetails.notes.toUpperCase(), col2X + colPadding, boxStartY + colPadding + titleHeight, textOptions);
+        docPdf.text(notesBody, col2X + colPadding, bodyY, textOptions);
       }
       
       if (termsContentHeight > 0 || notesContentHeight > 0) {
@@ -441,7 +447,7 @@ export default function NewQuotationPage() {
           docPdf.addPage();
           currentY = margin;
       }
-      currentY += 20;
+      currentY += 15;
       const sigWidth = 80;
       const sigXStart = (docWidth - sigWidth) / 2;
       docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
@@ -456,7 +462,7 @@ export default function NewQuotationPage() {
           docPdf.line(margin, footerY, docWidth - margin, footerY);
           docPdf.setFontSize(9);
           docPdf.setTextColor(RED);
-          const footerText = `PAISANOSALES@GMAIL.COM | 915 408 7478 | WWW.PAISANOTRAILER.COM`;
+          const footerText = `paisanosales@gmail.com | 915 408 7478 | www.paisanotrailer.com`;
           docPdf.text(footerText, docWidth / 2, footerY + 8, { align: 'center' });
           docPdf.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerY + 8, { align: 'right' });
       }

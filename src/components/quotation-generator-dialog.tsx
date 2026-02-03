@@ -160,15 +160,15 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     const BLACK = '#000000';
     const LIGHT_GRAY = '#F5F5F5';
     
-    const headerTextY = 20;
+    const headerTextY = 15;
 
     if (logoUrl) {
       try {
         const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
         const img = new Image();
         img.src = logoUrl;
-        const imgWidth = 90;
-        doc.addImage(logoUrl, format.toUpperCase(), margin, -5, imgWidth, 0, undefined, 'NONE');
+        const imgWidth = 80;
+        doc.addImage(logoUrl, format.toUpperCase(), margin, 0, imgWidth, 0, undefined, 'NONE');
       } catch (e) {
         console.error("Error adding logo image to PDF:", e);
       }
@@ -189,7 +189,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
     doc.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
 
-    const separatorY = 50;
+    const separatorY = 45;
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
     doc.line(margin, separatorY, docWidth - margin, separatorY);
@@ -197,7 +197,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.setLineWidth(0.3);
     doc.line(margin, separatorY + 1.5, docWidth - margin, separatorY + 1.5);
     
-    currentY = separatorY + 12;
+    currentY = separatorY + 10;
 
     const quoteDetailsX = docWidth - margin;
     doc.setFont('helvetica', 'bold');
@@ -215,7 +215,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
 
     const infoStartY = currentY;
     const rightColX = docWidth / 2 + 10;
-    const infoBoxHeight = 28;
+    const infoBoxHeight = 32;
 
     doc.setFillColor(LIGHT_GRAY);
     doc.rect(margin, infoStartY - 2, (docWidth / 2) - margin - 5, infoBoxHeight, 'F');
@@ -228,8 +228,9 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     if (userProfile) {
-        doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, infoStartY + 10);
-        if (userProfile.email) doc.text(userProfile.email.toUpperCase(), margin + 3, infoStartY + 15);
+        doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, infoStartY + 9);
+        if (userProfile.email) doc.text(userProfile.email.toLowerCase(), margin + 3, infoStartY + 14);
+        if (userProfile.phone) doc.text(userProfile.phone, margin + 3, infoStartY + 19);
     }
 
     doc.setFont('helvetica', 'bold');
@@ -237,11 +238,11 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.text('BUYER:', rightColX + 3, infoStartY + 4);
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(prospect.clientName.toUpperCase(), rightColX + 3, infoStartY + 10);
-    doc.text(`ATTN: ${prospect.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 15);
-    if(prospect.email) doc.text(prospect.email.toUpperCase(), rightColX + 3, infoStartY + 20);
+    doc.text(prospect.clientName.toUpperCase(), rightColX + 3, infoStartY + 9);
+    doc.text(`ATTN: ${prospect.contactPerson.toUpperCase()}`, rightColX + 3, infoStartY + 14);
+    if(prospect.email) doc.text(prospect.email.toLowerCase(), rightColX + 3, infoStartY + 19);
 
-    currentY = infoStartY + infoBoxHeight + 8;
+    currentY = infoStartY + infoBoxHeight + 6;
 
     const tableWidth = docWidth - (margin * 2);
     const columnStyles4 = {
@@ -300,7 +301,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     
     currentY = (doc as any).autoTable.previous.finalY;
     
-    currentY += 6;
+    currentY += 4;
     const totalsY = currentY;
     let lineY = totalsY;
     doc.setFontSize(11);
@@ -354,22 +355,24 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
 
     doc.setFontSize(8);
     const lineHeight = doc.getLineHeight() / doc.internal.scaleFactor;
-    const titleHeight = lineHeight + 2; // Space for title
-
+    
     const textOptions = {
         align: 'justify' as const,
         maxWidth: textMaxWidth
     };
-    
-    const termsDim = quotationDetails.terms ? doc.getTextDimensions(quotationDetails.terms.toUpperCase(), { ...textOptions, fontSize: 8, font: doc.getFont('helvetica', 'normal') }) : { h: 0 };
-    const notesDim = quotationDetails.notes ? doc.getTextDimensions(quotationDetails.notes.toUpperCase(), { ...textOptions, fontSize: 8, font: doc.getFont('helvetica', 'normal') }) : { h: 0 };
-    
-    const termsContentHeight = termsDim.h;
-    const notesContentHeight = notesDim.h;
-    
-    const sectionHeight = Math.max(termsContentHeight, notesContentHeight) + titleHeight + (colPadding * 2);
 
-    if (currentY + sectionHeight > pageHeight - 45) { // 45 for footer
+    const termsBody = quotationDetails.terms ? quotationDetails.terms.toUpperCase() : '';
+    const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
+
+    const termsDim = doc.getTextDimensions(termsBody, { ...textOptions, fontSize: 8 });
+    const notesDim = doc.getTextDimensions(notesBody, { ...textOptions, fontSize: 8 });
+
+    const termsContentHeight = termsBody ? (lineHeight * 2) + termsDim.h : 0;
+    const notesContentHeight = notesBody ? (lineHeight * 2) + notesDim.h : 0;
+    
+    const sectionHeight = Math.max(termsContentHeight, notesContentHeight) + (colPadding * 2);
+
+    if (currentY + sectionHeight > pageHeight - 35) { // 35 for footer
         doc.addPage();
         currentY = margin;
     }
@@ -382,20 +385,23 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       if (notesContentHeight > 0) doc.rect(col2X, boxStartY, colWidth, sectionHeight, 'F');
     }
     
-    if (quotationDetails.terms) {
+    const titleY = boxStartY + colPadding + lineHeight;
+    const bodyY = titleY + lineHeight + 1; // Start body one line height + 1pt below the title
+
+    if (termsBody) {
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(BLACK);
-      doc.text('TERMS AND CONDITIONS', col1X + colPadding, boxStartY + colPadding + lineHeight);
+      doc.text('TERMS AND CONDITIONS', col1X + colPadding, titleY);
       doc.setFont('helvetica', 'normal');
-      doc.text(quotationDetails.terms.toUpperCase(), col1X + colPadding, boxStartY + colPadding + titleHeight, textOptions);
+      doc.text(termsBody, col1X + colPadding, bodyY, textOptions);
     }
 
-    if (quotationDetails.notes) {
+    if (notesBody) {
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(BLACK);
-      doc.text('ADDITIONAL NOTES', col2X + colPadding, boxStartY + colPadding + lineHeight);
+      doc.text('ADDITIONAL NOTES', col2X + colPadding, titleY);
       doc.setFont('helvetica', 'normal');
-      doc.text(quotationDetails.notes.toUpperCase(), col2X + colPadding, boxStartY + colPadding + titleHeight, textOptions);
+      doc.text(notesBody, col2X + colPadding, bodyY, textOptions);
     }
     
     if (termsContentHeight > 0 || notesContentHeight > 0) {
@@ -407,7 +413,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         doc.addPage();
         currentY = margin;
     }
-    currentY += 20;
+    currentY += 15;
     
     const sigWidth = 80;
     const sigXStart = (docWidth - sigWidth) / 2;
@@ -424,7 +430,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         doc.line(margin, footerY, docWidth - margin, footerY);
         doc.setFontSize(9);
         doc.setTextColor(RED);
-        const footerText = `PAISANOSALES@GMAIL.COM | 915 408 7478 | WWW.PAISANOTRAILER.COM`;
+        const footerText = `paisanosales@gmail.com | 915 408 7478 | www.paisanotrailer.com`;
         doc.text(footerText, docWidth / 2, footerY + 8, { align: 'center' });
         doc.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerY + 8, { align: 'right' });
     }
