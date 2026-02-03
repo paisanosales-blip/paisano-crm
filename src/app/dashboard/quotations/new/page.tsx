@@ -236,13 +236,13 @@ export default function NewQuotationPage() {
       docPdf.setFont('helvetica', 'normal');
       docPdf.setFontSize(10);
       docPdf.setTextColor(100);
-      const addressY = headerTextY + 10;
+      const addressY = headerTextY + 7;
       const addressLineSpacing = 5;
       docPdf.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
       docPdf.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
       docPdf.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
       
-      const separatorY = 42;
+      const separatorY = 41;
       docPdf.setDrawColor(RED);
       docPdf.setLineWidth(0.8);
       docPdf.line(margin, separatorY, docWidth - margin, separatorY);
@@ -275,55 +275,55 @@ export default function NewQuotationPage() {
 
       // --- Sales Person Box ---
       docPdf.setFillColor(RED);
-      docPdf.rect(margin, infoStartY - 2, salesPersonBoxWidth, titleBoxHeight, 'F');
+      docPdf.rect(margin, infoStartY, salesPersonBoxWidth, titleBoxHeight, 'F');
       docPdf.setFillColor(LIGHT_GRAY);
-      docPdf.rect(margin, contentStartY - 2, salesPersonBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
+      docPdf.rect(margin, contentStartY, salesPersonBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
       
       docPdf.setFont('helvetica', 'bold');
       docPdf.setFontSize(9);
       docPdf.setTextColor('#FFFFFF');
-      docPdf.text('SALES PERSON:', margin + 3, infoStartY + 2.5);
+      docPdf.text('SALES PERSON:', margin + 3, infoStartY + 4.5);
       
       docPdf.setFont('helvetica', 'normal');
       docPdf.setTextColor(BLACK);
       if (userProfile) {
-          docPdf.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, contentStartY + 3);
-          if (userProfile.email) docPdf.text(userProfile.email.toLowerCase(), margin + 3, contentStartY + 8);
-          if (userProfile.phone) docPdf.text(userProfile.phone, margin + 3, contentStartY + 13);
+          docPdf.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, contentStartY + 5);
+          if (userProfile.email) docPdf.text(userProfile.email.toLowerCase(), margin + 3, contentStartY + 10);
+          if (userProfile.phone) docPdf.text(userProfile.phone, margin + 3, contentStartY + 15);
       }
 
       // --- Buyer Box ---
       docPdf.setFillColor(RED);
-      docPdf.rect(rightColX, infoStartY - 2, buyerBoxWidth, titleBoxHeight, 'F');
+      docPdf.rect(rightColX, infoStartY, buyerBoxWidth, titleBoxHeight, 'F');
       docPdf.setFillColor(LIGHT_GRAY);
-      docPdf.rect(rightColX, contentStartY - 2, buyerBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
+      docPdf.rect(rightColX, contentStartY, buyerBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
 
       docPdf.setFont('helvetica', 'bold');
       docPdf.setTextColor('#FFFFFF');
-      docPdf.text('BUYER:', rightColX + 3, infoStartY + 2.5);
+      docPdf.text('BUYER:', rightColX + 3, infoStartY + 4.5);
 
       docPdf.setFont('helvetica', 'normal');
       docPdf.setTextColor(BLACK);
-      docPdf.text(selectedClient.clientName.toUpperCase(), rightColX + 3, contentStartY + 3);
-      docPdf.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, contentStartY + 8);
-      if(selectedClient.email) docPdf.text(selectedClient.email.toLowerCase(), rightColX + 3, contentStartY + 13);
-      if(selectedClient.phone) docPdf.text(selectedClient.phone, rightColX + 3, contentStartY + 18);
+      docPdf.text(selectedClient.clientName.toUpperCase(), rightColX + 3, contentStartY + 5);
+      docPdf.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, contentStartY + 10);
+      if(selectedClient.email) docPdf.text(selectedClient.email.toLowerCase(), rightColX + 3, contentStartY + 15);
+      if(selectedClient.phone) docPdf.text(selectedClient.phone, rightColX + 3, contentStartY + 20);
       
       currentY = infoStartY + infoBoxHeight + 6;
       
       const tableWidth = docWidth - (margin * 2);
       const columnStyles4 = {
-        0: { cellWidth: tableWidth * 0.50, halign: 'justify' as const },
+        0: { cellWidth: tableWidth * 0.55, halign: 'justify' as const },
         1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
-        2: { cellWidth: tableWidth * 0.20, halign: 'right' as const },
-        3: { cellWidth: tableWidth * 0.20, halign: 'right' as const },
+        2: { cellWidth: tableWidth * 0.175, halign: 'right' as const },
+        3: { cellWidth: tableWidth * 0.175, halign: 'right' as const },
       };
       const columnStyles5 = {
-        0: { cellWidth: tableWidth * 0.45, halign: 'justify' as const },
+        0: { cellWidth: tableWidth * 0.50, halign: 'justify' as const },
         1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
-        2: { cellWidth: tableWidth * 0.16, halign: 'right' as const },
-        3: { cellWidth: tableWidth * 0.16, halign: 'right' as const },
-        4: { cellWidth: tableWidth * 0.13, halign: 'right' as const },
+        2: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
+        3: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
+        4: { cellWidth: tableWidth * 0.10, halign: 'right' as const },
       };
 
       const tableHead = isIndividualFreight
@@ -446,7 +446,7 @@ export default function NewQuotationPage() {
         docPdf.setTextColor(BLACK);
         docPdf.text('TERMS AND CONDITIONS', col1X + colPadding, titleY);
         docPdf.setFont('helvetica', 'normal');
-        docPdf.text(termsBody, col1X + colPadding, bodyY, textOptions);
+        docPdf.text(termsBody, col1X + colPadding, bodyY + 2, textOptions);
       }
 
       if (notesBody) {
@@ -454,7 +454,7 @@ export default function NewQuotationPage() {
         docPdf.setTextColor(BLACK);
         docPdf.text('ADDITIONAL NOTES', col2X + colPadding, titleY);
         docPdf.setFont('helvetica', 'normal');
-        docPdf.text(notesBody, col2X + colPadding, bodyY, textOptions);
+        docPdf.text(notesBody, col2X + colPadding, bodyY + 2, textOptions);
       }
       
       if (termsContentHeight > 0 || notesContentHeight > 0) {
@@ -466,7 +466,7 @@ export default function NewQuotationPage() {
           docPdf.addPage();
           currentY = margin;
       }
-      currentY += 30;
+      currentY += 5;
       const sigWidth = 80;
       const sigXStart = (docWidth - sigWidth) / 2;
       docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);

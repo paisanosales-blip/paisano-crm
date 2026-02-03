@@ -183,13 +183,13 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.setFontSize(10);
     doc.setTextColor(100);
 
-    const addressY = headerTextY + 10;
+    const addressY = headerTextY + 7;
     const addressLineSpacing = 5;
     doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
     doc.text('RFC: SPA150217AM3', docWidth - margin, addressY + addressLineSpacing * 2, { align: 'right' });
 
-    const separatorY = 42;
+    const separatorY = 41;
     doc.setDrawColor(RED);
     doc.setLineWidth(0.8);
     doc.line(margin, separatorY, docWidth - margin, separatorY);
@@ -224,55 +224,55 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
 
     // --- Sales Person Box ---
     doc.setFillColor(RED);
-    doc.rect(margin, infoStartY - 2, salesPersonBoxWidth, titleBoxHeight, 'F');
+    doc.rect(margin, infoStartY, salesPersonBoxWidth, titleBoxHeight, 'F');
     doc.setFillColor(LIGHT_GRAY);
-    doc.rect(margin, contentStartY - 2, salesPersonBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
+    doc.rect(margin, contentStartY, salesPersonBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
     
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor('#FFFFFF');
-    doc.text('SALES PERSON:', margin + 3, infoStartY + 2.5);
+    doc.text('SALES PERSON:', margin + 3, infoStartY + 4.5);
     
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(BLACK);
     if (userProfile) {
-        doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, contentStartY + 3);
-        if (userProfile.email) doc.text(userProfile.email.toLowerCase(), margin + 3, contentStartY + 8);
-        if (userProfile.phone) doc.text(userProfile.phone, margin + 3, contentStartY + 13);
+        doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, contentStartY + 5);
+        if (userProfile.email) doc.text(userProfile.email.toLowerCase(), margin + 3, contentStartY + 10);
+        if (userProfile.phone) doc.text(userProfile.phone, margin + 3, contentStartY + 15);
     }
 
     // --- Buyer Box ---
     doc.setFillColor(RED);
-    doc.rect(rightColX, infoStartY - 2, buyerBoxWidth, titleBoxHeight, 'F');
+    doc.rect(rightColX, infoStartY, buyerBoxWidth, titleBoxHeight, 'F');
     doc.setFillColor(LIGHT_GRAY);
-    doc.rect(rightColX, contentStartY - 2, buyerBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
+    doc.rect(rightColX, contentStartY, buyerBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor('#FFFFFF');
-    doc.text('BUYER:', rightColX + 3, infoStartY + 2.5);
+    doc.text('BUYER:', rightColX + 3, infoStartY + 4.5);
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(BLACK);
-    doc.text(prospect.clientName.toUpperCase(), rightColX + 3, contentStartY + 3);
-    doc.text(`ATTN: ${prospect.contactPerson.toUpperCase()}`, rightColX + 3, contentStartY + 8);
-    if(prospect.email) doc.text(prospect.email.toLowerCase(), rightColX + 3, contentStartY + 13);
-    if(prospect.phone) doc.text(prospect.phone, rightColX + 3, contentStartY + 18);
+    doc.text(prospect.clientName.toUpperCase(), rightColX + 3, contentStartY + 5);
+    doc.text(`ATTN: ${prospect.contactPerson.toUpperCase()}`, rightColX + 3, contentStartY + 10);
+    if(prospect.email) doc.text(prospect.email.toLowerCase(), rightColX + 3, contentStartY + 15);
+    if(prospect.phone) doc.text(prospect.phone, rightColX + 3, contentStartY + 20);
     
     currentY = infoStartY + infoBoxHeight + 6;
     
     const tableWidth = docWidth - (margin * 2);
     const columnStyles4 = {
-        0: { cellWidth: tableWidth * 0.50, halign: 'justify' as const },
+        0: { cellWidth: tableWidth * 0.55, halign: 'justify' as const },
         1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
-        2: { cellWidth: tableWidth * 0.20, halign: 'right' as const },
-        3: { cellWidth: tableWidth * 0.20, halign: 'right' as const },
+        2: { cellWidth: tableWidth * 0.175, halign: 'right' as const },
+        3: { cellWidth: tableWidth * 0.175, halign: 'right' as const },
       };
       const columnStyles5 = {
-        0: { cellWidth: tableWidth * 0.45, halign: 'justify' as const },
+        0: { cellWidth: tableWidth * 0.50, halign: 'justify' as const },
         1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
-        2: { cellWidth: tableWidth * 0.16, halign: 'right' as const },
-        3: { cellWidth: tableWidth * 0.16, halign: 'right' as const },
-        4: { cellWidth: tableWidth * 0.13, halign: 'right' as const },
+        2: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
+        3: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
+        4: { cellWidth: tableWidth * 0.10, halign: 'right' as const },
       };
     
     const tableHead = isIndividualFreight
@@ -404,7 +404,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       doc.setTextColor(BLACK);
       doc.text('TERMS AND CONDITIONS', col1X + colPadding, titleY);
       doc.setFont('helvetica', 'normal');
-      doc.text(termsBody, col1X + colPadding, bodyY, textOptions);
+      doc.text(termsBody, col1X + colPadding, bodyY + 2, textOptions);
     }
 
     if (notesBody) {
@@ -412,7 +412,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       doc.setTextColor(BLACK);
       doc.text('ADDITIONAL NOTES', col2X + colPadding, titleY);
       doc.setFont('helvetica', 'normal');
-      doc.text(notesBody, col2X + colPadding, bodyY, textOptions);
+      doc.text(notesBody, col2X + colPadding, bodyY + 2, textOptions);
     }
     
     if (termsContentHeight > 0 || notesContentHeight > 0) {
@@ -424,7 +424,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         doc.addPage();
         currentY = margin;
     }
-    currentY += 30;
+    currentY += 5;
     
     const sigWidth = 80;
     const sigXStart = (docWidth - sigWidth) / 2;
