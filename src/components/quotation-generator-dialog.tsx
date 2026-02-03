@@ -245,18 +245,18 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
 
     const tableWidth = docWidth - (margin * 2);
     const columnStyles4 = {
-        0: { cellWidth: tableWidth * 0.55, halign: 'left' as const },
-        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
-        2: { cellWidth: tableWidth * 0.175, halign: 'right' as const },
-        3: { cellWidth: tableWidth * 0.175, halign: 'right' as const },
-      };
-      const columnStyles5 = {
-        0: { cellWidth: tableWidth * 0.45, halign: 'left' as const },
-        1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
-        2: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
-        3: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
-        4: { cellWidth: tableWidth * 0.15, halign: 'right' as const },
-      };
+      0: { cellWidth: tableWidth * 0.45, halign: 'left' as const },
+      1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
+      2: { cellWidth: tableWidth * 0.225, halign: 'right' as const },
+      3: { cellWidth: tableWidth * 0.225, halign: 'right' as const },
+    };
+    const columnStyles5 = {
+      0: { cellWidth: tableWidth * 0.40, halign: 'left' as const },
+      1: { cellWidth: tableWidth * 0.10, halign: 'center' as const },
+      2: { cellWidth: tableWidth * 0.16, halign: 'right' as const },
+      3: { cellWidth: tableWidth * 0.16, halign: 'right' as const },
+      4: { cellWidth: tableWidth * 0.18, halign: 'right' as const },
+    };
     
     const tableHead = isIndividualFreight
         ? [["DESCRIPTION", "QTY", "UNIT PRICE", "UNIT FREIGHT", "TOTAL"]]
@@ -287,6 +287,11 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         body: tableBody,
         startY: currentY,
         theme: 'striped',
+        didParseCell: function (data) {
+          if (data.column.dataKey === 0) {
+            data.cell.styles.halign = 'justify';
+          }
+        },
         headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
         styles: { fontSize: 10, cellPadding: 3 },
         columnStyles: isIndividualFreight ? columnStyles5 : columnStyles4,
@@ -335,34 +340,67 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.setTextColor(RED);
     doc.text(`$${total.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
     
-    currentY = lineY + 12;
+    currentY = lineY;
     doc.setTextColor(BLACK);
 
-    const addSection = (title: string, content: string) => {
-      if (!content) return;
-      doc.setFontSize(8);
-      const lineHeight = doc.getLineHeight() / doc.internal.scaleFactor;
-      const lines = doc.splitTextToSize(content.toUpperCase(), docWidth - (margin * 2));
-      const sectionHeight = lines.length * lineHeight;
+    // New two-column section for terms and notes
+    currentY += 10;
+    const colGap = 10;
+    const colWidth = (docWidth - margin * 2 - colGap) / 2;
+    const colPadding = 4;
+    const textMaxWidth = colWidth - (colPadding * 2);
+    const col1X = margin;
+    const col2X = margin + colWidth + colGap;
 
-      if (currentY + sectionHeight > pageHeight - 45) { // 45 for footer area
+    doc.setFontSize(8);
+    const lineHeight = doc.getLineHeight() / doc.internal.scaleFactor;
+    const titleHeight = lineHeight + 2; // Space for title
+
+    const textOptions = {
+        align: 'justify' as const,
+        maxWidth: textMaxWidth
+    };
+    
+    const termsDim = quotationDetails.terms ? doc.getTextDimensions(quotationDetails.terms.toUpperCase(), { ...textOptions, fontSize: 8, font: doc.getFont('helvetica', 'normal') }) : { h: 0 };
+    const notesDim = quotationDetails.notes ? doc.getTextDimensions(quotationDetails.notes.toUpperCase(), { ...textOptions, fontSize: 8, font: doc.getFont('helvetica', 'normal') }) : { h: 0 };
+    
+    const termsContentHeight = termsDim.h;
+    const notesContentHeight = notesDim.h;
+    
+    const sectionHeight = Math.max(termsContentHeight, notesContentHeight) + titleHeight + (colPadding * 2);
+
+    if (currentY + sectionHeight > pageHeight - 45) { // 45 for footer
         doc.addPage();
         currentY = margin;
-      }
-      
+    }
+    
+    const boxStartY = currentY;
+    
+    if (termsContentHeight > 0 || notesContentHeight > 0) {
+      doc.setFillColor(LIGHT_GRAY);
+      if (termsContentHeight > 0) doc.rect(col1X, boxStartY, colWidth, sectionHeight, 'F');
+      if (notesContentHeight > 0) doc.rect(col2X, boxStartY, colWidth, sectionHeight, 'F');
+    }
+    
+    if (quotationDetails.terms) {
       doc.setFont('helvetica', 'bold');
-      doc.text(title.toUpperCase(), margin, currentY);
-      currentY += lineHeight;
-
+      doc.setTextColor(BLACK);
+      doc.text('TERMS AND CONDITIONS', col1X + colPadding, boxStartY + colPadding + lineHeight);
       doc.setFont('helvetica', 'normal');
-      doc.text(lines, margin, currentY);
-      
-      currentY += sectionHeight;
-    };
+      doc.text(quotationDetails.terms.toUpperCase(), col1X + colPadding, boxStartY + colPadding + titleHeight, textOptions);
+    }
 
-    addSection('TERMS AND CONDITIONS', quotationDetails.terms);
-    currentY += 2;
-    addSection('ADDITIONAL NOTES', quotationDetails.notes);
+    if (quotationDetails.notes) {
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(BLACK);
+      doc.text('ADDITIONAL NOTES', col2X + colPadding, boxStartY + colPadding + lineHeight);
+      doc.setFont('helvetica', 'normal');
+      doc.text(quotationDetails.notes.toUpperCase(), col2X + colPadding, boxStartY + colPadding + titleHeight, textOptions);
+    }
+    
+    if (termsContentHeight > 0 || notesContentHeight > 0) {
+      currentY += sectionHeight;
+    }
     
     const signatureHeight = 25;
     if (currentY + signatureHeight > pageHeight - 35) {
