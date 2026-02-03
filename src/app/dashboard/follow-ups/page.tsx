@@ -85,7 +85,7 @@ export default function FollowUpsPage() {
   const { toast } = useToast();
 
   const [selectedUserId, setSelectedUserId] = useState<string>('me');
-  const [showCompleted, setShowCompleted] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(true);
   
   const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
   const [currentActivity, setCurrentActivity] = useState<any | null>(null);
@@ -427,10 +427,19 @@ export default function FollowUpsPage() {
                       const dueDate = activity.dueDate ? new Date(activity.dueDate) : null;
 
                       return (
-                        <div key={activity.id} className={cn(
-                            "flex items-start gap-4 rounded-lg border p-4 transition-all",
-                            activity.completed ? "bg-muted/50" : "bg-card hover:bg-muted/60",
-                        )}>
+                        <div
+                          key={activity.id}
+                          className={cn(
+                            'flex items-start gap-4 rounded-lg border p-4 transition-all',
+                            activity.completed
+                              ? activity.clientResponded === true
+                                ? 'bg-green-50 dark:bg-green-950/40'
+                                : activity.clientResponded === false
+                                ? 'bg-red-50 dark:bg-red-950/40'
+                                : 'bg-muted/50'
+                              : 'bg-card hover:bg-muted/60'
+                          )}
+                        >
                             <span className={cn("flex h-10 w-10 items-center justify-center rounded-full mt-1 shrink-0", groupStyleKeys[group.styleKey].icon)}>
                                 {activityIcons[activity.type] || <Calendar className="h-5 w-5" />}
                             </span>
