@@ -37,6 +37,16 @@ export function IconSwitcher({ className }: { className?: string }) {
   }, [firestore]);
   const { data: appSettings, isLoading } = useDoc(settingsRef);
 
+  React.useEffect(() => {
+    if (appSettings) {
+      if (appSettings.logoUrl) {
+        localStorage.setItem('sidebarLogo', appSettings.logoUrl);
+      } else {
+        localStorage.removeItem('sidebarLogo');
+      }
+    }
+  }, [appSettings]);
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!isManager) {
       toast({
