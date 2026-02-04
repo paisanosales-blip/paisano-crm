@@ -24,6 +24,9 @@ const registerSchema = z.object({
   name: z.string().min(1, { message: 'El nombre es requerido.' }),
   email: z.string().email({ message: 'Correo electrónico inválido.' }),
   password: z.string().min(6, { message: 'La contraseña debe tener al menos 6 caracteres.' }),
+  specialCode: z.string().refine(val => val === 'PAISANO2026', {
+    message: 'El código especial es incorrecto.',
+  }),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -41,6 +44,7 @@ export default function RegisterPage() {
       name: '',
       email: '',
       password: '',
+      specialCode: '',
     },
   });
 
@@ -151,6 +155,19 @@ export default function RegisterPage() {
                     <Label htmlFor="password">Contraseña</Label>
                     <FormControl>
                       <Input id="password" type="password" required {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="specialCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="specialCode">Código Especial</Label>
+                    <FormControl>
+                      <Input id="specialCode" type="password" placeholder="Ingrese el código especial" required {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
