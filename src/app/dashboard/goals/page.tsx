@@ -16,6 +16,7 @@ import { getClassification } from '@/lib/types';
 
 
 const WEEKLY_GOAL = 10;
+const MONTHLY_POTENTIAL_CLIENTS_GOAL = 4;
 
 export default function GoalsPage() {
   const { user, isUserLoading } = useUser();
@@ -71,6 +72,33 @@ export default function GoalsPage() {
     return { count, percentage };
   }, [allOpportunities]);
   
+    // --- Monthly Potential Clients Goal Calculation ---
+  const monthlyPotentialClientsProgress = React.useMemo(() => {
+    if (!allOpportunities) {
+      return { count: 0, percentage: 0 };
+    }
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(currentMonth);
+
+    // Filter opportunities created within the current month
+    const opportunitiesInMonth = (allOpportunities || []).filter(item => {
+        if (!item.createdDate) return false;
+        const itemDate = new Date(item.createdDate);
+        return isWithinInterval(itemDate, { start, end });
+    });
+
+    // From those, filter the ones that are "potential clients"
+    const potentialClientsThisMonth = opportunitiesInMonth.filter(opp => {
+        const classification = getClassification(opp.stage);
+        return classification === 'CLIENTE POTENCIAL';
+    });
+
+    const count = potentialClientsThisMonth.length;
+    const percentage = Math.min((count / MONTHLY_POTENTIAL_CLIENTS_GOAL) * 100, 100);
+
+    return { count, percentage };
+  }, [allOpportunities, currentMonth]);
+
   const getMotivationalMessage = () => {
     if (weeklyProgress.percentage === 100) {
       return {
@@ -100,6 +128,30 @@ export default function GoalsPage() {
     };
   };
   const motivational = getMotivationalMessage();
+
+  const getPotentialClientMotivationalMessage = () => {
+    const { count, percentage } = monthlyPotentialClientsProgress;
+    if (percentage >= 100) {
+      return {
+        title: '¡Meta Mensual Alcanzada!',
+        message: `¡Felicidades! Has convertido ${count} prospectos en clientes potenciales este mes.`,
+        icon: <Award className="h-8 w-8 text-yellow-500" />,
+      };
+    }
+    if (count === 0) {
+      return {
+        title: '¡Impulsa tus prospectos!',
+        message: 'Tu meta es calificar 4 prospectos a clientes potenciales. ¡Una buena cotización puede ser el primer paso!',
+        icon: <TrendingUp className="h-8 w-8 text-blue-500" />,
+      };
+    }
+    return {
+      title: '¡Sigue así!',
+      message: `¡Buen trabajo! Con ${count} clientes potenciales, estás en camino a tu meta mensual.`,
+      icon: <Target className="h-8 w-8 text-green-500" />,
+    };
+  };
+  const potentialClientMotivational = getPotentialClientMotivationalMessage();
 
   const handleDownloadReport = () => {
     if (!userProfile || !allOpportunities || !allLeads || !allQuotations) {
@@ -267,42 +319,80 @@ export default function GoalsPage() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-6 w-6" />
-            Meta Semanal: 10 Nuevos Prospectos
-          </CardTitle>
-          <CardDescription>
-            Tu progreso para la semana actual. La semana comienza el lunes.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {isLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-8 w-1/4" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-full" />
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+            <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <Target className="h-6 w-6" />
+                Meta Semanal: 10 Nuevos Prospectos
+            </CardTitle>
+            <CardDescription>
+                Tu progreso para la semana actual. La semana comienza el lunes.
+            </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+            {isLoading ? (
+                <div className="space-y-4">
+                <Skeleton className="h-8 w-1/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                </div>
+            ) : (
+                <div className="flex items-center gap-6 p-6 rounded-lg bg-muted/50">
+                <div className="shrink-0">{motivational.icon}</div>
+                <div>
+                    <h3 className="text-lg font-semibold">{motivational.title}</h3>
+                    <p className="text-muted-foreground">{motivational.message}</p>
+                </div>
+                </div>
+            )}
+            
+            <div className="space-y-2">
+                <div className="flex justify-between items-center font-bold text-lg">
+                    <p>Progreso:</p>
+                    <p>{weeklyProgress.count} / {WEEKLY_GOAL}</p>
+                </div>
+                <Progress value={weeklyProgress.percentage} className="h-4" />
             </div>
-          ) : (
-            <div className="flex items-center gap-6 p-6 rounded-lg bg-muted/50">
-              <div className="shrink-0">{motivational.icon}</div>
-              <div>
-                <h3 className="text-lg font-semibold">{motivational.title}</h3>
-                <p className="text-muted-foreground">{motivational.message}</p>
-              </div>
+            </CardContent>
+        </Card>
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Target className="h-6 w-6 text-blue-500" />
+                    Meta Mensual: 4 Clientes Potenciales
+                </CardTitle>
+                <CardDescription>
+                    Prospectos movidos a "Cotización" o "Negociación" este mes.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+            {isLoading ? (
+                <div className="space-y-4">
+                    <Skeleton className="h-8 w-1/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-full" />
+                </div>
+            ) : (
+                <div className="flex items-center gap-6 p-6 rounded-lg bg-muted/50">
+                    <div className="shrink-0">{potentialClientMotivational.icon}</div>
+                    <div>
+                        <h3 className="text-lg font-semibold">{potentialClientMotivational.title}</h3>
+                        <p className="text-muted-foreground">{potentialClientMotivational.message}</p>
+                    </div>
+                </div>
+            )}
+            
+            <div className="space-y-2">
+                <div className="flex justify-between items-center font-bold text-lg">
+                    <p>Progreso:</p>
+                    <p>{monthlyPotentialClientsProgress.count} / {MONTHLY_POTENTIAL_CLIENTS_GOAL}</p>
+                </div>
+                <Progress value={monthlyPotentialClientsProgress.percentage} className="h-4" />
             </div>
-          )}
-          
-          <div className="space-y-2">
-             <div className="flex justify-between items-center font-bold text-lg">
-                <p>Progreso:</p>
-                <p>{weeklyProgress.count} / {WEEKLY_GOAL}</p>
-            </div>
-             <Progress value={weeklyProgress.percentage} className="h-4" />
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+        </Card>
+      </div>
       
        <Card>
         <CardHeader>
