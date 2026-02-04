@@ -13,7 +13,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
@@ -153,44 +152,42 @@ export function MassSendDialog({ open, onOpenChange, template }: MassSendDialogP
                     />
                 </div>
                 
-                <div className="flex-grow relative border rounded-md mt-2">
-                    <ScrollArea className="absolute inset-0">
-                        <div className="p-4 space-y-1">
-                            {isLoading ? (
-                                Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)
-                            ) : filteredLeads.length > 0 ? (
-                                <>
-                                <div className="flex items-center space-x-3 sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-3 -mt-4 px-4 -mx-4 border-b">
+                <div className="flex-grow border rounded-md mt-2 overflow-y-auto">
+                    <div className="p-4 space-y-1">
+                        {isLoading ? (
+                            Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)
+                        ) : filteredLeads.length > 0 ? (
+                            <>
+                            <div className="flex items-center space-x-3 sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-3 -mt-4 px-4 -mx-4 border-b">
+                                <Checkbox 
+                                    id="select-all"
+                                    checked={selectedLeadIds.size === filteredLeads.length && filteredLeads.length > 0}
+                                    onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                                />
+                                <Label htmlFor="select-all" className="text-sm font-medium leading-none cursor-pointer">
+                                    Seleccionar todos ({selectedLeadIds.size} / {filteredLeads.length})
+                                </Label>
+                            </div>
+                            {filteredLeads.map((lead: any) => (
+                                <div key={lead.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50">
                                     <Checkbox 
-                                        id="select-all"
-                                        checked={selectedLeadIds.size === filteredLeads.length && filteredLeads.length > 0}
-                                        onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                                        id={lead.id} 
+                                        checked={selectedLeadIds.has(lead.id)}
+                                        onCheckedChange={(checked) => handleLeadSelect(lead.id, !!checked)}
                                     />
-                                    <Label htmlFor="select-all" className="text-sm font-medium leading-none cursor-pointer">
-                                        Seleccionar todos ({selectedLeadIds.size} / {filteredLeads.length})
+                                    <Label htmlFor={lead.id} className="flex-grow font-normal cursor-pointer">
+                                        <div className="font-semibold">{lead.clientName}</div>
+                                        <div className="text-sm text-muted-foreground">{lead.contactPerson} - {lead[contactField]}</div>
                                     </Label>
                                 </div>
-                                {filteredLeads.map((lead: any) => (
-                                    <div key={lead.id} className="flex items-center space-x-3 p-2 rounded-md hover:bg-muted/50">
-                                        <Checkbox 
-                                            id={lead.id} 
-                                            checked={selectedLeadIds.has(lead.id)}
-                                            onCheckedChange={(checked) => handleLeadSelect(lead.id, !!checked)}
-                                        />
-                                        <Label htmlFor={lead.id} className="flex-grow font-normal cursor-pointer">
-                                            <div className="font-semibold">{lead.clientName}</div>
-                                            <div className="text-sm text-muted-foreground">{lead.contactPerson} - {lead[contactField]}</div>
-                                        </Label>
-                                    </div>
-                                ))}
-                                </>
-                            ) : (
-                                <div className="flex items-center justify-center h-48 text-muted-foreground">
-                                    <p>No se encontraron contactos con {contactLabel}.</p>
-                                </div>
-                            )}
-                        </div>
-                    </ScrollArea>
+                            ))}
+                            </>
+                        ) : (
+                            <div className="flex items-center justify-center h-48 text-muted-foreground">
+                                <p>No se encontraron contactos con {contactLabel}.</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </TabsContent>
             <TabsContent value="new" className="flex-grow flex flex-col min-h-0 mt-4">
