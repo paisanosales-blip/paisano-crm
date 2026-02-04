@@ -42,6 +42,30 @@ const CHART_COLORS = [
   'hsl(var(--chart-5))',
 ];
 
+const RADIAN = Math.PI / 180;
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  if (!percent || percent < 0.05) { // Do not render label if slice is too small
+    return null;
+  }
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="white"
+      textAnchor="middle"
+      dominantBaseline="central"
+      className="text-xs font-bold"
+      style={{ pointerEvents: 'none' }}
+    >
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
 
 export function DashboardCharts({ opportunities, leads, isLoading }: DashboardChartsProps) {
 
@@ -218,7 +242,13 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                     <ChartContainer config={pipelineConfig} className="mx-auto aspect-square h-full">
                         <PieChart>
                             <ChartTooltip content={<ChartTooltipContent nameKey="stage" hideLabel />} />
-                            <Pie data={pipelineData} dataKey="count" nameKey="stage">
+                            <Pie
+                                data={pipelineData}
+                                dataKey="count"
+                                nameKey="stage"
+                                labelLine={false}
+                                label={renderCustomizedLabel}
+                            >
                                {pipelineData.map((entry) => (
                                 <Cell key={`cell-${entry.stage}`} fill={entry.fill} />
                                ))}
