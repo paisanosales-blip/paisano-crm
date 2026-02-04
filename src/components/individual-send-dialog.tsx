@@ -46,8 +46,8 @@ export function IndividualSendDialog({ open, onOpenChange, template }: Individua
 
   const typeInfo = useMemo(() => ({
     Email: { icon: Mail, contactField: 'email', label: 'correo electrónico', placeholder: 'email@ejemplo.com' },
-    WhatsApp: { icon: MessageSquare, contactField: 'phone', label: 'teléfono', placeholder: 'E.g., 52xxxxxxxxxx (con cód. de país)' },
-    SMS: { icon: MessageCircle, contactField: 'phone', label: 'teléfono', placeholder: 'E.g., 52xxxxxxxxxx (con cód. de país)' },
+    WhatsApp: { icon: MessageSquare, contactField: 'phone', label: 'teléfono', placeholder: 'E.g., 1xxxxxxxxxx (con cód. de país)' },
+    SMS: { icon: MessageCircle, contactField: 'phone', label: 'teléfono', placeholder: 'E.g., 1xxxxxxxxxx (con cód. de país)' },
   }), []);
 
   const contactField = template ? typeInfo[template.type].contactField : 'email';
@@ -78,9 +78,18 @@ export function IndividualSendDialog({ open, onOpenChange, template }: Individua
     } else if (template.type === 'WhatsApp') {
         const phone = contactValue.replace(/\D/g, '');
         let prefixedPhone = phone;
-        if (leadCountryCode) {
-           prefixedPhone = (leadCountryCode === 'US' && !phone.startsWith('1')) ? `1${phone}` : phone;
+
+        if (leadCountryCode) { // For registered leads
+           if (leadCountryCode === 'US' && !phone.startsWith('1')) {
+               prefixedPhone = `1${phone}`;
+           }
+        } else { // For manual sends, default to +1
+            // Check if it already has a common country code to avoid double prefixing
+            if (!phone.startsWith('1') && !phone.startsWith('52')) {
+                prefixedPhone = `1${phone}`;
+            }
         }
+
         url = `https://wa.me/${prefixedPhone}?text=${body}`;
     } else if (template.type === 'SMS') {
         url = `sms:${contactValue}?body=${body}`;
