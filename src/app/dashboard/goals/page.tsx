@@ -11,8 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Target, TrendingUp, Award, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DashboardCharts } from '@/components/dashboard-charts';
-import { LostOpportunitiesAnalysis } from '@/components/lost-opportunities-analysis';
+import { WeeklyProspectsChart } from '@/components/weekly-prospects-chart';
 
 
 const WEEKLY_GOAL = 10;
@@ -90,24 +89,6 @@ export default function GoalsPage() {
   const motivational = getMotivationalMessage();
 
 
-  // --- Monthly Report Calculation ---
-  const { monthlyData } = useMemo(() => {
-    const start = startOfMonth(currentMonth);
-    const end = endOfMonth(currentMonth);
-
-    const opportunitiesDiscardedInMonth = (allOpportunities || []).filter(item => {
-        if (!item.discardedDate || item.stage !== 'Descartado') return false;
-        const itemDate = new Date(item.discardedDate);
-        return isWithinInterval(itemDate, { start, end });
-    });
-
-    return {
-        monthlyData: {
-            discardedOpportunities: opportunitiesDiscardedInMonth,
-        }
-    }
-  }, [currentMonth, allOpportunities]);
-
   const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
 
@@ -165,7 +146,7 @@ export default function GoalsPage() {
                 <div>
                     <CardTitle>Análisis Mensual de Rendimiento</CardTitle>
                     <CardDescription className="mt-1">
-                        Tus gráficos de rendimiento y análisis de oportunidades perdidas para el mes seleccionado.
+                        Tu rendimiento de generación de prospectos semana a semana.
                     </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
@@ -182,18 +163,11 @@ export default function GoalsPage() {
             </div>
         </CardHeader>
         <CardContent>
-            {isLoading ? (
-                <div className="grid gap-6">
-                   <Skeleton className="h-96 w-full" />
-                </div>
-            ) : (
-               <div className="grid gap-6 mt-4">
-                  <DashboardCharts opportunities={allOpportunities} leads={allLeads} isLoading={isLoading} />
-                  {!isLoading && (
-                    <LostOpportunitiesAnalysis discardedOpportunities={monthlyData.discardedOpportunities} />
-                  )}
-              </div>
-            )}
+            <WeeklyProspectsChart 
+                opportunities={allOpportunities}
+                currentMonth={currentMonth}
+                isLoading={isLoading}
+            />
         </CardContent>
       </Card>
     </div>
