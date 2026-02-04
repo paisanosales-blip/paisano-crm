@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { startOfWeek, endOfWeek, isWithinInterval, format, subMonths, addMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Target, TrendingUp, Award, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Target, TrendingUp, Award, ArrowRight, ChevronLeft, ChevronRight, FileDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { WeeklyProspectsChart } from '@/components/weekly-prospects-chart';
+import { getClassification } from '@/lib/types';
 
 
 const WEEKLY_GOAL = 10;
@@ -22,6 +23,12 @@ export default function GoalsPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
   // --- Data Fetching ---
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
   const opportunitiesQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(collection(firestore, 'opportunities'), where('sellerId', '==', user.uid));
@@ -32,10 +39,16 @@ export default function GoalsPage() {
     return query(collection(firestore, 'leads'), where('sellerId', '==', user.uid));
   }, [firestore, user]);
 
+  const quotationsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, 'quotations'), where('sellerId', '==', user.uid));
+  }, [firestore, user]);
+
   const { data: allOpportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
   const { data: allLeads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
+  const { data: allQuotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
-  const isLoading = isUserLoading || areOppsLoading || areLeadsLoading;
+  const isLoading = isUserLoading || isProfileLoading || areOppsLoading || areLeadsLoading || areQuotsLoading;
 
   // --- Weekly Goal Calculation ---
   const weeklyProgress = React.useMemo(() => {
@@ -88,6 +101,151 @@ export default function GoalsPage() {
   };
   const motivational = getMotivationalMessage();
 
+  const handleDownloadReport = () => {
+    if (!userProfile || !allOpportunities || !allLeads || !allQuotations) {
+        alert("Los datos para el reporte no están listos. Por favor, espere.");
+        return;
+    }
+    
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(currentMonth);
+    
+    const opportunitiesCreatedInMonth = (allOpportunities || []).filter(item => {
+        const itemDate = new Date(item.createdDate);
+        return isWithinInterval(itemDate, { start, end });
+    });
+
+    const quotationsCreatedInMonth = (allQuotations || []).filter(item => {
+        const itemDate = new Date(item.createdDate);
+        return isWithinInterval(itemDate, { start, end });
+    });
+    
+    const opportunitiesClosedInMonth = (allOpportunities || []).filter(item => {
+        if (!item.closingDate || item.stage !== 'Cierre de venta') return false;
+        const itemDate = new Date(item.closingDate);
+        return isWithinInterval(itemDate, { start, end });
+    });
+
+    const opportunitiesMovedToFinancingInMonth = (allOpportunities || []).filter(item => {
+        if (!item.financiamientoExternoDate || item.stage !== 'Financiamiento Externo') return false;
+        const itemDate = new Date(item.financiamientoExternoDate);
+        return isWithinInterval(itemDate, { start, end });
+    });
+
+    const opportunitiesDiscardedInMonth = (allOpportunities || []).filter(item => {
+        if (!item.discardedDate || item.stage !== 'Descartado') return false;
+        const itemDate = new Date(item.discardedDate);
+        return isWithinInterval(itemDate, { start, end });
+    });
+
+    let nuevosProspectos = 0;
+    let nuevosClientesPotenciales = 0;
+    let prospectosNoAtendidos = 0;
+    
+    opportunitiesCreatedInMonth.forEach((opp: any) => {
+        const classification = getClassification(opp.stage);
+        switch (classification) {
+            case 'PROSPECTO':
+                nuevosProspectos++;
+                if (opp.stage === 'Primer contacto') {
+                    prospectosNoAtendidos++;
+                }
+                break;
+            case 'CLIENTE POTENCIAL':
+                nuevosClientesPotenciales++;
+                break;
+        }
+    });
+
+    const clientesGanados = opportunitiesClosedInMonth.length;
+    const ingresosTotales = opportunitiesClosedInMonth.reduce((acc: number, opp: any) => acc + (opp.value || 0), 0);
+    
+    const totalNewOpportunities = opportunitiesCreatedInMonth.length;
+    const tasaDeConversion = totalNewOpportunities > 0 ? (clientesGanados / totalNewOpportunities) * 100 : 0;
+    
+    const monthlyStats = {
+        prospectosActivos: nuevosProspectos,
+        clientesPotenciales: nuevosClientesPotenciales,
+        clientesGanados,
+        tasaDeConversion: parseFloat(tasaDeConversion.toFixed(1)),
+        ingresosTotales,
+        clientesNoAtendidos: prospectosNoAtendidos,
+        cotizacionesHechas: quotationsCreatedInMonth.length,
+        clientesEnFinanciamiento: opportunitiesMovedToFinancingInMonth.length,
+        prospectosDescartados: opportunitiesDiscardedInMonth.length,
+    };
+
+    const csvRows = [];
+    const EOL = "\r\n";
+
+    const formatCell = (value: any) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const formatRow = (row: any[]) => row.map(formatCell).join(',');
+    
+    csvRows.push(formatRow(["REPORTE DE RENDIMIENTO - PAISANO TRAILER"]));
+    csvRows.push(formatRow(["Mes:", format(currentMonth, "MMMM yyyy", { locale: es })]));
+    csvRows.push(formatRow(["Vendedor:", `${userProfile.firstName} ${userProfile.lastName}`]));
+    csvRows.push("");
+
+    csvRows.push(formatRow(["RESUMEN DEL MES"]));
+    csvRows.push(formatRow(["Métrica", "Valor"]));
+    csvRows.push(formatRow(["Nuevos Prospectos (Oportunidades Creadas)", monthlyStats.prospectosActivos]));
+    csvRows.push(formatRow(["Nuevos Clientes Potenciales", monthlyStats.clientesPotenciales]));
+    csvRows.push(formatRow(["Nuevos Clientes (Ganados)", monthlyStats.clientesGanados]));
+    csvRows.push(formatRow(["Ingresos del Mes (USD)", new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(monthlyStats.ingresosTotales)]));
+    csvRows.push(formatRow(["Tasa de Conversión (%)", monthlyStats.tasaDeConversion]));
+    csvRows.push(formatRow(["Cotizaciones Hechas", monthlyStats.cotizacionesHechas]));
+    csvRows.push(formatRow(["Prospectos No Atendidos", monthlyStats.clientesNoAtendidos]));
+    csvRows.push(formatRow(["Clientes en Financiamiento", monthlyStats.clientesEnFinanciamiento]));
+    csvRows.push(formatRow(["Prospectos Descartados", monthlyStats.prospectosDescartados]));
+    csvRows.push("");
+
+    csvRows.push(formatRow(["META SEMANAL (Semana Actual)"]));
+    csvRows.push(formatRow(["Métrica", "Valor"]));
+    csvRows.push(formatRow(["Meta de Prospectos", WEEKLY_GOAL]));
+    csvRows.push(formatRow(["Prospectos Generados", weeklyProgress.count]));
+    csvRows.push(formatRow(["Progreso (%)", weeklyProgress.percentage]));
+    csvRows.push("");
+    
+    const leadsMap = new Map((allLeads || []).map(lead => [lead.id, lead]));
+    csvRows.push(formatRow(["DETALLE DE OPORTUNIDADES DEL MES"]));
+    csvRows.push(formatRow(["Cliente", "Nombre Oportunidad", "Etapa", "Valor", "Moneda", "Fecha de Cierre Prevista", "Fecha de Creación"]));
+    opportunitiesCreatedInMonth.forEach((opp: any) => {
+      const lead = leadsMap.get(opp.leadId);
+      csvRows.push(formatRow([
+        lead?.clientName || 'N/A',
+        opp.name,
+        opp.stage,
+        opp.value,
+        opp.currency,
+        format(new Date(opp.expectedCloseDate), "yyyy-MM-dd"),
+        format(new Date(opp.createdDate), "yyyy-MM-dd")
+      ]));
+    });
+    csvRows.push("");
+    
+    csvRows.push(formatRow(["DETALLE DE OPORTUNIDADES DESCARTADAS DEL MES"]));
+    csvRows.push(formatRow(["Cliente", "Nombre Oportunidad", "Motivo del Descarte", "Fecha de Descarte"]));
+    opportunitiesDiscardedInMonth.forEach((opp: any) => {
+        const lead = leadsMap.get(opp.leadId);
+        csvRows.push(formatRow([
+            lead?.clientName || 'N/A',
+            opp.name,
+            opp.discardReason || 'Sin motivo',
+            format(new Date(opp.discardedDate), "yyyy-MM-dd")
+        ]));
+    });
+
+    const csvContent = csvRows.join(EOL);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    const fileName = `Reporte_${format(currentMonth, "yyyy_MM")}_${userProfile.firstName}.csv`;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
   const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
@@ -96,11 +254,17 @@ export default function GoalsPage() {
     <div className="grid gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-headline font-bold">Mis Metas y Reportes</h1>
-        <Button asChild>
-          <Link href="/dashboard/pipeline">
-            Ir al Flujo de Ventas <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+            <Button onClick={handleDownloadReport} variant="outline" disabled={isLoading}>
+                <FileDown className="mr-2 h-4 w-4" />
+                Descargar Reporte
+            </Button>
+            <Button asChild>
+                <Link href="/dashboard/pipeline">
+                    Ir al Flujo de Ventas <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+            </Button>
+        </div>
       </div>
 
       <Card>
