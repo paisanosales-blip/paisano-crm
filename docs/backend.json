@@ -504,6 +504,52 @@
         "createdAt"
       ]
     },
+    "Template": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Template",
+      "type": "object",
+      "description": "Represents a message template for emails, WhatsApp, etc.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the template."
+        },
+        "sellerId": {
+          "type": "string",
+          "description": "The ID of the seller who created the template."
+        },
+        "sellerName": {
+          "type": "string",
+          "description": "Denormalized name of the seller for display."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the template."
+        },
+        "content": {
+          "type": "string",
+          "description": "The body/content of the message template."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of template (e.g., Email, WhatsApp, SMS).",
+          "enum": ["Email", "WhatsApp", "SMS"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Date the template was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "sellerId",
+        "name",
+        "content",
+        "type",
+        "createdAt"
+      ]
+    },
     "AppSettings": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AppSettings",
@@ -618,6 +664,22 @@
             {
               "name": "productId",
               "description": "The unique identifier of the product."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/templates/{templateId}",
+        "definition": {
+          "entityName": "Template",
+          "schema": {
+            "$ref": "#/backend/entities/Template"
+          },
+          "description": "Stores user-created message templates. Each template is owned by a seller.",
+          "params": [
+            {
+              "name": "templateId",
+              "description": "The unique identifier of the template."
             }
           ]
         }

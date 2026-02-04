@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Home, GanttChartSquare, Users, FileText, Shield, CalendarCheck, Package } from 'lucide-react';
+import { Home, GanttChartSquare, Users, FileText, Shield, CalendarCheck, Package, ClipboardSignature } from 'lucide-react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { isToday, isPast } from 'date-fns';
 
@@ -161,6 +161,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/quotations">
                   <FileText />
                   <span>Cotizaciones</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Plantillas">
+                <Link href="/dashboard/templates">
+                  <ClipboardSignature />
+                  <span>Plantillas</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

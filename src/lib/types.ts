@@ -114,3 +114,13 @@ export type Product = {
   currency: 'USD' | 'MXN';
   createdAt: string;
 };
+
+export type Template = {
+  id: string;
+  sellerId: string;
+  sellerName: string;
+  name: string;
+  content: string;
+  type: 'Email' | 'WhatsApp' | 'SMS';
+  createdAt: string;
+};
