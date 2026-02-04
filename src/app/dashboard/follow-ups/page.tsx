@@ -101,7 +101,7 @@ export default function FollowUpsPage() {
   const [activityToComplete, setActivityToComplete] = useState<any | null>(null);
 
   const [assistantSummary, setAssistantSummary] = useState('');
-  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(true);
 
 
   const userProfileRef = useMemoFirebase(() => {
@@ -238,7 +238,7 @@ export default function FollowUpsPage() {
   }, [leads, opportunities, activities]);
   
   const fetchAssistantSummary = useCallback(async () => {
-    if (!userProfile || !followUpStats || prospectsWithoutFollowUp === null) return;
+    if (!userProfile || !followUpStats || prospectsWithoutFollowUp === null || !user) return;
     setIsSummaryLoading(true);
     try {
       const result = await generateFollowUpSummary({
@@ -249,6 +249,11 @@ export default function FollowUpsPage() {
         prospectsWithoutFollowUp: prospectsWithoutFollowUp,
       });
       setAssistantSummary(result.summary);
+      
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem(`followUpSummaryCache_${user.uid}`, result.summary);
+      localStorage.setItem(`followUpSummaryLastFetched_${user.uid}`, today);
+
     } catch (error) {
       console.error("Failed to generate assistant summary:", error);
       setAssistantSummary("No se pudo cargar el resumen del asistente en este momento. Intente de nuevo.");
@@ -256,13 +261,29 @@ export default function FollowUpsPage() {
     } finally {
       setIsSummaryLoading(false);
     }
-  }, [userProfile, followUpStats, prospectsWithoutFollowUp, toast]);
+  }, [user, userProfile, followUpStats, prospectsWithoutFollowUp, toast]);
 
   useEffect(() => {
-    if (!isLoading && userProfile) {
-      fetchAssistantSummary();
+    if (isLoading || !user || !userProfile) {
+      return;
     }
-  }, [isLoading, userProfile, fetchAssistantSummary]);
+
+    const today = new Date().toISOString().split('T')[0];
+    const lastFetchedKey = `followUpSummaryLastFetched_${user.uid}`;
+    const cachedSummaryKey = `followUpSummaryCache_${user.uid}`;
+    const lastFetchedDate = localStorage.getItem(lastFetchedKey);
+
+    if (lastFetchedDate === today) {
+      const cachedSummary = localStorage.getItem(cachedSummaryKey);
+      if (cachedSummary) {
+        setAssistantSummary(cachedSummary);
+        setIsSummaryLoading(false);
+        return;
+      }
+    }
+
+    fetchAssistantSummary();
+  }, [isLoading, user, userProfile, fetchAssistantSummary]);
 
   const activityGroups = useMemo(() => {
     if (!activities || !leads || !opportunities || !quotations) return [];
