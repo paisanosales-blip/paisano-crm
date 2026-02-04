@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
@@ -13,6 +13,7 @@ import { Target, TrendingUp, Award, ArrowRight, ChevronLeft, ChevronRight, FileD
 import { Skeleton } from '@/components/ui/skeleton';
 import { WeeklyProspectsChart } from '@/components/weekly-prospects-chart';
 import { getClassification } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
 const WEEKLY_GOAL = 10;
@@ -22,6 +23,7 @@ export default function GoalsPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedUserId, setSelectedUserId] = useState<string>('me');
 
   // --- Data Fetching ---
   const userProfileRef = useMemoFirebase(() => {
@@ -30,26 +32,66 @@ export default function GoalsPage() {
   }, [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore || userProfile?.role !== 'manager') return null;
+    return query(collection(firestore, 'users'));
+  }, [firestore, userProfile]);
+  const { data: allUsers, isLoading: areUsersLoading } = useCollection(usersQuery);
+
   const opportunitiesQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(firestore, 'opportunities'), where('sellerId', '==', user.uid));
-  }, [firestore, user]);
+    if (!user || !userProfile) return null;
+    const baseCollection = collection(firestore, 'opportunities');
+    const isManager = userProfile.role === 'manager';
+
+    if (isManager) {
+        if (selectedUserId === 'all') {
+            return query(baseCollection);
+        }
+        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+        return query(baseCollection, where('sellerId', '==', userIdToFilter));
+    }
+    
+    return query(baseCollection, where('sellerId', '==', user.uid));
+  }, [firestore, user, userProfile, selectedUserId]);
 
   const leadsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(firestore, 'leads'), where('sellerId', '==', user.uid));
-  }, [firestore, user]);
+    if (!user || !userProfile) return null;
+    const baseCollection = collection(firestore, 'leads');
+    const isManager = userProfile.role === 'manager';
+
+    if (isManager) {
+        if (selectedUserId === 'all') {
+            return query(baseCollection);
+        }
+        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+        return query(baseCollection, where('sellerId', '==', userIdToFilter));
+    }
+    
+    return query(baseCollection, where('sellerId', '==', user.uid));
+  }, [firestore, user, userProfile, selectedUserId]);
 
   const quotationsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(collection(firestore, 'quotations'), where('sellerId', '==', user.uid));
-  }, [firestore, user]);
+    if (!user || !userProfile) return null;
+    const baseCollection = collection(firestore, 'quotations');
+    const isManager = userProfile.role === 'manager';
+
+    if (isManager) {
+        if (selectedUserId === 'all') {
+            return query(baseCollection);
+        }
+        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+        return query(baseCollection, where('sellerId', '==', userIdToFilter));
+    }
+    
+    return query(baseCollection, where('sellerId', '==', user.uid));
+  }, [firestore, user, userProfile, selectedUserId]);
+
 
   const { data: allOpportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
   const { data: allLeads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
   const { data: allQuotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
-  const isLoading = isUserLoading || isProfileLoading || areOppsLoading || areLeadsLoading || areQuotsLoading;
+  const isLoading = isUserLoading || isProfileLoading || areOppsLoading || areLeadsLoading || areQuotsLoading || areUsersLoading;
 
   // --- Weekly Goal Calculation ---
   const weeklyProgress = React.useMemo(() => {
@@ -153,8 +195,14 @@ export default function GoalsPage() {
   };
   const potentialClientMotivational = getPotentialClientMotivationalMessage();
 
+  const selectedUserData = useMemo(() => {
+    if (selectedUserId === 'me' && userProfile) return userProfile;
+    if (selectedUserId === 'all') return { firstName: 'Todos', lastName: 'los Vendedores', id: 'all' };
+    return allUsers?.find((u: any) => u.id === selectedUserId);
+  }, [selectedUserId, userProfile, allUsers]);
+
   const handleDownloadReport = () => {
-    if (!userProfile || !allOpportunities || !allLeads || !allQuotations) {
+    if (!selectedUserData || !allOpportunities || !allLeads || !allQuotations) {
         alert("Los datos para el reporte no están listos. Por favor, espere.");
         return;
     }
@@ -235,7 +283,7 @@ export default function GoalsPage() {
     
     csvRows.push(formatRow(["REPORTE DE RENDIMIENTO - PAISANO TRAILER"]));
     csvRows.push(formatRow(["Mes:", format(currentMonth, "MMMM yyyy", { locale: es })]));
-    csvRows.push(formatRow(["Vendedor:", `${userProfile.firstName} ${userProfile.lastName}`]));
+    csvRows.push(formatRow(["Vendedor:", `${selectedUserData.firstName} ${selectedUserData.lastName}`]));
     csvRows.push("");
 
     csvRows.push(formatRow(["RESUMEN DEL MES"]));
@@ -292,7 +340,7 @@ export default function GoalsPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    const fileName = `Reporte_${format(currentMonth, "yyyy_MM")}_${userProfile.firstName}.csv`;
+    const fileName = `Reporte_${format(currentMonth, "yyyy_MM")}_${selectedUserData.firstName}.csv`;
     link.setAttribute("download", fileName);
     document.body.appendChild(link);
     link.click();
@@ -305,8 +353,24 @@ export default function GoalsPage() {
   return (
     <div className="grid gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-headline font-bold">Mis Metas y Reportes</h1>
+        <h1 className="text-2xl font-headline font-bold">Metas y Reportes</h1>
         <div className="flex items-center gap-2">
+            {userProfile?.role === 'manager' && (
+              <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
+                <SelectTrigger className="w-[220px]">
+                  <SelectValue placeholder="Seleccionar vendedor..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="me">Mis Metas</SelectItem>
+                  <SelectItem value="all">Todas las Metas</SelectItem>
+                  {allUsers?.filter((u: any) => u.id !== user?.uid).map((u: any) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {`${u.firstName} ${u.lastName}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Button onClick={handleDownloadReport} variant="outline" disabled={isLoading}>
                 <FileDown className="mr-2 h-4 w-4" />
                 Descargar Reporte
