@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -761,7 +761,7 @@ export default function PipelinePage() {
     if (!clientProspects) {
       return {
         activeProspects: 0,
-        pipelineValue: 0,
+        prospectsWithoutFollowUp: 0,
         potentialClients: 0,
         initialContact: 0,
       };
@@ -770,8 +770,8 @@ export default function PipelinePage() {
     const active = clientProspects.filter(
       p => p.opportunity && p.opportunity.stage !== 'Cierre de venta' && p.opportunity.stage !== 'Descartado' && p.opportunity.stage !== 'Financiamiento Externo'
     );
-
-    const pipelineValue = active.reduce((sum, p) => sum + (p.opportunity?.value || 0), 0);
+    
+    const prospectsWithoutFollowUp = active.filter(p => p.activities.length === 0).length;
 
     const potentialClients = active.filter(
       p => p.opportunity?.stage === 'Envió de Cotización' || p.opportunity?.stage === 'Negociación'
@@ -783,7 +783,7 @@ export default function PipelinePage() {
 
     return {
       activeProspects: active.length,
-      pipelineValue,
+      prospectsWithoutFollowUp,
       potentialClients,
       initialContact,
     };
@@ -871,12 +871,12 @@ export default function PipelinePage() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Valor del Pipeline</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <CardTitle className="text-sm font-medium">Clientes sin Seguimiento</CardTitle>
+                        <UserX className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(pipelineStats.pipelineValue)}</div>
-                        <p className="text-xs text-muted-foreground">Suma de oportunidades activas (USD/MXN sin convertir).</p>
+                        <div className="text-2xl font-bold">{pipelineStats.prospectsWithoutFollowUp}</div>
+                        <p className="text-xs text-muted-foreground">Prospectos activos sin actividades registradas.</p>
                     </CardContent>
                 </Card>
                 <Card>
