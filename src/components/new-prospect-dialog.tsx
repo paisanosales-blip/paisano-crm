@@ -45,6 +45,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from './ui/checkbox';
 
 const contactMethods = [
   'REDES SOCIALES',
@@ -57,6 +58,9 @@ const prospectSchema = z
   .object({
     contactPerson: z.string().min(1, 'El nombre del cliente es requerido.'),
     clientName: z.string().min(1, 'El nombre de la empresa es requerido.'),
+    secondContact: z.boolean().default(false),
+    secondContactName: z.string().optional(),
+    secondContactPhone: z.string().optional(),
     country: z.string().min(1, 'El país es requerido.'),
     state: z.string().optional(),
     city: z.string().optional(),
@@ -87,6 +91,13 @@ const prospectSchema = z
           'Se requiere al menos un método de contacto (email, teléfono o sitio web).',
       });
     }
+    if (data.secondContact && !data.secondContactName) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['secondContactName'],
+            message: 'El nombre del segundo contacto es requerido si la opción está activada.',
+        });
+    }
   });
 
 type ProspectFormValues = z.infer<typeof prospectSchema>;
@@ -108,6 +119,9 @@ export function NewProspectDialog() {
     defaultValues: {
       contactPerson: '',
       clientName: '',
+      secondContact: false,
+      secondContactName: '',
+      secondContactPhone: '',
       country: '',
       state: '',
       city: '',
@@ -137,9 +151,12 @@ export function NewProspectDialog() {
     }
     
     form.clearErrors(); // Clear previous errors
+    
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { secondContact, ...leadValues } = values;
 
     const leadData = {
-      ...values,
+      ...leadValues,
       sellerId: user.uid,
       sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
       status: 'New',
@@ -236,6 +253,55 @@ export function NewProspectDialog() {
                 )}
               />
             </div>
+            
+            <div className="col-span-2">
+              <FormField
+                control={form.control}
+                name="secondContact"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-2 space-y-0 mt-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel>SEGUNDO CONTACTO</FormLabel>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {form.watch('secondContact') && (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="secondContactName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>NOMBRE SEGUNDO CONTACTO</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Jane Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="secondContactPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>TELÉFONO SEGUNDO CONTACTO</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+1 (555) 987-6543" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-4">
               <FormField
@@ -382,8 +448,9 @@ export function NewProspectDialog() {
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="Dealer">Dealer</SelectItem>
-                        <SelectItem value="Transportista">Transportista</SelectItem>
+                        <SelectItem value="EMPRESA DE TRANSPORTE">EMPRESA DE TRANSPORTE</SelectItem>
                         <SelectItem value="Sand Industry">Sand Industry</SelectItem>
+                        <SelectItem value="USUARIO FINAL">USUARIO FINAL</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

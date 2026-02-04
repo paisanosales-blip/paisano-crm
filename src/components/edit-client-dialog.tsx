@@ -39,18 +39,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-const contactMethods = [
-  'REDES SOCIALES',
-  'PUBLICIDAD',
-  'BUSQUEDA EN GOOGLE',
-  'BUSQUEDA EN MAPS',
-];
+import { Checkbox } from './ui/checkbox';
 
 const prospectSchema = z
   .object({
     contactPerson: z.string().min(1, 'El nombre del cliente es requerido.'),
     clientName: z.string().min(1, 'El nombre de la empresa es requerido.'),
+    secondContact: z.boolean().default(false),
+    secondContactName: z.string().optional(),
+    secondContactPhone: z.string().optional(),
     country: z.string().min(1, 'El país es requerido.'),
     state: z.string().optional(),
     city: z.string().optional(),
@@ -81,6 +78,13 @@ const prospectSchema = z
           'Se requiere al menos un método de contacto (email, teléfono o sitio web).',
       });
     }
+     if (data.secondContact && !data.secondContactName) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['secondContactName'],
+            message: 'El nombre del segundo contacto es requerido si la opción está activada.',
+        });
+    }
   });
 
 type ProspectFormValues = z.infer<typeof prospectSchema>;
@@ -100,6 +104,9 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     defaultValues: {
       contactPerson: '',
       clientName: '',
+      secondContact: false,
+      secondContactName: '',
+      secondContactPhone: '',
       country: '',
       state: '',
       city: '',
@@ -114,7 +121,10 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
 
   useEffect(() => {
     if (client) {
-      form.reset(client);
+      form.reset({
+        ...client,
+        secondContact: !!client.secondContactName,
+      });
     }
   }, [client, form]);
 
@@ -136,7 +146,13 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     
     const leadRef = doc(firestore, 'leads', client.id);
 
-    updateDocumentNonBlocking(leadRef, values);
+    const { secondContact, ...dataToUpdate } = values;
+    if (!secondContact) {
+      (dataToUpdate as any).secondContactName = '';
+      (dataToUpdate as any).secondContactPhone = '';
+    }
+
+    updateDocumentNonBlocking(leadRef, dataToUpdate);
     
     toast({
       title: '¡Cliente Actualizado!',
@@ -190,6 +206,55 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                 )}
               />
             </div>
+            
+            <div className="col-span-2">
+              <FormField
+                control={form.control}
+                name="secondContact"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-2 space-y-0 mt-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel>Añadir Segundo Contacto</FormLabel>
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {form.watch('secondContact') && (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="secondContactName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>NOMBRE SEGUNDO CONTACTO</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Jane Doe" {...field} value={field.value || ''}/>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="secondContactPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>TELÉFONO SEGUNDO CONTACTO</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+1 (555) 987-6543" {...field} value={field.value || ''}/>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-4">
               <FormField
@@ -336,8 +401,9 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="Dealer">Dealer</SelectItem>
-                        <SelectItem value="Transportista">Transportista</SelectItem>
+                        <SelectItem value="EMPRESA DE TRANSPORTE">EMPRESA DE TRANSPORTE</SelectItem>
                         <SelectItem value="Sand Industry">Sand Industry</SelectItem>
+                        <SelectItem value="USUARIO FINAL">USUARIO FINAL</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -80,6 +80,14 @@
           "type": "string",
           "description": "Name of the contact person at the client company."
         },
+        "secondContactName": {
+          "type": "string",
+          "description": "Name of the secondary contact person."
+        },
+        "secondContactPhone": {
+          "type": "string",
+          "description": "Phone number of the secondary contact person."
+        },
         "region": {
           "type": "string",
           "description": "Region of the client."
@@ -112,11 +120,12 @@
         },
         "clientType": {
           "type": "string",
-          "description": "Type of the client (e.g., Dealer, Transportista, Sand Industry).",
+          "description": "Type of the client (e.g., Dealer, EMPRESA DE TRANSPORTE, Sand Industry, USUARIO FINAL).",
           "enum": [
             "Dealer",
-            "Transportista",
-            "Sand Industry"
+            "EMPRESA DE TRANSPORTE",
+            "Sand Industry",
+            "USUARIO FINAL"
           ]
         },
         "status": {
