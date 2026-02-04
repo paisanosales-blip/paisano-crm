@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Home, GanttChartSquare, Users, FileText, Shield, CalendarCheck, Package, ClipboardSignature } from 'lucide-react';
+import { Home, GanttChartSquare, Users, FileText, Shield, CalendarCheck, Package, ClipboardSignature, Target } from 'lucide-react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { isToday, isPast } from 'date-fns';
 
@@ -66,9 +66,22 @@ export default function DashboardLayout({
   useEffect(() => {
     if (isDataReady && userProfile) {
       const today = new Date().toISOString().split('T')[0];
-      const lastShown = localStorage.getItem('dailySummaryLastShown');
+      
+      // --- Goals Page Redirect Logic ---
+      // Only for sellers, redirect once per day to the goals page.
+      const goalsRedirectKey = `goalsRedirectLastShown_${userProfile.id}`;
+      const lastGoalsRedirect = localStorage.getItem(goalsRedirectKey);
+      if (userProfile.role === 'seller' && lastGoalsRedirect !== today) {
+        localStorage.setItem(goalsRedirectKey, today);
+        router.replace('/dashboard/goals');
+        return; // Stop further execution to allow redirect to happen
+      }
 
-      if (lastShown !== today) {
+      // --- Daily Summary Dialog Logic ---
+      const summaryKey = `dailySummaryLastShown_${userProfile.id}`;
+      const lastSummaryShown = localStorage.getItem(summaryKey);
+
+      if (lastSummaryShown !== today) {
         const fetchSummary = async () => {
           setIsSummaryOpen(true);
           setIsSummaryLoading(true);
@@ -94,14 +107,14 @@ export default function DashboardLayout({
             setSummaryText("No se pudo cargar tu resumen diario. ¡Pero te deseamos un gran día de ventas!");
           } finally {
             setIsSummaryLoading(false);
-            localStorage.setItem('dailySummaryLastShown', today);
+            localStorage.setItem(summaryKey, today);
           }
         };
 
         fetchSummary();
       }
     }
-  }, [isDataReady, userProfile, activities, opportunities]);
+  }, [isDataReady, userProfile, activities, opportunities, router]);
 
   const isLoading = isUserLoading || (user && isProfileLoading);
 
@@ -137,6 +150,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard">
                   <Home />
                   <span>Panel</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Metas">
+                <Link href="/dashboard/goals">
+                  <Target />
+                  <span>Metas</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
