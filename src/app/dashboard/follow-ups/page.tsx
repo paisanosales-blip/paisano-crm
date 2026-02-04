@@ -22,7 +22,7 @@ import {
   formatDistanceToNow,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users, ListTodo, AlertOctagon, CalendarClock, CheckCheck, Lightbulb, RefreshCcw } from 'lucide-react';
+import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users, ListTodo, AlertOctagon, CalendarClock, CheckCheck, Lightbulb, RefreshCcw, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -87,7 +87,7 @@ export default function FollowUpsPage() {
   const { toast } = useToast();
 
   const [selectedUserId, setSelectedUserId] = useState<string>('me');
-  const [showCompleted, setShowCompleted] = useState(true);
+  const [showCompleted, setShowCompleted] = useState(false);
   
   const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
   const [currentActivity, setCurrentActivity] = useState<any | null>(null);
@@ -222,7 +222,7 @@ export default function FollowUpsPage() {
     const activeLeadIds = new Set<string>();
     for (const lead of (leads as any[])) {
       const opportunity = latestOpportunities.get(lead.id);
-      if (opportunity && opportunity.stage !== 'Cierre de venta' && opportunity.stage !== 'Descartado') {
+      if (opportunity && opportunity.stage !== 'Cierre de venta' && opportunity.stage !== 'Descartado' && opportunity.stage !== 'Financiamiento Externo') {
         activeLeadIds.add(lead.id);
       }
     }
@@ -323,7 +323,16 @@ export default function FollowUpsPage() {
       };
     });
 
-    const filtered = showCompleted ? enriched : enriched.filter((act) => !act.completed);
+    const pendingActivities: any[] = [];
+    const completedActivities: any[] = [];
+
+    enriched.forEach((act) => {
+      if (act.completed) {
+        completedActivities.push(act);
+      } else {
+        pendingActivities.push(act);
+      }
+    });
 
     const overdue: any[] = [];
     const today: any[] = [];
@@ -332,7 +341,7 @@ export default function FollowUpsPage() {
     const upcoming: any[] = [];
     const noDate: any[] = [];
 
-    filtered.forEach((activity) => {
+    pendingActivities.forEach((activity) => {
       if (!activity.dueDate) {
         noDate.push(activity);
       } else {
@@ -352,16 +361,28 @@ export default function FollowUpsPage() {
     });
 
     const sortByDate = (a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    const sortByCompletedDate = (a: any, b: any) => new Date(b.completedDate || b.createdDate).getTime() - new Date(a.completedDate || a.createdDate).getTime();
     const sortByCreated = (a: any, b: any) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime();
 
-    return [
-      { title: 'Atrasados', activities: overdue.sort(sortByDate), styleKey: 'destructive' },
-      { title: 'Hoy', activities: today.sort(sortByDate), styleKey: 'primary' },
-      { title: 'Mañana', activities: tomorrow.sort(sortByDate), styleKey: 'secondary' },
-      { title: 'Esta Semana', activities: thisWeek.sort(sortByDate), styleKey: 'secondary' },
-      { title: 'Próximamente', activities: upcoming.sort(sortByDate), styleKey: 'muted' },
-      { title: 'Sin Fecha', activities: noDate.sort(sortByCreated), styleKey: 'muted' },
+    const pendingGroups = [
+      { title: 'Atrasados', activities: overdue.sort(sortByDate), styleKey: 'destructive' as const },
+      { title: 'Hoy', activities: today.sort(sortByDate), styleKey: 'primary' as const },
+      { title: 'Mañana', activities: tomorrow.sort(sortByDate), styleKey: 'secondary' as const },
+      { title: 'Esta Semana', activities: thisWeek.sort(sortByDate), styleKey: 'secondary' as const },
+      { title: 'Próximamente', activities: upcoming.sort(sortByDate), styleKey: 'muted' as const },
+      { title: 'Sin Fecha', activities: noDate.sort(sortByCreated), styleKey: 'muted' as const },
     ].filter(group => group.activities.length > 0);
+    
+    if (showCompleted && completedActivities.length > 0) {
+      const completedGroup = {
+        title: 'Historial (Completados)',
+        activities: completedActivities.sort(sortByCompletedDate),
+        styleKey: 'muted' as const,
+      };
+      return [...pendingGroups, completedGroup];
+    }
+    
+    return pendingGroups;
 
   }, [activities, leads, opportunities, quotations, showCompleted]);
   
@@ -514,10 +535,10 @@ export default function FollowUpsPage() {
                 </SelectContent>
               </Select>
             )}
-             <div className="flex items-center space-x-2">
-                <Switch id="show-completed" checked={showCompleted} onCheckedChange={setShowCompleted} />
-                <Label htmlFor="show-completed" className="text-sm">Mostrar completados</Label>
-            </div>
+            <Button variant="outline" onClick={() => setShowCompleted(prev => !prev)}>
+                <History className="mr-2 h-4 w-4" />
+                {showCompleted ? 'Ocultar Historial' : 'Ver Historial'}
+            </Button>
           </div>
         </div>
 
@@ -647,14 +668,16 @@ export default function FollowUpsPage() {
                                 </p>
                                 <p className="text-sm text-muted-foreground">{activity.description || 'Sin descripción.'}</p>
                                 {dueDate && (
-                                    <div className={cn("flex items-center gap-2 text-sm", groupStyleKeys[group.styleKey].date)}>
+                                    <div className={cn("flex items-center gap-2 text-sm", activity.completed ? 'text-muted-foreground' : groupStyleKeys[group.styleKey].date)}>
                                         <Calendar className="h-4 w-4" />
                                         <span className="font-medium capitalize">
                                             {format(dueDate, "eeee, dd MMMM", { locale: es })}
                                         </span>
-                                        <span className="font-normal text-xs">
-                                            ({formatDistanceToNow(dueDate, { locale: es, addSuffix: true })})
-                                        </span>
+                                        {!activity.completed && (
+                                          <span className="font-normal text-xs">
+                                              ({formatDistanceToNow(dueDate, { locale: es, addSuffix: true })})
+                                          </span>
+                                        )}
                                     </div>
                                 )}
                                 <div className="flex items-center gap-4 pt-2 mt-2 border-t">
