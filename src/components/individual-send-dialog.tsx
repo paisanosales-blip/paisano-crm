@@ -71,7 +71,7 @@ export function IndividualSendDialog({ open, onOpenChange, template }: Individua
     const contact = lead[contactField];
 
     if (template.type === 'Email') {
-        const subject = encodeURIComponent(template.name);
+        const subject = encodeURIComponent(template.subject || template.name);
         url = `https://mail.google.com/mail/?view=cm&fs=1&to=${contact}&su=${subject}&body=${body}`;
     } else if (template.type === 'WhatsApp') {
         const phone = contact.replace(/\D/g, '');

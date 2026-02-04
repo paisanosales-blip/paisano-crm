@@ -43,13 +43,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Mail, MessageSquare, MessageCircle, Users, User } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Mail, MessageSquare, MessageCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { TemplateDialog } from '@/components/template-dialog';
 import type { Template } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MassSendDialog } from '@/components/mass-send-dialog';
 import { IndividualSendDialog } from '@/components/individual-send-dialog';
 
 const typeIcons = {
@@ -75,9 +74,6 @@ export default function TemplatesPage() {
   const [templateToDelete, setTemplateToDelete] = useState<Template | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('me');
-
-  const [isMassSendDialogOpen, setIsMassSendDialogOpen] = useState(false);
-  const [templateForMassSend, setTemplateForMassSend] = useState<Template | null>(null);
   
   const [isIndividualSendDialogOpen, setIsIndividualSendDialogOpen] = useState(false);
   const [templateForIndividualSend, setTemplateForIndividualSend] = useState<Template | null>(null);
@@ -139,11 +135,6 @@ export default function TemplatesPage() {
   const handleDeleteClick = (template: Template) => {
     setTemplateToDelete(template);
     setIsDeleteDialogOpen(true);
-  };
-
-  const handleMassiveSendClick = (template: Template) => {
-    setTemplateForMassSend(template);
-    setIsMassSendDialogOpen(true);
   };
 
   const handleIndividualSendClick = (template: Template) => {
@@ -249,29 +240,15 @@ export default function TemplatesPage() {
                         {template.name}
                       </TableCell>
                        <TableCell>
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className={`border-transparent h-auto py-0.5 px-2.5 font-semibold ${typeColors[template.type]}`}
-                                    title={`Opciones de envío para ${template.type}`}
-                                >
-                                    {typeIcons[template.type]}
-                                    <span className="ml-2">{template.type}</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                                <DropdownMenuLabel>Opciones de Envío</DropdownMenuLabel>
-                                <DropdownMenuItem onSelect={() => handleMassiveSendClick(template)}>
-                                    <Users className="mr-2 h-4 w-4" />
-                                    <span>Envío Masivo</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onSelect={() => handleIndividualSendClick(template)}>
-                                    <User className="mr-2 h-4 w-4" />
-                                    <span>Envío Individual</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Button
+                            variant="outline"
+                            className={`border-transparent h-auto py-0.5 px-2.5 font-semibold ${typeColors[template.type]}`}
+                            title={`Enviar plantilla a un individuo`}
+                            onClick={() => handleIndividualSendClick(template)}
+                        >
+                            {typeIcons[template.type]}
+                            <span className="ml-2">{template.type}</span>
+                        </Button>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-sm truncate">{template.content}</TableCell>
                       <TableCell>{template.sellerName || 'No asignado'}</TableCell>
@@ -337,12 +314,6 @@ export default function TemplatesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <MassSendDialog
-        open={isMassSendDialogOpen}
-        onOpenChange={setIsMassSendDialogOpen}
-        template={templateForMassSend}
-      />
 
       <IndividualSendDialog
         open={isIndividualSendDialogOpen}

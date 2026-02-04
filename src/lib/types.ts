@@ -120,6 +120,7 @@ export type Template = {
   sellerId: string;
   sellerName: string;
   name: string;
+  subject?: string;
   content: string;
   type: 'Email' | 'WhatsApp' | 'SMS';
   createdAt: string;

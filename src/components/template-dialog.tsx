@@ -33,6 +33,7 @@ import type { Template } from '@/lib/types';
 const templateSchema = z.object({
   name: z.string().min(1, 'El nombre de la plantilla es requerido.'),
   type: z.enum(['Email', 'WhatsApp', 'SMS'], { required_error: 'El tipo es requerido.' }),
+  subject: z.string().optional(),
   content: z.string().min(1, 'El contenido no puede estar vacío.'),
 });
 
@@ -61,9 +62,12 @@ export function TemplateDialog({ open, onOpenChange, template }: TemplateDialogP
     defaultValues: {
       name: '',
       type: 'Email',
+      subject: '',
       content: '',
     },
   });
+
+  const typeValue = form.watch('type');
 
   useEffect(() => {
     if (open) {
@@ -73,6 +77,7 @@ export function TemplateDialog({ open, onOpenChange, template }: TemplateDialogP
         form.reset({
           name: '',
           type: 'Email',
+          subject: '',
           content: '',
         });
       }
@@ -166,6 +171,21 @@ export function TemplateDialog({ open, onOpenChange, template }: TemplateDialogP
                     )}
                 />
             </div>
+            {typeValue === 'Email' && (
+              <FormField
+                control={form.control}
+                name="subject"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Asunto del Correo (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ej. Información sobre nuestros productos" {...field} value={field.value || ''} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="content"

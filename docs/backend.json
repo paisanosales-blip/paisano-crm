@@ -526,6 +526,10 @@
           "type": "string",
           "description": "Name of the template."
         },
+        "subject": {
+          "type": "string",
+          "description": "The subject line for email templates."
+        },
         "content": {
           "type": "string",
           "description": "The body/content of the message template."
@@ -533,7 +537,11 @@
         "type": {
           "type": "string",
           "description": "Type of template (e.g., Email, WhatsApp, SMS).",
-          "enum": ["Email", "WhatsApp", "SMS"]
+          "enum": [
+            "Email",
+            "WhatsApp",
+            "SMS"
+          ]
         },
         "createdAt": {
           "type": "string",
