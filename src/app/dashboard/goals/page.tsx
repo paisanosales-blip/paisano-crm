@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { WeeklyProspectsChart } from '@/components/weekly-prospects-chart';
 import { getClassification } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SalesCoachAnalysis } from '@/components/sales-coach-analysis';
 
 
 const WEEKLY_GOAL = 10;
@@ -140,6 +141,52 @@ export default function GoalsPage() {
 
     return { count, percentage };
   }, [allOpportunities, currentMonth]);
+  
+  // --- Monthly Stats Calculation for Coach ---
+  const monthlyStats = useMemo(() => {
+    if (!allOpportunities || !allLeads || !allQuotations) {
+        return {
+            prospectosActivos: 0,
+            clientesPotenciales: 0,
+            clientesGanados: 0,
+            tasaDeConversion: 0,
+            ingresosTotales: 0,
+        };
+    }
+    const start = startOfMonth(currentMonth);
+    const end = endOfMonth(currentMonth);
+
+    const opportunitiesCreatedInMonth = allOpportunities.filter(item => {
+        const itemDate = new Date(item.createdDate);
+        return isWithinInterval(itemDate, { start, end });
+    });
+
+    const opportunitiesClosedInMonth = allOpportunities.filter(item => {
+        if (!item.closingDate || item.stage !== 'Cierre de venta') return false;
+        const itemDate = new Date(item.closingDate);
+        return isWithinInterval(itemDate, { start, end });
+    });
+    
+    let nuevosClientesPotenciales = 0;
+    opportunitiesCreatedInMonth.forEach((opp: any) => {
+        if (getClassification(opp.stage) === 'CLIENTE POTENCIAL') {
+            nuevosClientesPotenciales++;
+        }
+    });
+
+    const clientesGanados = opportunitiesClosedInMonth.length;
+    const ingresosTotales = opportunitiesClosedInMonth.reduce((acc: number, opp: any) => acc + (opp.value || 0), 0);
+    const totalNewOpportunities = opportunitiesCreatedInMonth.length;
+    const tasaDeConversion = totalNewOpportunities > 0 ? (clientesGanados / totalNewOpportunities) * 100 : 0;
+
+    return {
+        prospectosActivos: totalNewOpportunities,
+        clientesPotenciales: nuevosClientesPotenciales,
+        clientesGanados,
+        tasaDeConversion: parseFloat(tasaDeConversion.toFixed(1)),
+        ingresosTotales,
+    };
+  }, [allOpportunities, allLeads, allQuotations, currentMonth]);
 
   const getMotivationalMessage = () => {
     if (weeklyProgress.percentage === 100) {
@@ -263,7 +310,7 @@ export default function GoalsPage() {
     const totalNewOpportunities = opportunitiesCreatedInMonth.length;
     const tasaDeConversion = totalNewOpportunities > 0 ? (clientesGanados / totalNewOpportunities) * 100 : 0;
     
-    const monthlyStats = {
+    const localMonthlyStats = {
         prospectosActivos: nuevosProspectos,
         clientesPotenciales: nuevosClientesPotenciales,
         clientesGanados,
@@ -288,15 +335,15 @@ export default function GoalsPage() {
 
     csvRows.push(formatRow(["RESUMEN DEL MES"]));
     csvRows.push(formatRow(["Métrica", "Valor"]));
-    csvRows.push(formatRow(["Nuevos Prospectos (Oportunidades Creadas)", monthlyStats.prospectosActivos]));
-    csvRows.push(formatRow(["Nuevos Clientes Potenciales", monthlyStats.clientesPotenciales]));
-    csvRows.push(formatRow(["Nuevos Clientes (Ganados)", monthlyStats.clientesGanados]));
-    csvRows.push(formatRow(["Ingresos del Mes (USD)", new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(monthlyStats.ingresosTotales)]));
-    csvRows.push(formatRow(["Tasa de Conversión (%)", monthlyStats.tasaDeConversion]));
-    csvRows.push(formatRow(["Cotizaciones Hechas", monthlyStats.cotizacionesHechas]));
-    csvRows.push(formatRow(["Prospectos No Atendidos", monthlyStats.clientesNoAtendidos]));
-    csvRows.push(formatRow(["Clientes en Financiamiento", monthlyStats.clientesEnFinanciamiento]));
-    csvRows.push(formatRow(["Prospectos Descartados", monthlyStats.prospectosDescartados]));
+    csvRows.push(formatRow(["Nuevos Prospectos (Oportunidades Creadas)", localMonthlyStats.prospectosActivos]));
+    csvRows.push(formatRow(["Nuevos Clientes Potenciales", localMonthlyStats.clientesPotenciales]));
+    csvRows.push(formatRow(["Nuevos Clientes (Ganados)", localMonthlyStats.clientesGanados]));
+    csvRows.push(formatRow(["Ingresos del Mes (USD)", new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(localMonthlyStats.ingresosTotales)]));
+    csvRows.push(formatRow(["Tasa de Conversión (%)", localMonthlyStats.tasaDeConversion]));
+    csvRows.push(formatRow(["Cotizaciones Hechas", localMonthlyStats.cotizacionesHechas]));
+    csvRows.push(formatRow(["Prospectos No Atendidos", localMonthlyStats.clientesNoAtendidos]));
+    csvRows.push(formatRow(["Clientes en Financiamiento", localMonthlyStats.clientesEnFinanciamiento]));
+    csvRows.push(formatRow(["Prospectos Descartados", localMonthlyStats.prospectosDescartados]));
     csvRows.push("");
 
     csvRows.push(formatRow(["META SEMANAL (Semana Actual)"]));
@@ -488,6 +535,16 @@ export default function GoalsPage() {
             />
         </CardContent>
       </Card>
+      
+      {!isLoading && selectedUserData && (
+        <SalesCoachAnalysis
+          userName={selectedUserData.firstName}
+          monthlyStats={monthlyStats}
+          weeklyProgress={weeklyProgress}
+          weeklyGoal={WEEKLY_GOAL}
+          monthlyGoal={MONTHLY_POTENTIAL_CLIENTS_GOAL}
+        />
+      )}
     </div>
   );
 }
