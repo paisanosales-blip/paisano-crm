@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   useFirestore,
   useCollection,
@@ -48,8 +48,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { TemplateDialog } from '@/components/template-dialog';
 import type { Template } from '@/lib/types';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MassSendDialog } from '@/components/mass-send-dialog';
 
 const typeIcons = {
     'Email': <Mail className="h-4 w-4" />,
@@ -58,9 +58,9 @@ const typeIcons = {
 };
 
 const typeColors = {
-    'Email': 'bg-blue-100 text-blue-800',
-    'WhatsApp': 'bg-green-100 text-green-800',
-    'SMS': 'bg-purple-100 text-purple-800',
+    'Email': 'bg-blue-100 text-blue-800 hover:bg-blue-200',
+    'WhatsApp': 'bg-green-100 text-green-800 hover:bg-green-200',
+    'SMS': 'bg-purple-100 text-purple-800 hover:bg-purple-200',
 };
 
 export default function TemplatesPage() {
@@ -74,6 +74,9 @@ export default function TemplatesPage() {
   const [templateToDelete, setTemplateToDelete] = useState<Template | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('me');
+
+  const [isMassSendDialogOpen, setIsMassSendDialogOpen] = useState(false);
+  const [templateForMassSend, setTemplateForMassSend] = useState<Template | null>(null);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -106,6 +109,19 @@ export default function TemplatesPage() {
 
   const { data: templates, isLoading } = useCollection(templatesQuery);
 
+  const sortedTemplates = useMemo(() => {
+    if (!templates) return [];
+    const order: Template['type'][] = ['Email', 'WhatsApp', 'SMS'];
+    return [...templates].sort((a: Template, b: Template) => {
+        const orderA = order.indexOf(a.type);
+        const orderB = order.indexOf(b.type);
+        if (orderA !== orderB) {
+            return orderA - orderB;
+        }
+        return a.name.localeCompare(b.name);
+    });
+  }, [templates]);
+
   const handleNewClick = () => {
     setSelectedTemplate(null);
     setIsDialogOpen(true);
@@ -119,6 +135,11 @@ export default function TemplatesPage() {
   const handleDeleteClick = (template: Template) => {
     setTemplateToDelete(template);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleMassiveSendClick = (template: Template) => {
+    setTemplateForMassSend(template);
+    setIsMassSendDialogOpen(true);
   };
   
   const handleDeleteConfirm = async () => {
@@ -212,17 +233,22 @@ export default function TemplatesPage() {
                       </TableCell>
                     </TableRow>
                   ))
-                ) : templates && templates.length > 0 ? (
-                  templates.map((template: Template) => (
+                ) : sortedTemplates && sortedTemplates.length > 0 ? (
+                  sortedTemplates.map((template: Template) => (
                     <TableRow key={template.id}>
                       <TableCell className="font-semibold">
                         {template.name}
                       </TableCell>
                        <TableCell>
-                        <Badge variant="outline" className={typeColors[template.type]}>
+                        <Button
+                          variant="outline"
+                          className={`border-transparent h-auto py-0.5 px-2.5 font-semibold ${typeColors[template.type]}`}
+                          onClick={() => handleMassiveSendClick(template)}
+                          title={`Envío masivo para ${template.type}`}
+                        >
                             {typeIcons[template.type]}
                             <span className="ml-2">{template.type}</span>
-                        </Badge>
+                        </Button>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-sm truncate">{template.content}</TableCell>
                       <TableCell>{template.sellerName || 'No asignado'}</TableCell>
@@ -288,6 +314,12 @@ export default function TemplatesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <MassSendDialog
+        open={isMassSendDialogOpen}
+        onOpenChange={setIsMassSendDialogOpen}
+        template={templateForMassSend}
+      />
     </>
   );
 }
