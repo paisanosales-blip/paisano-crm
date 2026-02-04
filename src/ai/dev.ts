@@ -9,3 +9,4 @@ import '@/ai/flows/draft-follow-up-script.ts';
 import '@/ai/flows/analyze-discard-reasons.ts';
 import '@/ai/flows/generate-daily-summary.ts';
 import '@/ai/flows/generate-product-summary.ts';
+import '@/ai/flows/generate-follow-up-summary.ts';

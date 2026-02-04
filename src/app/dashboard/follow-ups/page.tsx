@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   useUser,
   useFirestore,
@@ -22,7 +22,7 @@ import {
   formatDistanceToNow,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users, ListTodo, AlertOctagon, CalendarClock, CheckCheck } from 'lucide-react';
+import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users, ListTodo, AlertOctagon, CalendarClock, CheckCheck, Lightbulb, RefreshCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -43,7 +43,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -51,6 +51,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { FollowUpDialog, type FollowUpSubmitPayload } from '@/components/follow-up-dialog';
 import { CompleteFollowUpDialog, type CompletionPayload } from '@/components/complete-follow-up-dialog';
+import { generateFollowUpSummary } from '@/ai/flows/generate-follow-up-summary';
 
 const groupStyleKeys = {
     destructive: {
@@ -98,6 +99,9 @@ export default function FollowUpsPage() {
   
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
   const [activityToComplete, setActivityToComplete] = useState<any | null>(null);
+
+  const [assistantSummary, setAssistantSummary] = useState('');
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
 
 
   const userProfileRef = useMemoFirebase(() => {
@@ -204,6 +208,61 @@ export default function FollowUpsPage() {
       completed: (activities as any[]).filter(a => a.completed).length,
     };
   }, [activities]);
+
+   const prospectsWithoutFollowUp = useMemo(() => {
+    if (!leads || !opportunities || !activities) return [];
+
+    const latestOpportunities = new Map<string, any>();
+    (opportunities as any[]).forEach(op => {
+      if (!latestOpportunities.has(op.leadId) || new Date(op.createdDate) > new Date(latestOpportunities.get(op.leadId).createdDate)) {
+        latestOpportunities.set(op.leadId, op);
+      }
+    });
+
+    const activeLeadIds = new Set<string>();
+    for (const lead of (leads as any[])) {
+      const opportunity = latestOpportunities.get(lead.id);
+      if (opportunity && opportunity.stage !== 'Cierre de venta' && opportunity.stage !== 'Descartado') {
+        activeLeadIds.add(lead.id);
+      }
+    }
+    
+    const leadsWithPendingFollowUps = new Set<string>(
+      (activities as any[]).filter(a => !a.completed).map(a => a.leadId)
+    );
+
+    const leadsWithoutFollowUpIds = new Set<string>([...activeLeadIds].filter(id => !leadsWithPendingFollowUps.has(id)));
+    
+    return (leads as any[]).filter(lead => leadsWithoutFollowUpIds.has(lead.id)).map(lead => lead.clientName);
+
+  }, [leads, opportunities, activities]);
+  
+  const fetchAssistantSummary = useCallback(async () => {
+    if (!userProfile || !followUpStats || prospectsWithoutFollowUp === null) return;
+    setIsSummaryLoading(true);
+    try {
+      const result = await generateFollowUpSummary({
+        userName: userProfile.firstName,
+        totalPending: followUpStats.totalPending,
+        dueToday: followUpStats.dueToday,
+        overdue: followUpStats.overdue,
+        prospectsWithoutFollowUp: prospectsWithoutFollowUp,
+      });
+      setAssistantSummary(result.summary);
+    } catch (error) {
+      console.error("Failed to generate assistant summary:", error);
+      setAssistantSummary("No se pudo cargar el resumen del asistente en este momento. Intente de nuevo.");
+      toast({ variant: "destructive", title: "Error de IA" });
+    } finally {
+      setIsSummaryLoading(false);
+    }
+  }, [userProfile, followUpStats, prospectsWithoutFollowUp, toast]);
+
+  useEffect(() => {
+    if (!isLoading && userProfile) {
+      fetchAssistantSummary();
+    }
+  }, [isLoading, userProfile, fetchAssistantSummary]);
 
   const activityGroups = useMemo(() => {
     if (!activities || !leads || !opportunities || !quotations) return [];
@@ -443,7 +502,7 @@ export default function FollowUpsPage() {
 
         {isLoading ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-                {Array.from({length: 4}).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
+                {Array.from({length: 4}).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
             </div>
         ) : (
              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -452,9 +511,9 @@ export default function FollowUpsPage() {
                         <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
                         <ListTodo className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{followUpStats.totalPending}</div>
-                        <p className="text-xs text-muted-foreground">Actividades totales por completar</p>
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl font-bold">{followUpStats.totalPending}</div>
+                        <p className="text-xs text-muted-foreground">Actividades por completar</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -462,8 +521,8 @@ export default function FollowUpsPage() {
                         <CardTitle className="text-sm font-medium">Atrasados</CardTitle>
                         <AlertOctagon className="h-4 w-4 text-destructive" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-destructive">{followUpStats.overdue}</div>
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl font-bold text-destructive">{followUpStats.overdue}</div>
                         <p className="text-xs text-muted-foreground">Pasaron su fecha límite</p>
                     </CardContent>
                 </Card>
@@ -472,8 +531,8 @@ export default function FollowUpsPage() {
                         <CardTitle className="text-sm font-medium">Para Hoy</CardTitle>
                         <CalendarClock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{followUpStats.dueToday}</div>
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl font-bold">{followUpStats.dueToday}</div>
                         <p className="text-xs text-muted-foreground">Actividades programadas hoy</p>
                     </CardContent>
                 </Card>
@@ -482,15 +541,43 @@ export default function FollowUpsPage() {
                         <CardTitle className="text-sm font-medium">Completados</CardTitle>
                         <CheckCheck className="h-4 w-4 text-green-600" />
                     </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{followUpStats.completed}</div>
-                        <p className="text-xs text-muted-foreground">Total de actividades finalizadas</p>
+                    <CardContent className="p-4 pt-0">
+                        <div className="text-xl font-bold text-green-600">{followUpStats.completed}</div>
+                        <p className="text-xs text-muted-foreground">Total de finalizadas</p>
                     </CardContent>
                 </Card>
             </div>
         )}
+        
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle className="flex items-center gap-2">
+                        <Lightbulb className="h-5 w-5 text-primary" />
+                        Asistente de Seguimiento
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                        Un resumen de IA con tus prioridades y sugerencias.
+                    </CardDescription>
+                </div>
+                <Button variant="outline" size="icon" onClick={fetchAssistantSummary} disabled={isSummaryLoading}>
+                    <RefreshCcw className={cn("h-4 w-4", isSummaryLoading && "animate-spin")} />
+                </Button>
+            </CardHeader>
+            <CardContent>
+                {isSummaryLoading ? (
+                    <div className="space-y-2">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-[80%]" />
+                    </div>
+                ) : (
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{assistantSummary}</p>
+                )}
+            </CardContent>
+        </Card>
 
-        {isLoading ? (
+        {isLoading && !assistantSummary ? (
             <div className="space-y-4">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-32 w-full" />
