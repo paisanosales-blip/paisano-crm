@@ -115,6 +115,7 @@ export default function DashboardPage() {
         const { opportunities, quotations, closedOpportunities, movedToFinancing, discardedOpportunities } = monthlyData;
 
         const emptyStats = {
+            totalProspectosRegistrados: 0,
             prospectosActivos: 0,
             clientesPotenciales: 0,
             clientesGanados: 0,
@@ -127,7 +128,7 @@ export default function DashboardPage() {
             prospectosDescartados: 0,
         };
         
-        if (!opportunities || !quotations || !closedOpportunities || !movedToFinancing || !discardedOpportunities || !allQuotations) {
+        if (!allOpportunities || !opportunities || !quotations || !closedOpportunities || !movedToFinancing || !discardedOpportunities || !allQuotations) {
             return emptyStats;
         }
         
@@ -173,6 +174,7 @@ export default function DashboardPage() {
 
 
         return {
+            totalProspectosRegistrados: allOpportunities.length,
             prospectosActivos: nuevosProspectos,
             clientesPotenciales: nuevosClientesPotenciales,
             clientesGanados,
@@ -184,7 +186,7 @@ export default function DashboardPage() {
             clientesEnFinanciamiento: movedToFinancing.length,
             prospectosDescartados: discardedOpportunities.length,
         };
-    }, [monthlyData, allQuotations]);
+    }, [monthlyData, allQuotations, allOpportunities]);
 
 
     const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
@@ -224,13 +226,23 @@ export default function DashboardPage() {
             </div>
             {isLoading ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    {Array.from({length: 9}).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
+                    {Array.from({length: 10}).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
                 </div>
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Total Prospectos Registrados</CardTitle>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{dashboardStats.totalProspectosRegistrados}</div>
+                            <p className="text-xs text-muted-foreground">Total histórico de oportunidades.</p>
+                        </CardContent>
+                    </Card>
                      <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Nuevos Prospectos</CardTitle>
+                            <CardTitle className="text-sm font-medium">Nuevos Prospectos (Mes)</CardTitle>
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
@@ -299,7 +311,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-muted-foreground">Nuevas oportunidades que siguen en 'Primer contacto'.</p>
                         </CardContent>
                     </Card>
-                    <Card>
+                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Financiamiento Externo</CardTitle>
                             <Landmark className="h-4 w-4 text-muted-foreground" />
