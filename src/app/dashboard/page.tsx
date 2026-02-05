@@ -114,18 +114,21 @@ export default function DashboardPage() {
     const dashboardStats = React.useMemo(() => {
         const { opportunities, quotations, closedOpportunities, movedToFinancing, discardedOpportunities } = monthlyData;
 
-        if (!opportunities || !quotations || !closedOpportunities || !movedToFinancing || !discardedOpportunities) {
-            return {
-                prospectosActivos: 0,
-                clientesPotenciales: 0,
-                clientesGanados: 0,
-                tasaDeConversion: 0,
-                ingresosTotales: 0,
-                clientesNoAtendidos: 0,
-                cotizacionesHechas: 0,
-                clientesEnFinanciamiento: 0,
-                prospectosDescartados: 0,
-            };
+        const emptyStats = {
+            prospectosActivos: 0,
+            clientesPotenciales: 0,
+            clientesGanados: 0,
+            tasaDeConversion: 0,
+            ingresosTotalesUSD: 0,
+            ingresosTotalesMXN: 0,
+            clientesNoAtendidos: 0,
+            cotizacionesHechas: 0,
+            clientesEnFinanciamiento: 0,
+            prospectosDescartados: 0,
+        };
+        
+        if (!opportunities || !quotations || !closedOpportunities || !movedToFinancing || !discardedOpportunities || !allQuotations) {
+            return emptyStats;
         }
         
         let nuevosProspectos = 0;
@@ -148,23 +151,40 @@ export default function DashboardPage() {
         });
 
         const clientesGanados = closedOpportunities.length;
-        const ingresosTotales = closedOpportunities.reduce((acc: number, opp: any) => acc + (opp.value || 0), 0);
         
         const totalNewOpportunities = opportunities.length;
         const tasaDeConversion = totalNewOpportunities > 0 ? (clientesGanados / totalNewOpportunities) * 100 : 0;
+
+        const revenue = closedOpportunities.reduce((acc, opp) => {
+            const opportunityQuotes = (allQuotations as any[])
+                .filter(q => q.opportunityId === opp.id)
+                .sort((a, b) => Number(b.version) - Number(a.version));
+
+            if (opportunityQuotes.length > 0) {
+                const latestQuote = opportunityQuotes[0];
+                if (latestQuote.currency === 'USD') {
+                    acc.usd += latestQuote.value || 0;
+                } else if (latestQuote.currency === 'MXN') {
+                    acc.mxn += latestQuote.value || 0;
+                }
+            }
+            return acc;
+        }, { usd: 0, mxn: 0 });
+
 
         return {
             prospectosActivos: nuevosProspectos,
             clientesPotenciales: nuevosClientesPotenciales,
             clientesGanados,
             tasaDeConversion: parseFloat(tasaDeConversion.toFixed(1)),
-            ingresosTotales,
+            ingresosTotalesUSD: revenue.usd,
+            ingresosTotalesMXN: revenue.mxn,
             clientesNoAtendidos: prospectosNoAtendidos,
             cotizacionesHechas: quotations.length,
             clientesEnFinanciamiento: movedToFinancing.length,
             prospectosDescartados: discardedOpportunities.length,
         };
-    }, [monthlyData]);
+    }, [monthlyData, allQuotations]);
 
 
     const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
@@ -244,8 +264,9 @@ export default function DashboardPage() {
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dashboardStats.ingresosTotales)}</div>
-                            <p className="text-xs text-muted-foreground">De oportunidades cerradas en el mes.</p>
+                            <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dashboardStats.ingresosTotalesUSD)}</div>
+                            <p className="text-sm text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(dashboardStats.ingresosTotalesMXN)}</p>
+                            <p className="text-xs text-muted-foreground mt-1">De cotizaciones que se hicieron clientes en el mes.</p>
                         </CardContent>
                     </Card>
                     <Card>
