@@ -132,29 +132,38 @@ export default function MarketingPage() {
 
   const { data: completedTasks, isLoading: areTasksLoading } = useCollection<CompletedTask>(completedTasksQuery);
 
-  const { totalPoints, completedPoints, progress, rank } = useMemo(() => {
-    if (!plan?.planData) return { totalPoints: 0, completedPoints: 0, progress: 0, rank: 'Aprendiz' };
-    
-    const total = plan.planData.weeklyPlan.reduce((acc, day) => {
-        return acc + day.tasks.reduce((taskAcc, task) => taskAcc + task.points, 0);
-    }, 0);
+  const { completedPoints, progress, rank, rankGoalPoints } = useMemo(() => {
+    if (!plan?.planData) {
+      return { totalPoints: 0, completedPoints: 0, progress: 0, rank: 'Aprendiz' as const, rankGoalPoints: 10 };
+    }
     
     const completed = completedTasks?.reduce((acc, task) => acc + task.points, 0) || 0;
     
-    const progressValue = total > 0 ? (completed / total) * 100 : 0;
-
     let currentRank: 'Aprendiz' | 'Estratega' | 'Maestro' = 'Aprendiz';
+    let progressValue = 0;
+    let goalPoints = 10;
+
     if (completed >= 20) {
         currentRank = 'Maestro';
+        progressValue = 100;
+        goalPoints = completed; // No upper goal for Maestro
     } else if (completed >= 10) {
         currentRank = 'Estratega';
+        // Progress from 10 to 20 points
+        progressValue = ((completed - 10) / (20 - 10)) * 100;
+        goalPoints = 20;
+    } else {
+        currentRank = 'Aprendiz';
+        // Progress from 0 to 10 points
+        progressValue = (completed / 10) * 100;
+        goalPoints = 10;
     }
 
     return {
-        totalPoints: total,
         completedPoints: completed,
         progress: progressValue,
         rank: currentRank,
+        rankGoalPoints: goalPoints,
     };
   }, [plan, completedTasks]);
 
@@ -302,7 +311,10 @@ export default function MarketingPage() {
                 <div>
                     <div className="flex justify-between items-center mb-1">
                         <Label className="text-sm font-medium">Progreso por Puntos</Label>
-                        <span className="text-sm font-semibold">{completedPoints} de {totalPoints} pts.</span>
+                        <span className="text-sm font-semibold">
+                            {completedPoints} 
+                            {rank !== 'Maestro' && ` de ${rankGoalPoints}`} pts.
+                        </span>
                     </div>
                     <Progress value={progress} className="w-full h-3" />
                 </div>
