@@ -611,9 +611,10 @@
         "text": { "type": "string" },
         "fileUrl": { "type": "string", "format": "uri" },
         "fileName": { "type": "string" },
+        "points": { "type": "number" },
         "completedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "planId", "sellerId", "taskDescription", "title", "text", "completedAt"]
+      "required": ["id", "planId", "sellerId", "taskDescription", "title", "text", "points", "completedAt"]
     }
   },
   "auth": {

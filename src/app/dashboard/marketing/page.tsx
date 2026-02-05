@@ -36,7 +36,6 @@ import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2 } from 'lucide-reac
 import { useToast } from '@/hooks/use-toast';
 import {
   generateMarketingPlan,
-  type GenerateMarketingPlanOutput,
 } from '@/ai/flows/generate-marketing-plan';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
@@ -50,6 +49,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 const GENERATION_CODE = 'PAISANO2026';
 
+type MarketingTask = {
+  description: string;
+  points: number;
+};
+
+type DailyPlan = {
+  day: string;
+  theme: string;
+  tasks: MarketingTask[];
+};
+
 type MarketingPlan = {
   id: string;
   code: string;
@@ -57,7 +67,7 @@ type MarketingPlan = {
   sellerName: string;
   createdAt: string;
   weekNumber: number;
-  planData: GenerateMarketingPlanOutput;
+  planData: { weeklyPlan: DailyPlan[] };
 };
 
 type CompletedTask = TaskCompletionData & {
@@ -65,6 +75,7 @@ type CompletedTask = TaskCompletionData & {
   planId: string;
   sellerId: string;
   taskDescription: string;
+  points: number;
   completedAt: string;
 };
 
@@ -86,7 +97,7 @@ export default function MarketingPage() {
   const [enteredCode, setEnteredCode] = useState('');
 
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<{ id: string; description: string } | null>(null);
+  const [selectedTask, setSelectedTask] = useState<{ id: string; description: string; points: number; } | null>(null);
   
   const [uncheckAlertOpen, setUncheckAlertOpen] = useState(false);
   const [taskToUncheck, setTaskToUncheck] = useState<string | null>(null);
@@ -121,23 +132,29 @@ export default function MarketingPage() {
 
   const { data: completedTasks, isLoading: areTasksLoading } = useCollection<CompletedTask>(completedTasksQuery);
 
-  const { totalTasks, completedTasksCount, progress, dailyGoalProgress, completedDaysCount } = useMemo(() => {
-    if (!plan?.planData) return { totalTasks: 0, completedTasksCount: 0, progress: 0, dailyGoalProgress: 0, completedDaysCount: 0 };
+  const { totalPoints, completedPoints, progress, rank } = useMemo(() => {
+    if (!plan?.planData) return { totalPoints: 0, completedPoints: 0, progress: 0, rank: 'Aprendiz' };
     
-    const total = plan.planData.weeklyPlan.reduce((acc, day) => acc + day.tasks.length, 0);
-    const completedCount = completedTasks?.length || 0;
-    const progressValue = total > 0 ? (completedCount / total) * 100 : 0;
+    const total = plan.planData.weeklyPlan.reduce((acc, day) => {
+        return acc + day.tasks.reduce((taskAcc, task) => taskAcc + task.points, 0);
+    }, 0);
+    
+    const completed = completedTasks?.reduce((acc, task) => acc + task.points, 0) || 0;
+    
+    const progressValue = total > 0 ? (completed / total) * 100 : 0;
 
-    const completedDays = new Set((completedTasks || []).map(task => task.id.split('-')[0]));
-    const completedDaysCountValue = completedDays.size;
-    const dailyGoalProgressValue = (completedDaysCountValue / 5) * 100;
+    let currentRank: 'Aprendiz' | 'Estratega' | 'Maestro' = 'Aprendiz';
+    if (progressValue >= 67) {
+        currentRank = 'Maestro';
+    } else if (progressValue >= 34) {
+        currentRank = 'Estratega';
+    }
 
     return {
-        totalTasks: total,
-        completedTasksCount: completedCount,
+        totalPoints: total,
+        completedPoints: completed,
         progress: progressValue,
-        dailyGoalProgress: dailyGoalProgressValue,
-        completedDaysCount: completedDaysCountValue,
+        rank: currentRank,
     };
   }, [plan, completedTasks]);
 
@@ -181,9 +198,9 @@ export default function MarketingPage() {
     }
   };
   
-  const handleTaskCheckChange = (taskId: string, taskDescription: string, checked: boolean) => {
+  const handleTaskCheckChange = (taskId: string, task: MarketingTask, checked: boolean) => {
     if (checked) {
-      setSelectedTask({ id: taskId, description: taskDescription });
+      setSelectedTask({ id: taskId, description: task.description, points: task.points });
       setIsTaskDialogOpen(true);
     } else {
       setTaskToUncheck(taskId);
@@ -210,6 +227,7 @@ export default function MarketingPage() {
       planId: selectedPlanId,
       sellerId: user.uid,
       taskDescription: selectedTask.description,
+      points: selectedTask.points,
       completedAt: new Date().toISOString(),
     };
 
@@ -276,19 +294,18 @@ export default function MarketingPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-               <div>
-                  <div className="flex justify-between items-center mb-1">
-                      <Label className="text-sm font-medium">Meta Diaria (1 tarea/día)</Label>
-                      <span className="text-sm font-semibold">{completedDaysCount} de 5 días</span>
-                  </div>
-                  <Progress value={dailyGoalProgress} className="w-full h-2" />
-              </div>
-              <div>
-                  <div className="flex justify-between items-center mb-1">
-                      <Label className="text-sm font-medium">Progreso General de Tareas</Label>
-                      <span className="text-sm font-semibold">{completedTasksCount} de {totalTasks} tareas</span>
-                  </div>
-                  <Progress value={progress} className="w-full h-2" />
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                    <Label className="text-sm font-medium">Rango Semanal</Label>
+                    <Badge variant={rank === 'Maestro' ? 'default' : rank === 'Estratega' ? 'secondary' : 'outline'} className="text-base py-1 px-3">{rank}</Badge>
+                </div>
+                <div>
+                    <div className="flex justify-between items-center mb-1">
+                        <Label className="text-sm font-medium">Progreso por Puntos</Label>
+                        <span className="text-sm font-semibold">{completedPoints} de {totalPoints} pts.</span>
+                    </div>
+                    <Progress value={progress} className="w-full h-3" />
+                </div>
               </div>
             </CardContent>
         </Card>
@@ -344,8 +361,9 @@ export default function MarketingPage() {
                                     isCompleted && "line-through text-muted-foreground/70"
                                   )}
                                 >
-                                  {task}
+                                  {task.description}
                                 </Label>
+                                <Badge variant="outline" className="shrink-0">{task.points} {task.points === 1 ? 'pto' : 'pts'}</Badge>
                               </div>
                               {isCompleted && completionData && (
                                 <Collapsible className="w-full pl-8" defaultOpen>
