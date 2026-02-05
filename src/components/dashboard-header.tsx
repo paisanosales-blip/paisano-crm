@@ -1,6 +1,7 @@
 'use client'
 import { useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Search, Shield } from 'lucide-react';
 import { doc } from 'firebase/firestore';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 
@@ -21,6 +22,7 @@ import { ProfileSettingsDialog } from '@/components/profile-settings-dialog';
 
 export function DashboardHeader() {
   const auth = useAuth();
+  const router = useRouter();
   const firestore = useFirestore();
   const { user, isUserLoading: isAuthLoading } = useUser();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -88,6 +90,12 @@ export function DashboardHeader() {
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => setIsSettingsOpen(true)}>Configuración</DropdownMenuItem>
               <DropdownMenuItem>Soporte</DropdownMenuItem>
+              {userProfile?.role?.toLowerCase() === 'manager' && (
+                <DropdownMenuItem onSelect={() => router.push('/dashboard/users')}>
+                  <Shield />
+                  Usuarios
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
                 Cerrar sesión

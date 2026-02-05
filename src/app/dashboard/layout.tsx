@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Home, GanttChartSquare, Users, FileText, Shield, CalendarCheck, Package, ClipboardSignature, Target, Megaphone } from 'lucide-react';
+import { Home, GanttChartSquare, Users, FileText, CalendarCheck, Package, ClipboardSignature, Target, Megaphone } from 'lucide-react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { isToday, isPast } from 'date-fns';
 
@@ -217,16 +217,6 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-             {userProfile?.role?.toLowerCase() === 'manager' && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip="Usuarios">
-                    <Link href="/dashboard/users">
-                      <Shield />
-                      <span>Usuarios</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
           </SidebarMenu>
         </SidebarContent>
       </Sidebar>
