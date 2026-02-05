@@ -79,15 +79,22 @@ export default function MarketingPage() {
     }
   }, []);
 
-  const { totalTasks, completedTasksCount, progress } = useMemo(() => {
-    if (!plan) return { totalTasks: 0, completedTasksCount: 0, progress: 0 };
+  const { totalTasks, completedTasksCount, progress, dailyGoalProgress, completedDaysCount } = useMemo(() => {
+    if (!plan) return { totalTasks: 0, completedTasksCount: 0, progress: 0, dailyGoalProgress: 0, completedDaysCount: 0 };
     const total = plan.weeklyPlan.reduce((acc, day) => acc + day.tasks.length, 0);
     const completed = Object.keys(completedTasks).length;
     const progressValue = total > 0 ? (completed / total) * 100 : 0;
+
+    const completedDays = new Set(Object.keys(completedTasks).map(taskId => taskId.split('-')[0]));
+    const completedDaysCountValue = completedDays.size;
+    const dailyGoalProgressValue = (completedDaysCountValue / 5) * 100;
+
     return {
-      totalTasks: total,
-      completedTasksCount: completed,
-      progress: progressValue,
+        totalTasks: total,
+        completedTasksCount: completed,
+        progress: progressValue,
+        dailyGoalProgress: dailyGoalProgressValue,
+        completedDaysCount: completedDaysCountValue,
     };
   }, [plan, completedTasks]);
 
@@ -179,13 +186,26 @@ export default function MarketingPage() {
         {plan && (
           <Card>
             <CardHeader>
-              <CardTitle>Progreso Semanal</CardTitle>
+              <CardTitle>Progreso del Plan Semanal</CardTitle>
               <CardDescription>
-                Has completado {completedTasksCount} de {totalTasks} tareas esta semana.
+                Resumen de tu avance en las metas de marketing de la semana.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Progress value={progress} className="w-full" />
+            <CardContent className="space-y-4">
+               <div>
+                  <div className="flex justify-between items-center mb-1">
+                      <Label className="text-sm font-medium">Meta Diaria (1 tarea/día)</Label>
+                      <span className="text-sm font-semibold">{completedDaysCount} de 5 días</span>
+                  </div>
+                  <Progress value={dailyGoalProgress} className="w-full h-2" />
+              </div>
+              <div>
+                  <div className="flex justify-between items-center mb-1">
+                      <Label className="text-sm font-medium">Progreso General de Tareas</Label>
+                      <span className="text-sm font-semibold">{completedTasksCount} de {totalTasks} tareas</span>
+                  </div>
+                  <Progress value={progress} className="w-full h-2" />
+              </div>
             </CardContent>
           </Card>
         )}

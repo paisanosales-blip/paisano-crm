@@ -49,7 +49,7 @@ Importante: El equipo de marketing está aprendiendo y no tiene experiencia en e
 
 El objetivo es completar al menos una de estas tareas cada día.
 
-Para cada día de Lunes a Viernes, define un tema central y una lista de 3 a 4 tareas específicas y accionables. Las tareas deben ser variadas para ofrecer opciones, pero todas deben ser prácticas y diseñadas para generar interés, educar a la audiencia y capturar leads.
+Para cada día de Lunes a Viernes, define un tema central y una lista de 4 a 6 tareas específicas y accionables. Las tareas deben ser variadas para ofrecer opciones, pero todas deben ser prácticas y diseñadas para generar interés, educar a la audiencia y capturar leads.
 
 Ejemplo de formato de un día:
 - Día: Lunes
@@ -59,6 +59,7 @@ Ejemplo de formato de un día:
   - "Publicar una foto en Instagram del equipo de producción en su descanso, con una pregunta como '¿Qué detalle de fabricación te gustaría ver de cerca?'."
   - "Crear una publicación en Facebook compartiendo el video de TikTok y explicando en texto simple la importancia de la calidad en nuestras soldaduras."
   - "Compartir una foto del producto terminado en LinkedIn, preguntando a los profesionales de la industria qué característica valoran más en un remolque."
+  - "Hacer una encuesta en las historias de Instagram preguntando '¿Qué es lo más importante para ti en un remolque: durabilidad o capacidad?'"
 
 Genera un plan completo para los 5 días de la semana laboral.
 `,
