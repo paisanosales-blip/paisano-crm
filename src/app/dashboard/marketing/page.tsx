@@ -1,7 +1,19 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { getWeek } from 'date-fns';
+import { getWeek, format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import {
+  useUser,
+  useFirestore,
+  useCollection,
+  useMemoFirebase,
+  useDoc,
+  addDocumentNonBlocking,
+  setDocumentNonBlocking,
+  deleteDocumentNonBlocking,
+} from '@/firebase';
+import { collection, doc, query, where } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -34,19 +46,41 @@ import { Progress } from '@/components/ui/progress';
 import { MarketingTaskDialog, type TaskCompletionData } from '@/components/marketing-task-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const GENERATION_CODE = 'PAISANO2026';
 
-type CompletedTasksState = {
-  [taskId: string]: TaskCompletionData;
+type MarketingPlan = {
+  id: string;
+  code: string;
+  sellerId: string;
+  sellerName: string;
+  createdAt: string;
+  weekNumber: number;
+  planData: GenerateMarketingPlanOutput;
+};
+
+type CompletedTask = TaskCompletionData & {
+  id: string; // Will be the taskId like 'Lunes-0'
+  planId: string;
+  sellerId: string;
+  taskDescription: string;
+  completedAt: string;
 };
 
 export default function MarketingPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [plan, setPlan] = useState<GenerateMarketingPlanOutput | null>(null);
+  const { user } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
-  const [completedTasks, setCompletedTasks] = useState<CompletedTasksState>({});
+
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userProfile } = useDoc(userProfileRef);
+
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [enteredCode, setEnteredCode] = useState('');
@@ -57,41 +91,50 @@ export default function MarketingPage() {
   const [uncheckAlertOpen, setUncheckAlertOpen] = useState(false);
   const [taskToUncheck, setTaskToUncheck] = useState<string | null>(null);
 
+  const marketingPlansQuery = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'marketingPlans'));
+  }, [firestore, user]);
+  const { data: marketingPlans, isLoading: arePlansLoading } = useCollection<MarketingPlan>(marketingPlansQuery);
 
+  const sortedMarketingPlans = useMemo(() => {
+    if (!marketingPlans) return [];
+    return [...marketingPlans].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [marketingPlans]);
+
+  // Effect to select the latest plan by default
   useEffect(() => {
-    const today = new Date();
-    const storedPlan = localStorage.getItem('marketingPlan');
-    const storedPlanWeek = localStorage.getItem('marketingPlanWeek');
-    const currentWeek = getWeek(today, { weekStartsOn: 1 });
-
-    if (storedPlan && storedPlanWeek && parseInt(storedPlanWeek, 10) === currentWeek) {
-      try {
-        setPlan(JSON.parse(storedPlan));
-        const storedCompletedTasks = localStorage.getItem('completedMarketingTasks');
-        if (storedCompletedTasks) {
-          setCompletedTasks(JSON.parse(storedCompletedTasks));
-        }
-      } catch (error) {
-        console.error("Failed to parse marketing data from localStorage", error);
-        localStorage.removeItem('marketingPlan');
-        localStorage.removeItem('completedMarketingTasks');
-      }
+    if (!selectedPlanId && sortedMarketingPlans.length > 0) {
+      setSelectedPlanId(sortedMarketingPlans[0].id);
     }
-  }, []);
+  }, [sortedMarketingPlans, selectedPlanId]);
+
+  const plan = useMemo(() => {
+    if (!selectedPlanId || !marketingPlans) return null;
+    return marketingPlans.find(p => p.id === selectedPlanId) || null;
+  }, [selectedPlanId, marketingPlans]);
+
+  const completedTasksQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedPlanId) return null;
+    return collection(firestore, 'marketingPlans', selectedPlanId, 'completedTasks');
+  }, [firestore, selectedPlanId]);
+
+  const { data: completedTasks, isLoading: areTasksLoading } = useCollection<CompletedTask>(completedTasksQuery);
 
   const { totalTasks, completedTasksCount, progress, dailyGoalProgress, completedDaysCount } = useMemo(() => {
-    if (!plan) return { totalTasks: 0, completedTasksCount: 0, progress: 0, dailyGoalProgress: 0, completedDaysCount: 0 };
-    const total = plan.weeklyPlan.reduce((acc, day) => acc + day.tasks.length, 0);
-    const completed = Object.keys(completedTasks).length;
-    const progressValue = total > 0 ? (completed / total) * 100 : 0;
+    if (!plan?.planData) return { totalTasks: 0, completedTasksCount: 0, progress: 0, dailyGoalProgress: 0, completedDaysCount: 0 };
+    
+    const total = plan.planData.weeklyPlan.reduce((acc, day) => acc + day.tasks.length, 0);
+    const completedCount = completedTasks?.length || 0;
+    const progressValue = total > 0 ? (completedCount / total) * 100 : 0;
 
-    const completedDays = new Set(Object.keys(completedTasks).map(taskId => taskId.split('-')[0]));
+    const completedDays = new Set((completedTasks || []).map(task => task.id.split('-')[0]));
     const completedDaysCountValue = completedDays.size;
     const dailyGoalProgressValue = (completedDaysCountValue / 5) * 100;
 
     return {
         totalTasks: total,
-        completedTasksCount: completed,
+        completedTasksCount: completedCount,
         progress: progressValue,
         dailyGoalProgress: dailyGoalProgressValue,
         completedDaysCount: completedDaysCountValue,
@@ -99,20 +142,33 @@ export default function MarketingPage() {
   }, [plan, completedTasks]);
 
   const handleGeneratePlan = async () => {
-    setIsLoading(true);
-    setPlan(null);
-    setCompletedTasks({});
-    localStorage.removeItem('completedMarketingTasks');
+    if (!firestore || !user || !userProfile) {
+        toast({ variant: 'destructive', title: 'Error de autenticación' });
+        return;
+    }
+    setIsGenerating(true);
 
     try {
       const result = await generateMarketingPlan({
         businessDescription: 'Fabricación y venta de remolques de alta resistencia: Sand Hopper, Grain Hopper, Dump bodies, Landscapes y Watter tank.',
         socialMediaFocus: 'TikTok',
       });
-      setPlan(result);
-      const currentWeek = getWeek(new Date(), { weekStartsOn: 1 });
-      localStorage.setItem('marketingPlan', JSON.stringify(result));
-      localStorage.setItem('marketingPlanWeek', String(currentWeek));
+      
+      const newPlan: Omit<MarketingPlan, 'id'> = {
+        code: `PLAN-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
+        sellerId: user.uid,
+        sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+        createdAt: new Date().toISOString(),
+        weekNumber: getWeek(new Date(), { weekStartsOn: 1 }),
+        planData: result,
+      };
+
+      const newDocRef = await addDocumentNonBlocking(collection(firestore, 'marketingPlans'), newPlan);
+      if (newDocRef) {
+        setSelectedPlanId(newDocRef.id);
+        toast({ title: '¡Nuevo Plan Generado!', description: `Se creó el plan con el código: ${newPlan.code}` });
+      }
+
     } catch (error) {
       console.error("Error generating marketing plan:", error);
       toast({
@@ -121,7 +177,7 @@ export default function MarketingPage() {
         description: 'No se pudo generar el plan de marketing en este momento.',
       });
     } finally {
-      setIsLoading(false);
+      setIsGenerating(false);
     }
   };
   
@@ -136,22 +192,29 @@ export default function MarketingPage() {
   };
 
   const handleUncheckConfirm = () => {
-    if (!taskToUncheck) return;
-    const newCompletedTasks = { ...completedTasks };
-    delete newCompletedTasks[taskToUncheck];
-    setCompletedTasks(newCompletedTasks);
-    localStorage.setItem('completedMarketingTasks', JSON.stringify(newCompletedTasks));
+    if (!taskToUncheck || !firestore || !selectedPlanId) return;
+    const taskDocRef = doc(firestore, 'marketingPlans', selectedPlanId, 'completedTasks', taskToUncheck);
+    deleteDocumentNonBlocking(taskDocRef);
     setUncheckAlertOpen(false);
     setTaskToUncheck(null);
   };
 
   const handleTaskCompletion = (data: TaskCompletionData) => {
-    if (!selectedTask) return;
-    const newCompletedTasks = { ...completedTasks, [selectedTask.id]: data };
-    setCompletedTasks(newCompletedTasks);
-    localStorage.setItem('completedMarketingTasks', JSON.stringify(newCompletedTasks));
-  };
+    if (!selectedTask || !firestore || !selectedPlanId || !user) return;
+    
+    const taskDocRef = doc(firestore, 'marketingPlans', selectedPlanId, 'completedTasks', selectedTask.id);
+    
+    const completedTaskData: CompletedTask = {
+      ...data,
+      id: selectedTask.id,
+      planId: selectedPlanId,
+      sellerId: user.uid,
+      taskDescription: selectedTask.description,
+      completedAt: new Date().toISOString(),
+    };
 
+    setDocumentNonBlocking(taskDocRef, completedTaskData, {});
+  };
 
   const handleGenerationConfirm = () => {
     if (enteredCode === GENERATION_CODE) {
@@ -167,31 +230,52 @@ export default function MarketingPage() {
     }
   };
 
+  const isLoading = arePlansLoading || areTasksLoading;
 
   return (
     <>
       <div className="grid gap-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-headline font-bold">Asistente de Marketing</h1>
-          <Button onClick={() => setIsConfirmDialogOpen(true)} disabled={isLoading}>
-            {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Lightbulb className="mr-2 h-4 w-4" />
-            )}
-            {isLoading ? 'Generando Plan...' : 'PLAN DE MARKETING SEMANAL'}
-          </Button>
+          <div className="flex items-center gap-4">
+              <Button onClick={() => setIsConfirmDialogOpen(true)} disabled={isGenerating}>
+                {isGenerating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Lightbulb className="mr-2 h-4 w-4" />
+                )}
+                {isGenerating ? 'Generando...' : 'PLAN DE MARKETING SEMANAL'}
+              </Button>
+          </div>
         </div>
         
-        {plan && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Progreso del Plan Semanal</CardTitle>
-              <CardDescription>
-                Resumen de tu avance en las metas de marketing de la semana.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+                <div>
+                    <CardTitle>Progreso del Plan Semanal</CardTitle>
+                    <CardDescription>
+                        Resumen de tu avance en las metas de marketing de la semana.
+                    </CardDescription>
+                </div>
+                <div className="flex items-center gap-4">
+                    {plan?.code && <Badge variant="outline" className="text-lg py-1 px-3">{plan.code}</Badge>}
+                    <Select onValueChange={setSelectedPlanId} value={selectedPlanId || ''} disabled={sortedMarketingPlans.length === 0}>
+                        <SelectTrigger className="w-[280px]">
+                            <SelectValue placeholder="Seleccionar un plan..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {sortedMarketingPlans.map(p => (
+                                <SelectItem key={p.id} value={p.id}>
+                                    {p.code} - {format(new Date(p.createdAt), "dd MMM yyyy", { locale: es })}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
                <div>
                   <div className="flex justify-between items-center mb-1">
                       <Label className="text-sm font-medium">Meta Diaria (1 tarea/día)</Label>
@@ -207,8 +291,7 @@ export default function MarketingPage() {
                   <Progress value={progress} className="w-full h-2" />
               </div>
             </CardContent>
-          </Card>
-        )}
+        </Card>
 
         <Card>
           <CardHeader>
@@ -219,22 +302,20 @@ export default function MarketingPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {isLoading && (
+            {isLoading ? (
               <div className="flex items-center justify-center h-64">
                 <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
               </div>
-            )}
-            {!isLoading && !plan && (
+            ) : !plan ? (
               <div className="flex flex-col items-center justify-center h-64 text-center border-2 border-dashed rounded-lg">
                   <p className="text-lg font-semibold">Tu plan de marketing te espera</p>
                   <p className="text-muted-foreground">
                     Presiona el botón de arriba para que la IA genere tus tareas de la semana.
                   </p>
               </div>
-            )}
-            {plan && (
+            ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {plan.weeklyPlan.map((dayPlan) => (
+                {plan.planData.weeklyPlan.map((dayPlan) => (
                   <Card key={dayPlan.day} className="flex flex-col">
                     <CardHeader>
                       <CardTitle className="text-lg">{dayPlan.day}</CardTitle>
@@ -244,8 +325,8 @@ export default function MarketingPage() {
                       <ul className="space-y-3">
                         {dayPlan.tasks.map((task, index) => {
                           const taskId = `${dayPlan.day}-${index}`;
-                          const isCompleted = completedTasks.hasOwnProperty(taskId);
-                          const completionData = completedTasks[taskId];
+                          const completionData = completedTasks?.find(t => t.id === taskId);
+                          const isCompleted = !!completionData;
 
                           return (
                             <li key={taskId} className="flex flex-col items-start gap-3">
@@ -306,7 +387,7 @@ export default function MarketingPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Generación</AlertDialogTitle>
             <AlertDialogDescription>
-              Generar un nuevo plan reemplazará el plan semanal actual y su progreso. Por favor, ingrese el código especial para continuar.
+              Generar un nuevo plan creará una nueva versión con un nuevo código. El plan anterior y su progreso permanecerán en el historial. Por favor, ingrese el código especial para continuar.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-2">

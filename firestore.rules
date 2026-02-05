@@ -79,5 +79,16 @@ service cloud.firestore {
       allow create: if request.resource.data.sellerId == request.auth.uid;
       allow update: if isManager() || (resource.data.sellerId == request.auth.uid && (!('sellerId' in request.resource.data) || request.resource.data.sellerId == resource.data.sellerId));
     }
+
+    // =====================================================================
+    // Marketing
+    // =====================================================================
+    match /marketingPlans/{planId} {
+      allow read, write: if isSignedIn();
+      
+      match /completedTasks/{taskId} {
+        allow read, write, delete: if isSignedIn();
+      }
+    }
   }
 }

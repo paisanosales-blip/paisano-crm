@@ -97,5 +97,12 @@ service firebase.storage {
       allow read: if true;
       allow write: if isManager();
     }
+
+    /**
+     * @description Rules for marketing uploads. Any signed-in user can upload files.
+     */
+    match /marketing_uploads/{allPaths=**} {
+      allow read, write: if isSignedIn();
+    }
   }
 }
