@@ -47,7 +47,9 @@ El enfoque principal debe estar en la plataforma: {{{socialMediaFocus}}}. Tambi�
 
 Importante: El equipo de marketing está aprendiendo y no tiene experiencia en edición de video profesional. Las ideas deben ser sencillas, auténticas y fáciles de ejecutar con un teléfono móvil. Piensa en videos cortos sin edición compleja, fotos del día a día y preguntas para interactuar con la audiencia.
 
-Para cada día de Lunes a Viernes, define un tema central y una lista de 2 a 3 tareas específicas y accionables. Las tareas deben ser prácticas y diseñadas para generar interés, educar a la audiencia y capturar leads.
+El objetivo es completar al menos una de estas tareas cada día.
+
+Para cada día de Lunes a Viernes, define un tema central y una lista de 3 a 4 tareas específicas y accionables. Las tareas deben ser variadas para ofrecer opciones, pero todas deben ser prácticas y diseñadas para generar interés, educar a la audiencia y capturar leads.
 
 Ejemplo de formato de un día:
 - Día: Lunes
