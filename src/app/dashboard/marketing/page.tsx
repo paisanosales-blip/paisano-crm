@@ -144,9 +144,9 @@ export default function MarketingPage() {
     const progressValue = total > 0 ? (completed / total) * 100 : 0;
 
     let currentRank: 'Aprendiz' | 'Estratega' | 'Maestro' = 'Aprendiz';
-    if (progressValue >= 67) {
+    if (completed >= 20) {
         currentRank = 'Maestro';
-    } else if (progressValue >= 34) {
+    } else if (completed >= 10) {
         currentRank = 'Estratega';
     }
 
