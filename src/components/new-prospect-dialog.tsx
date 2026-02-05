@@ -102,7 +102,11 @@ const prospectSchema = z
 
 type ProspectFormValues = z.infer<typeof prospectSchema>;
 
-export function NewProspectDialog() {
+interface NewProspectDialogProps {
+  onSuccess: (lead: any) => void;
+}
+
+export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -140,7 +144,7 @@ export function NewProspectDialog() {
   const availableStates = selectedCountry ? states[selectedCountry] || [] : [];
   const availableCities = selectedState ? cities[selectedState] || [] : [];
 
-  function onSubmit(values: ProspectFormValues) {
+  async function onSubmit(values: ProspectFormValues) {
     if (!firestore || !user || !userProfile) {
       toast({
         variant: 'destructive',
@@ -150,7 +154,7 @@ export function NewProspectDialog() {
       return;
     }
     
-    form.clearErrors(); // Clear previous errors
+    form.clearErrors();
     
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { secondContact, ...leadValues } = values;
@@ -164,35 +168,20 @@ export function NewProspectDialog() {
       clienteNumber: '',
       region: '',
     };
+    
+    try {
+      const leadRef = await addDoc(collection(firestore, 'leads'), leadData);
 
-    addDoc(collection(firestore, 'leads'), leadData)
-      .then(leadRef => {
-        const opportunityData = {
-          leadId: leadRef.id,
-          sellerId: user.uid,
-          sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
-          stage: 'Primer contacto',
-          name: `Oportunidad para ${values.clientName}`,
-          value: 0,
-          currency: 'USD',
-          probability: 10,
-          createdDate: new Date().toISOString(),
-          expectedCloseDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
-        };
-        // The second write is chained
-        return addDoc(collection(firestore, 'opportunities'), opportunityData);
-      })
-      .then(() => {
-        toast({
-          title: '¡Prospecto Creado!',
-          description: `${values.clientName} ha sido agregado a tu flujo de ventas.`,
-        });
-        setOpen(false);
-        form.reset();
-      })
-      .catch((error) => {
+      toast({
+        title: '¡Prospecto Creado!',
+        description: `${values.clientName} ha sido agregado. Ahora registre el primer contacto.`,
+      });
+      onSuccess({ ...leadData, id: leadRef.id });
+      setOpen(false);
+      form.reset();
+    } catch (error) {
         const permissionError = new FirestorePermissionError({
-          path: 'leads', // Or 'opportunities', depending on where it failed
+          path: 'leads',
           operation: 'create',
           requestResourceData: leadData,
         });
@@ -202,10 +191,7 @@ export function NewProspectDialog() {
           title: 'Error al crear prospecto',
           description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
         });
-      })
-      .finally(() => {
-        form.reset();
-      });
+    }
   }
 
   return (

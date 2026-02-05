@@ -82,6 +82,7 @@ import { FinancingDialog, type FinancingConfirmPayload } from '@/components/fina
 import { suggestNextAction } from '@/ai/flows/suggest-next-action';
 import { DiscardProspectDialog, type DiscardConfirmPayload } from '@/components/discard-prospect-dialog';
 import { Input } from '@/components/ui/input';
+import { FirstContactDialog } from '@/components/first-contact-dialog';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -117,7 +118,8 @@ export default function PipelinePage() {
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
   const [activityToDelete, setActivityToDelete] = useState<any | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isPostQuotationFollowUpAlertOpen, setIsPostQuotationFollowUpAlertOpen] = useState(false);
+  const [isScheduleFollowUpAlertOpen, setIsScheduleFollowUpAlertOpen] = useState(false);
+  const [scheduleFollowUpMessage, setScheduleFollowUpMessage] = useState('');
   const [followUpQuotationId, setFollowUpQuotationId] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSuggestionLoading, setIsSuggestionLoading] = useState(false);
@@ -126,7 +128,8 @@ export default function PipelinePage() {
   const [prospectForSuggestion, setProspectForSuggestion] = useState<any | null>(null);
   const [prospectToDiscard, setProspectToDiscard] = useState<any | null>(null);
   const [isDiscardDialogOpen, setIsDiscardDialogOpen] = useState(false);
-
+  const [isFirstContactDialogOpen, setIsFirstContactDialogOpen] = useState(false);
+  const [prospectForFirstContact, setProspectForFirstContact] = useState<any | null>(null);
 
   const { toast } = useToast();
 
@@ -214,6 +217,17 @@ export default function PipelinePage() {
   }, [firestore, user, userProfile, selectedUserId]);
   const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
 
+  const handleProspectCreated = (lead: any) => {
+    setProspectForFirstContact(lead);
+    setIsFirstContactDialogOpen(true);
+  };
+
+  const handleFirstContactSaved = (payload: { lead: any, opportunity: any }) => {
+      const newProspectWithOpp = { ...payload.lead, opportunity: payload.opportunity, activities: [], quotation: null };
+      setCurrentProspect(newProspectWithOpp);
+      setScheduleFollowUpMessage('El prospecto ha sido añadido. ¿Desea agendar un seguimiento ahora?');
+      setIsScheduleFollowUpAlertOpen(true);
+  };
 
   const handleStageChange = async (opportunityId: string, newStage: OpportunityStage) => {
     if (!firestore || !user) return;
@@ -470,7 +484,8 @@ export default function PipelinePage() {
         setFollowUpQuotationId(quotationIdForFollowUp);
         setQuotationUploadOpen(false);
         setIsGeneratorOpen(false);
-        setIsPostQuotationFollowUpAlertOpen(true);
+        setScheduleFollowUpMessage('La cotización ha sido guardada. ¿Te gustaría agendar un seguimiento para esta cotización ahora?');
+        setIsScheduleFollowUpAlertOpen(true);
 
       } catch (error) {
           console.error("Database update failed:", error);
@@ -683,9 +698,10 @@ export default function PipelinePage() {
     setIsEditDialogOpen(true);
   };
 
-  const handleScheduleQuotationFollowUp = () => {
+  const handleScheduleFollowUpFromAlert = () => {
     if (!currentProspect) return;
-    handleNewFollowUpClick(currentProspect, currentProspect.quotation?.id);
+    setIsScheduleFollowUpAlertOpen(false);
+    handleNewFollowUpClick(currentProspect, followUpQuotationId);
   };
 
   const handleScheduleNewQuotationFollowUp = (prospect: any) => {
@@ -849,7 +865,7 @@ export default function PipelinePage() {
                   </SelectContent>
               </Select>
           )}
-          <NewProspectDialog />
+          <NewProspectDialog onSuccess={handleProspectCreated} />
         </div>
       </div>
 
@@ -1359,6 +1375,14 @@ export default function PipelinePage() {
         )}
       </div>
     </div>
+    {prospectForFirstContact && (
+        <FirstContactDialog
+            open={isFirstContactDialogOpen}
+            onOpenChange={setIsFirstContactDialogOpen}
+            lead={prospectForFirstContact}
+            onConfirm={handleFirstContactSaved}
+        />
+    )}
     {currentProspect && (
       <InformationSentDialog
           open={infoSentDialogOpen}
@@ -1485,20 +1509,21 @@ export default function PipelinePage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <AlertDialog open={isPostQuotationFollowUpAlertOpen} onOpenChange={setIsPostQuotationFollowUpAlertOpen}>
+      <AlertDialog open={isScheduleFollowUpAlertOpen} onOpenChange={setIsScheduleFollowUpAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Agendar Seguimiento?</AlertDialogTitle>
             <AlertDialogDescription>
-              La cotización ha sido guardada. ¿Te gustaría agendar un seguimiento para esta cotización ahora?
+              {scheduleFollowUpMessage}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
                 setCurrentProspect(null);
+                setFollowUpQuotationId(null);
                 router.refresh();
               }}>Más Tarde</AlertDialogCancel>
-            <AlertDialogAction onClick={handleScheduleQuotationFollowUp}>Agendar</AlertDialogAction>
+            <AlertDialogAction onClick={handleScheduleFollowUpFromAlert}>Agendar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
