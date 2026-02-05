@@ -549,14 +549,14 @@ export default function NewQuotationPage() {
   return (
     <>
       <div className="grid gap-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-headline font-bold">NUEVA COTIZACIÓN</h1>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setIsDetailsDialogOpen(true)}>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <Button variant="outline" onClick={() => setIsDetailsDialogOpen(true)} className="w-full sm:w-auto justify-center">
                 <Settings className="mr-2 h-4 w-4" />
                 DETALLES DE COTIZACIÓN
             </Button>
-            <Button onClick={handleGenerateAndSave} disabled={!selectedClientId || isSubmitting}>
+            <Button onClick={handleGenerateAndSave} disabled={!selectedClientId || isSubmitting} className="w-full sm:w-auto justify-center">
                 {isSubmitting ? 'GUARDANDO...' : <><FileDown className="mr-2 h-4 w-4" />GUARDAR COTIZACIÓN</>}
             </Button>
           </div>

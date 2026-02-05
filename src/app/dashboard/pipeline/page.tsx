@@ -830,12 +830,12 @@ export default function PipelinePage() {
   return (
     <>
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col items-start gap-4 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-headline font-bold">Flujo de Ventas</h1>
-        <div className="flex items-center gap-4">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           {userProfile?.role === 'manager' && (
               <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
-                  <SelectTrigger className="w-[220px]">
+                  <SelectTrigger className="w-full sm:w-[220px]">
                       <SelectValue placeholder="Seleccionar vendedor..." />
                   </SelectTrigger>
                   <SelectContent>

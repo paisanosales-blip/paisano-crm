@@ -117,10 +117,10 @@ export default function ProductsPage() {
   return (
     <>
       <div className="grid gap-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-headline font-bold">Productos</h1>
-           <div className="flex items-center gap-4">
-              <Button onClick={handleNewClick}>
+           <div className="flex w-full sm:w-auto">
+              <Button onClick={handleNewClick} className="w-full sm:w-auto">
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Nuevo Producto
               </Button>

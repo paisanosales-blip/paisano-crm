@@ -235,10 +235,10 @@ export default function MarketingPage() {
   return (
     <>
       <div className="grid gap-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-headline font-bold">Asistente de Marketing</h1>
-          <div className="flex items-center gap-4">
-              <Button onClick={() => setIsConfirmDialogOpen(true)} disabled={isGenerating}>
+          <div className="flex w-full sm:w-auto">
+              <Button onClick={() => setIsConfirmDialogOpen(true)} disabled={isGenerating} className="w-full sm:w-auto">
                 {isGenerating ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (

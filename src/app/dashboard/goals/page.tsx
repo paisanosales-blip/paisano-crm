@@ -399,12 +399,12 @@ export default function GoalsPage() {
 
   return (
     <div className="grid gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-headline font-bold">Metas y Reportes</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-col items-center gap-2 sm:w-auto sm:flex-row">
             {userProfile?.role === 'manager' && (
               <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
-                <SelectTrigger className="w-[220px]">
+                <SelectTrigger className="w-full sm:w-[220px]">
                   <SelectValue placeholder="Seleccionar vendedor..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -418,11 +418,11 @@ export default function GoalsPage() {
                 </SelectContent>
               </Select>
             )}
-            <Button onClick={handleDownloadReport} variant="outline" disabled={isLoading}>
+            <Button onClick={handleDownloadReport} variant="outline" disabled={isLoading} className="w-full sm:w-auto">
                 <FileDown className="mr-2 h-4 w-4" />
                 Descargar Reporte
             </Button>
-            <Button asChild>
+            <Button asChild className="w-full sm:w-auto">
                 <Link href="/dashboard/pipeline">
                     Ir al Flujo de Ventas <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
