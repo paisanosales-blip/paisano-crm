@@ -11,3 +11,4 @@ import '@/ai/flows/generate-daily-summary.ts';
 import '@/ai/flows/generate-product-summary.ts';
 import '@/ai/flows/generate-follow-up-summary.ts';
 import '@/ai/flows/generate-sales-coaching.ts';
+import '@/ai/flows/generate-marketing-plan.ts';

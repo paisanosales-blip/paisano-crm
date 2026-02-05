@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Home, GanttChartSquare, Users, FileText, Shield, CalendarCheck, Package, ClipboardSignature, Target } from 'lucide-react';
+import { Home, GanttChartSquare, Users, FileText, Shield, CalendarCheck, Package, ClipboardSignature, Target, Megaphone } from 'lucide-react';
 import { collection, query, where, doc } from 'firebase/firestore';
 import { isToday, isPast } from 'date-fns';
 
@@ -206,6 +206,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/products">
                   <Package />
                   <span>Productos</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Marketing">
+                <Link href="/dashboard/marketing">
+                  <Megaphone />
+                  <span>Marketing</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
