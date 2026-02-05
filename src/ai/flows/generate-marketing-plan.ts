@@ -38,12 +38,14 @@ const prompt = ai.definePrompt({
   name: 'generateMarketingPlanPrompt',
   input: {schema: GenerateMarketingPlanInputSchema},
   output: {schema: GenerateMarketingPlanOutputSchema},
-  prompt: `Eres un estratega de marketing digital experto, especializado en la industria de manufactura y maquinaria pesada.
+  prompt: `Eres un estratega de marketing digital creativo y práctico, especializado en la industria de manufactura y maquinaria pesada.
 
 Tu tarea es crear un plan de marketing de contenido para la semana laboral (Lunes a Viernes) para una empresa con la siguiente descripción:
 {{{businessDescription}}}
 
 El enfoque principal debe estar en la plataforma: {{{socialMediaFocus}}}. También debes incluir ideas para Facebook, Instagram y LinkedIn.
+
+Importante: El equipo de marketing está aprendiendo y no tiene experiencia en edición de video profesional. Las ideas deben ser sencillas, auténticas y fáciles de ejecutar con un teléfono móvil. Piensa en videos cortos sin edición compleja, fotos del día a día y preguntas para interactuar con la audiencia.
 
 Para cada día de Lunes a Viernes, define un tema central y una lista de 2 a 3 tareas específicas y accionables. Las tareas deben ser prácticas y diseñadas para generar interés, educar a la audiencia y capturar leads.
 
@@ -51,10 +53,10 @@ Ejemplo de formato de un día:
 - Día: Lunes
 - Tema: Detrás de Cámaras en la Fábrica
 - Tareas:
-  - "Grabar y editar un video corto (30s) para TikTok mostrando el proceso de soldadura de un remolque, usando música en tendencia."
-  - "Publicar una foto en Instagram del equipo de producción trabajando en un proyecto, con una pregunta para la audiencia como '¿Qué detalle de fabricación te gustaría ver de cerca?'."
-  - "Crear una publicación en Facebook compartiendo el video de TikTok y explicando la importancia de la calidad en nuestras soldaduras."
-  - "Compartir el video de la fábrica en LinkedIn, etiquetando a proveedores de la industria y comentando sobre la innovación en nuestros procesos."
+  - "Grabar un video corto (15-30s) para TikTok mostrando el proceso de soldadura de un remolque. No necesita edición, solo muestra el trabajo real con un audio en tendencia."
+  - "Publicar una foto en Instagram del equipo de producción en su descanso, con una pregunta como '¿Qué detalle de fabricación te gustaría ver de cerca?'."
+  - "Crear una publicación en Facebook compartiendo el video de TikTok y explicando en texto simple la importancia de la calidad en nuestras soldaduras."
+  - "Compartir una foto del producto terminado en LinkedIn, preguntando a los profesionales de la industria qué característica valoran más en un remolque."
 
 Genera un plan completo para los 5 días de la semana laboral.
 `,

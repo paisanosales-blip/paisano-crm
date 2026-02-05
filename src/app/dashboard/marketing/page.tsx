@@ -172,7 +172,7 @@ export default function MarketingPage() {
             ) : (
               <Lightbulb className="mr-2 h-4 w-4" />
             )}
-            {isLoading ? 'Generando Plan...' : 'Generar Plan de Marketing Semanal'}
+            {isLoading ? 'Generando Plan...' : 'PLAN DE MARKETING SEMANAL'}
           </Button>
         </div>
         
