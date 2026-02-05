@@ -52,6 +52,7 @@ import { Switch } from '@/components/ui/switch';
 import { FollowUpDialog, type FollowUpSubmitPayload } from '@/components/follow-up-dialog';
 import { CompleteFollowUpDialog, type CompletionPayload } from '@/components/complete-follow-up-dialog';
 import { generateFollowUpSummary } from '@/ai/flows/generate-follow-up-summary';
+import { getClassification, getBadgeClass } from '@/lib/types';
 
 const groupStyleKeys = {
     destructive: {
@@ -658,14 +659,21 @@ export default function FollowUpsPage() {
                             </span>
 
                             <div className={cn("flex-grow grid gap-1", activity.completed && "line-through text-muted-foreground")}>
-                                <p className="font-semibold text-foreground">
-                                    {activity.type}
-                                    <span className="font-normal text-muted-foreground"> con </span> 
-                                    <span className="font-medium">{activity.clientName}</span>
-                                    {activity.prospect?.contactPerson && (
-                                        <span className="text-sm font-normal text-muted-foreground"> ({activity.prospect.contactPerson})</span>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="font-semibold text-foreground">
+                                        {activity.type}
+                                        <span className="font-normal text-muted-foreground"> con </span> 
+                                        <span className="font-medium">{activity.clientName}</span>
+                                        {activity.prospect?.contactPerson && (
+                                            <span className="text-sm font-normal text-muted-foreground"> ({activity.prospect.contactPerson})</span>
+                                        )}
+                                    </p>
+                                    {activity.prospect?.opportunity?.stage && (
+                                        <Badge variant="outline" className={cn('font-semibold uppercase text-[10px] px-1.5 py-0', getBadgeClass(getClassification(activity.prospect.opportunity.stage)))}>
+                                            {activity.prospect.opportunity.stage}
+                                        </Badge>
                                     )}
-                                </p>
+                                </div>
                                 <p className="text-sm text-muted-foreground">{activity.description || 'Sin descripción.'}</p>
                                 {dueDate && (
                                     <div className={cn("flex items-center gap-2 text-sm", activity.completed ? 'text-muted-foreground' : groupStyleKeys[group.styleKey].date)}>
