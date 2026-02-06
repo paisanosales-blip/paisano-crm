@@ -167,7 +167,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     const headerConfig = {
         lineHeight: 5,
         logoX: margin,
-        logoY: 4,
+        logoY: 7,
         logoWidth: 65,
         textX: docWidth - margin,
         textY: 11
@@ -447,45 +447,47 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       const qrSectionHeight = qrSize + 5;
       let notesHeight = 0;
 
+      const notesAndQrYStart = currentY;
+      const qrX = docWidth - margin - qrSize;
+
       if (notesBody) {
         const textMaxWidth = docWidth - (margin * 2) - (qrCodeDataUrl ? qrSize + 5 : 0);
         const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
         const notesDim = doc.getTextDimensions(notesBody, { ...textOptions });
         notesHeight = notesDim.h + 8;
-      }
-        
-      const requiredHeight = Math.max(notesHeight, qrSectionHeight);
 
-      if (currentY + requiredHeight > pageHeight - 35) {
-          doc.addPage();
-          currentY = margin;
-      }
-      
-      const notesAndQrYStart = currentY;
+        const requiredHeight = Math.max(notesHeight, qrSectionHeight);
+        if (currentY + requiredHeight > pageHeight - 35) { // Check if it fits before signature
+            doc.addPage();
+            currentY = margin;
+        }
 
-      if (notesBody) {
+        // Draw Notes
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
-        doc.text('ADDITIONAL NOTES', margin, notesAndQrYStart);
+        doc.text('ADDITIONAL NOTES', margin, currentY);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
-        doc.text(notesBody, margin, notesAndQrYStart + 5, { align: 'justify' as const, maxWidth: docWidth - (margin * 2) - (qrCodeDataUrl ? qrSize + 5 : 0) });
+        doc.text(notesBody, margin, currentY + 5, textOptions);
       }
       
+      // Draw QR
       if (qrCodeDataUrl) {
-        const qrX = docWidth - margin - qrSize;
-        const qrY = notesAndQrYStart;
-        doc.addImage(qrCodeDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+        if (currentY + qrSectionHeight > pageHeight - 35 && !notesBody) {
+          doc.addPage();
+          currentY = margin;
+        }
+        doc.addImage(qrCodeDataUrl, 'PNG', qrX, currentY, qrSize, qrSize);
         doc.setFontSize(6);
         doc.setFont('helvetica', 'bold');
-        doc.text('1 YEAR WARRANTY', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
+        doc.text('1 YEAR WARRANTY', qrX + qrSize / 2, currentY + qrSize + 3, { align: 'center' });
       }
       
-      currentY += requiredHeight;
+      currentY += Math.max(notesHeight, qrSectionHeight);
 
     // --- Signature ---
     currentY += 2; // Space between notes/qr and signature
-    const signatureHeight = 20;
+    const signatureHeight = 15;
     if (currentY + signatureHeight > pageHeight - 35) {
         doc.addPage();
         currentY = margin;
