@@ -437,7 +437,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     try {
       const qrX = col1X + colWidth + colGap; // Start of second column
       const canvas = document.createElement('canvas');
-      await QRCode.toCanvas(canvas, 'https://www.paisanotrailer.com', { width: 150, errorCorrectionLevel: 'H' });
+      await QRCode.toCanvas(canvas, 'https://www.paisanotrailer.com/limited-warranty', { width: 150, errorCorrectionLevel: 'H' });
       
       const qrLogoUrl = localStorage.getItem('sidebarLogo');
       if (qrLogoUrl) {
