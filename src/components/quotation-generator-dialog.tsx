@@ -186,7 +186,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         });
         const format = blob.type.split('/')[1];
         const imgWidth = 65;
-        doc.addImage(img.src, format.toUpperCase(), margin, 5, imgWidth, 0, undefined, 'NONE');
+        doc.addImage(img.src, format.toUpperCase(), margin, 6, imgWidth, 0, undefined, 'NONE');
       } catch (e) {
         console.error("Error adding logo image to PDF:", e);
       }
