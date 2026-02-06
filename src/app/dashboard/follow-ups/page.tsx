@@ -706,6 +706,19 @@ export default function FollowUpsPage() {
                                         <MessageSquare className="h-5 w-5" />
                                     </a>
                                     <a 
+                                        href={activity.prospect?.phone ? `sms:${activity.prospect.phone.replace(/\D/g, '')}` : '#'}
+                                        onClick={(e) => !activity.prospect?.phone && e.preventDefault()}
+                                        className={cn(
+                                            "transition-colors",
+                                            activity.prospect?.phone 
+                                                ? "text-foreground/80 hover:text-foreground" 
+                                                : "text-muted-foreground/40 cursor-not-allowed"
+                                        )}
+                                         title={activity.prospect?.phone ? `Mensaje de texto: ${activity.prospect.phone}`: 'No hay teléfono'}
+                                    >
+                                        <MessageCircle className="h-5 w-5" />
+                                    </a>
+                                    <a 
                                         href={activity.prospect?.email ? `https://mail.google.com/mail/?view=cm&fs=1&to=${activity.prospect.email}` : '#'}
                                         target="_blank"
                                         rel="noopener noreferrer"
