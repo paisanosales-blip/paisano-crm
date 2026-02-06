@@ -190,6 +190,7 @@ export function FollowUpDialog({
                     <SelectContent>
                     <SelectItem value="Llamada">LLAMADA</SelectItem>
                     <SelectItem value="Mensaje">MENSAJE</SelectItem>
+                    <SelectItem value="Mensaje de Texto">MENSAJE DE TEXTO</SelectItem>
                     <SelectItem value="Correo">CORREO</SelectItem>
                     <SelectItem value="Reunión">REUNIÓN</SelectItem>
                     <SelectItem value="Nota">NOTA</SelectItem>

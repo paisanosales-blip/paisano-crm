@@ -92,7 +92,7 @@ export type Activity = {
   quotationId?: string;
   sellerId: string;
   sellerName: string;
-  type: 'Llamada' | 'Correo' | 'Reunión' | 'Nota' | 'Mensaje';
+  type: 'Llamada' | 'Correo' | 'Reunión' | 'Nota' | 'Mensaje' | 'Mensaje de Texto';
   description: string;
   contactChannels?: string[];
   dueDate?: string;

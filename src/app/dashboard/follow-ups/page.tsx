@@ -22,7 +22,7 @@ import {
   formatDistanceToNow,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users, ListTodo, AlertOctagon, CalendarClock, CheckCheck, Lightbulb, RefreshCcw, History } from 'lucide-react';
+import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users, ListTodo, AlertOctagon, CalendarClock, CheckCheck, Lightbulb, RefreshCcw, History, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -509,6 +509,7 @@ export default function FollowUpsPage() {
     'Llamada': <Phone className="h-5 w-5" />,
     'Correo': <Mail className="h-5 w-5" />,
     'Mensaje': <MessageSquare className="h-5 w-5" />,
+    'Mensaje de Texto': <MessageCircle className="h-5 w-5" />,
     'Nota': <StickyNote className="h-5 w-5" />,
     'Reunión': <Users className="h-5 w-5" />,
   };
