@@ -229,10 +229,7 @@ export default function NewQuotationPage() {
           textY: 11
       };
 
-      // Header background
-      docPdf.setFillColor(RED);
-      docPdf.rect(0, 0, docPdf.internal.pageSize.getWidth(), headerConfig.lineHeight, 'F');
-
+      // Draw logo first to be in the background
       if (logoUrl) {
         try {
           const response = await fetch(logoUrl);
@@ -254,6 +251,10 @@ export default function NewQuotationPage() {
             console.error("Error adding logo image to PDF:", e);
         }
       }
+
+      // Header background on top of the logo
+      docPdf.setFillColor(RED);
+      docPdf.rect(0, 0, docPdf.internal.pageSize.getWidth(), headerConfig.lineHeight, 'F');
 
       docPdf.setFont('helvetica', 'bold');
       docPdf.setFontSize(16);

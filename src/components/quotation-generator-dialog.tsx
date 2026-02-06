@@ -173,10 +173,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         textY: 11
     };
 
-    // Header background
-    doc.setFillColor(RED);
-    doc.rect(0, 0, doc.internal.pageSize.getWidth(), headerConfig.lineHeight, 'F');
-
+    // Draw logo first to be in the background
     if (logoUrl) {
       try {
         const response = await fetch(logoUrl);
@@ -198,6 +195,10 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         console.error("Error adding logo image to PDF:", e);
       }
     }
+
+    // Header background on top of the logo
+    doc.setFillColor(RED);
+    doc.rect(0, 0, doc.internal.pageSize.getWidth(), headerConfig.lineHeight, 'F');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
