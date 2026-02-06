@@ -411,135 +411,127 @@ export default function NewQuotationPage() {
       currentY = lineY;
       docPdf.setTextColor(BLACK);
 
-      // New two-column section for terms and notes
-      currentY += 10;
+      // --- Terms and Conditions (Full Width) ---
+      currentY += 8; // Space before terms
+      const termsBody = quotationDetails.terms ? quotationDetails.terms.toUpperCase() : '';
+      if (termsBody) {
+        docPdf.setFillColor(LIGHT_GRAY);
+        const textMaxWidth = docWidth - (margin * 2) - 8; // Full width with padding
+        const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
+        docPdf.setFontSize(7);
+        const termsDim = docPdf.getTextDimensions(termsBody, { ...textOptions, fontSize: 7 });
+        const termsHeight = termsDim.h + 18; // Padding for box and title
+
+        if (currentY + termsHeight > pageHeight - 45) { // Check for space before footer+signature
+            docPdf.addPage();
+            currentY = margin;
+        }
+
+        docPdf.rect(margin, currentY, docWidth - (margin * 2), termsHeight, 'F');
+        docPdf.setFont('helvetica', 'bold');
+        docPdf.setTextColor(BLACK);
+        docPdf.text('TERMS AND CONDITIONS', margin + 4, currentY + 6);
+        docPdf.setFont('helvetica', 'normal');
+        docPdf.text(termsBody, margin + 4, currentY + 14, textOptions);
+        
+        currentY += termsHeight;
+      }
+      
+      // --- Notes and QR Code Section (Two Columns) ---
+      currentY += 5; // Space before this section
       const colGap = 10;
       const colWidth = (docWidth - margin * 2 - colGap) / 2;
-      const colPadding = 4;
-      const textMaxWidth = colWidth - (colPadding * 2);
       const col1X = margin;
-      const col2X = margin + colWidth + colGap;
 
-      docPdf.setFontSize(7);
-      const lineHeight = docPdf.getLineHeight() / docPdf.internal.scaleFactor;
-      
-      const textOptions = {
-          align: 'justify' as const,
-          maxWidth: textMaxWidth
-      };
-
-      const termsBody = quotationDetails.terms ? quotationDetails.terms.toUpperCase() : '';
       const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
+      const qrSize = 25; // Made QR code smaller
+      let notesContentHeight = 0;
 
-      const termsDim = docPdf.getTextDimensions(termsBody, { ...textOptions, fontSize: 7 });
-      const notesDim = docPdf.getTextDimensions(notesBody, { ...textOptions, fontSize: 7 });
+      if (notesBody) {
+        docPdf.setFontSize(7);
+        const textMaxWidth = colWidth - 8; // padding
+        const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
+        const notesDim = docPdf.getTextDimensions(notesBody, { ...textOptions, fontSize: 7 });
+        notesContentHeight = notesDim.h + 18; // Padding for box and title
+      }
 
-      const termsContentHeight = termsBody ? (lineHeight * 2) + termsDim.h : 0;
-      const notesContentHeight = notesBody ? (lineHeight * 2) + notesDim.h : 0;
-      
-      const sectionHeight = Math.max(termsContentHeight, notesContentHeight) + (colPadding * 2);
+      const qrSectionHeight = qrSize + 10; 
+      const sectionHeight = Math.max(notesContentHeight, qrSectionHeight);
 
-      if (currentY + sectionHeight > pageHeight - 35) { // 35 for footer
+      if (currentY + sectionHeight > pageHeight - 35) { // 35 for footer + signature
           docPdf.addPage();
           currentY = margin;
       }
       
       const boxStartY = currentY;
       
-      if (termsContentHeight > 0 || notesContentHeight > 0) {
-        docPdf.setFillColor(LIGHT_GRAY);
-        if (termsContentHeight > 0) docPdf.rect(col1X, boxStartY, colWidth, sectionHeight, 'F');
-        if (notesContentHeight > 0) docPdf.rect(col2X, boxStartY, colWidth, sectionHeight, 'F');
-      }
-      
-      const titleY = boxStartY + colPadding + 2;
-      const bodyY = titleY + lineHeight + 2;
-
-      if (termsBody) {
-        docPdf.setFont('helvetica', 'bold');
-        docPdf.setTextColor(BLACK);
-        docPdf.text('TERMS AND CONDITIONS', col1X + colPadding, titleY);
-        docPdf.setFont('helvetica', 'normal');
-        docPdf.text(termsBody, col1X + colPadding, bodyY + 2, textOptions);
-      }
-
       if (notesBody) {
+        docPdf.setFillColor(LIGHT_GRAY);
+        docPdf.rect(col1X, boxStartY, colWidth, sectionHeight, 'F');
         docPdf.setFont('helvetica', 'bold');
         docPdf.setTextColor(BLACK);
-        docPdf.text('ADDITIONAL NOTES', col2X + colPadding, titleY);
+        docPdf.setFontSize(7);
+        docPdf.text('ADDITIONAL NOTES', col1X + 4, boxStartY + 6);
         docPdf.setFont('helvetica', 'normal');
-        docPdf.text(notesBody, col2X + colPadding, bodyY + 2, textOptions);
-      }
-      
-      if (termsContentHeight > 0 || notesContentHeight > 0) {
-        currentY += sectionHeight;
-      }
-
-      const signatureHeight = 25;
-      if (currentY + signatureHeight > pageHeight - 35) {
-          docPdf.addPage();
-          currentY = margin;
-      }
-      currentY += 30;
-      const sigWidth = 80;
-      const sigXStart = (docWidth - sigWidth) / 2;
-      docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
-      docPdf.setFontSize(9);
-      docPdf.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
-      
-      const qrSize = 30;
-      let qrY = currentY + 15;
-      const footerHeight = 20;
-
-      if (qrY + qrSize + 10 > pageHeight - footerHeight) {
-          docPdf.addPage();
-          qrY = margin;
+        docPdf.text(notesBody, col1X + 4, boxStartY + 14, { align: 'justify' as const, maxWidth: colWidth - 8 });
       }
 
       try {
+        const qrX = col1X + colWidth + colGap; // Start of second column
         const canvas = document.createElement('canvas');
-        await QRCode.toCanvas(canvas, 'https://www.paisanotrailer.com', { width: 200, errorCorrectionLevel: 'H' });
+        await QRCode.toCanvas(canvas, 'https://www.paisanotrailer.com', { width: 150, errorCorrectionLevel: 'H' });
         
-        const logoUrl = localStorage.getItem('sidebarLogo');
-        if (logoUrl) {
+        const qrLogoUrl = localStorage.getItem('sidebarLogo');
+        if (qrLogoUrl) {
             const ctx = canvas.getContext('2d');
             if (ctx) {
               const img = new Image();
               img.crossOrigin = 'Anonymous';
-
               const imgPromise = new Promise<void>((resolve, reject) => {
                   img.onload = () => resolve();
                   img.onerror = (err) => reject(err);
-                  img.src = logoUrl;
+                  img.src = qrLogoUrl;
               });
-              
               await imgPromise;
               
               const center = canvas.width / 2;
               const logoSize = canvas.width * 0.25;
               const logoX = center - logoSize / 2;
               const logoY = center - logoSize / 2;
-
               ctx.fillStyle = 'white';
               ctx.fillRect(logoX - 2, logoY - 2, logoSize + 4, logoSize + 4);
-
               ctx.drawImage(img, logoX, logoY, logoSize, logoSize);
             }
         }
         
         const qrCodeDataUrl = canvas.toDataURL('image/png');
-        docPdf.addImage(qrCodeDataUrl, 'PNG', margin, qrY, qrSize, qrSize);
-        
+        docPdf.addImage(qrCodeDataUrl, 'PNG', qrX, boxStartY + 4, qrSize, qrSize);
         docPdf.setFontSize(7);
         docPdf.setFont('helvetica', 'bold');
-        docPdf.text('1 YEAR WARRANTY', margin + qrSize / 2, qrY + qrSize + 4, { align: 'center' });
+        docPdf.text('1 YEAR WARRANTY', qrX + qrSize / 2, boxStartY + 4 + qrSize + 4, { align: 'center' });
       } catch (err) {
           console.error('Failed to generate QR code:', err);
       }
 
+      currentY += sectionHeight;
+
+      // --- Signature ---
+      const signatureHeight = 20;
+      if (currentY + signatureHeight > pageHeight - 35) {
+          docPdf.addPage();
+          currentY = margin;
+      }
+      currentY += 15;
+      const sigWidth = 80;
+      const sigXStart = (docWidth - sigWidth) / 2;
+      docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
+      docPdf.setFontSize(9);
+      docPdf.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
+      
       let pageCount = (docPdf as any).internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
           docPdf.setPage(i);
+          const footerHeight = 20;
           const footerStartY = pageHeight - footerHeight;
           
           docPdf.setFillColor(RED);

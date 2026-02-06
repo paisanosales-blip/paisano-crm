@@ -369,136 +369,127 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     currentY = lineY;
     doc.setTextColor(BLACK);
 
-    // New two-column section for terms and notes
-    currentY += 10;
+    // --- Terms and Conditions (Full Width) ---
+    currentY += 8; // Space before terms
+    const termsBody = quotationDetails.terms ? quotationDetails.terms.toUpperCase() : '';
+    if (termsBody) {
+      doc.setFillColor(LIGHT_GRAY);
+      const textMaxWidth = docWidth - (margin * 2) - 8; // Full width with padding
+      const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
+      doc.setFontSize(7);
+      const termsDim = doc.getTextDimensions(termsBody, { ...textOptions, fontSize: 7 });
+      const termsHeight = termsDim.h + 18; // Padding for box and title
+
+      if (currentY + termsHeight > pageHeight - 45) { // Check for space before footer+signature
+          doc.addPage();
+          currentY = margin;
+      }
+
+      doc.rect(margin, currentY, docWidth - (margin * 2), termsHeight, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(BLACK);
+      doc.text('TERMS AND CONDITIONS', margin + 4, currentY + 6);
+      doc.setFont('helvetica', 'normal');
+      doc.text(termsBody, margin + 4, currentY + 14, textOptions);
+      
+      currentY += termsHeight;
+    }
+    
+    // --- Notes and QR Code Section (Two Columns) ---
+    currentY += 5; // Space before this section
     const colGap = 10;
     const colWidth = (docWidth - margin * 2 - colGap) / 2;
-    const colPadding = 4;
-    const textMaxWidth = colWidth - (colPadding * 2);
     const col1X = margin;
-    const col2X = margin + colWidth + colGap;
 
-    doc.setFontSize(7);
-    const lineHeight = doc.getLineHeight() / doc.internal.scaleFactor;
-    
-    const textOptions = {
-        align: 'justify' as const,
-        maxWidth: textMaxWidth
-    };
-
-    const termsBody = quotationDetails.terms ? quotationDetails.terms.toUpperCase() : '';
     const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
+    const qrSize = 25; // Made QR code smaller
+    let notesContentHeight = 0;
 
-    const termsDim = doc.getTextDimensions(termsBody, { ...textOptions, fontSize: 7 });
-    const notesDim = doc.getTextDimensions(notesBody, { ...textOptions, fontSize: 7 });
+    if (notesBody) {
+      doc.setFontSize(7);
+      const textMaxWidth = colWidth - 8; // padding
+      const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
+      const notesDim = doc.getTextDimensions(notesBody, { ...textOptions, fontSize: 7 });
+      notesContentHeight = notesDim.h + 18; // Padding for box and title
+    }
 
-    const termsContentHeight = termsBody ? (lineHeight * 2) + termsDim.h : 0;
-    const notesContentHeight = notesBody ? (lineHeight * 2) + notesDim.h : 0;
-    
-    const sectionHeight = Math.max(termsContentHeight, notesContentHeight) + (colPadding * 2);
+    const qrSectionHeight = qrSize + 10; 
+    const sectionHeight = Math.max(notesContentHeight, qrSectionHeight);
 
-    if (currentY + sectionHeight > pageHeight - 35) { // 35 for footer
+    if (currentY + sectionHeight > pageHeight - 35) { // 35 for footer + signature
         doc.addPage();
         currentY = margin;
     }
     
     const boxStartY = currentY;
     
-    if (termsContentHeight > 0 || notesContentHeight > 0) {
-      doc.setFillColor(LIGHT_GRAY);
-      if (termsContentHeight > 0) doc.rect(col1X, boxStartY, colWidth, sectionHeight, 'F');
-      if (notesContentHeight > 0) doc.rect(col2X, boxStartY, colWidth, sectionHeight, 'F');
-    }
-    
-    const titleY = boxStartY + colPadding + 2;
-    const bodyY = titleY + lineHeight + 2;
-
-    if (termsBody) {
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(BLACK);
-      doc.text('TERMS AND CONDITIONS', col1X + colPadding, titleY);
-      doc.setFont('helvetica', 'normal');
-      doc.text(termsBody, col1X + colPadding, bodyY + 2, textOptions);
-    }
-
     if (notesBody) {
+      doc.setFillColor(LIGHT_GRAY);
+      doc.rect(col1X, boxStartY, colWidth, sectionHeight, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(BLACK);
-      doc.text('ADDITIONAL NOTES', col2X + colPadding, titleY);
+      doc.setFontSize(7);
+      doc.text('ADDITIONAL NOTES', col1X + 4, boxStartY + 6);
       doc.setFont('helvetica', 'normal');
-      doc.text(notesBody, col2X + colPadding, bodyY + 2, textOptions);
-    }
-    
-    if (termsContentHeight > 0 || notesContentHeight > 0) {
-      currentY += sectionHeight;
-    }
-    
-    const signatureHeight = 25;
-    if (currentY + signatureHeight > pageHeight - 35) {
-        doc.addPage();
-        currentY = margin;
-    }
-    currentY += 30;
-    
-    const sigWidth = 80;
-    const sigXStart = (docWidth - sigWidth) / 2;
-    doc.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
-    doc.setFontSize(9);
-    doc.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
-    
-    const qrSize = 30;
-    let qrY = currentY + 15;
-    const footerHeight = 20;
-
-    if (qrY + qrSize + 10 > pageHeight - footerHeight) {
-        doc.addPage();
-        qrY = margin;
+      doc.text(notesBody, col1X + 4, boxStartY + 14, { align: 'justify' as const, maxWidth: colWidth - 8 });
     }
 
     try {
+      const qrX = col1X + colWidth + colGap; // Start of second column
       const canvas = document.createElement('canvas');
-      await QRCode.toCanvas(canvas, 'https://www.paisanotrailer.com', { width: 200, errorCorrectionLevel: 'H' });
+      await QRCode.toCanvas(canvas, 'https://www.paisanotrailer.com', { width: 150, errorCorrectionLevel: 'H' });
       
-      const logoUrl = localStorage.getItem('sidebarLogo');
-      if (logoUrl) {
+      const qrLogoUrl = localStorage.getItem('sidebarLogo');
+      if (qrLogoUrl) {
           const ctx = canvas.getContext('2d');
           if (ctx) {
             const img = new Image();
             img.crossOrigin = 'Anonymous';
-
             const imgPromise = new Promise<void>((resolve, reject) => {
                 img.onload = () => resolve();
                 img.onerror = (err) => reject(err);
-                img.src = logoUrl;
+                img.src = qrLogoUrl;
             });
-            
             await imgPromise;
             
             const center = canvas.width / 2;
             const logoSize = canvas.width * 0.25;
             const logoX = center - logoSize / 2;
             const logoY = center - logoSize / 2;
-
             ctx.fillStyle = 'white';
             ctx.fillRect(logoX - 2, logoY - 2, logoSize + 4, logoSize + 4);
-
             ctx.drawImage(img, logoX, logoY, logoSize, logoSize);
           }
       }
       
       const qrCodeDataUrl = canvas.toDataURL('image/png');
-      doc.addImage(qrCodeDataUrl, 'PNG', margin, qrY, qrSize, qrSize);
-      
+      doc.addImage(qrCodeDataUrl, 'PNG', qrX, boxStartY + 4, qrSize, qrSize);
       doc.setFontSize(7);
       doc.setFont('helvetica', 'bold');
-      doc.text('1 YEAR WARRANTY', margin + qrSize / 2, qrY + qrSize + 4, { align: 'center' });
+      doc.text('1 YEAR WARRANTY', qrX + qrSize / 2, boxStartY + 4 + qrSize + 4, { align: 'center' });
     } catch (err) {
         console.error('Failed to generate QR code:', err);
     }
 
+    currentY += sectionHeight;
+
+    // --- Signature ---
+    const signatureHeight = 20;
+    if (currentY + signatureHeight > pageHeight - 35) {
+        doc.addPage();
+        currentY = margin;
+    }
+    currentY += 15;
+    const sigWidth = 80;
+    const sigXStart = (docWidth - sigWidth) / 2;
+    doc.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
+    doc.setFontSize(9);
+    doc.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
+    
     let pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
+        const footerHeight = 20;
         const footerStartY = pageHeight - footerHeight;
 
         doc.setFillColor(RED);
