@@ -224,12 +224,49 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.text(quotationDetails.number.toUpperCase(), quoteDetailsX, currentY, { align: 'right' });
     doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX, currentY + 6, { align: 'right' });
     doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX, currentY + 12, { align: 'right' });
+
+    try {
+      const qrSize = 20; // smaller
+      const canvas = document.createElement('canvas');
+      await QRCode.toCanvas(canvas, 'https://www.paisanotrailer.com/limited-warranty', { width: 150, errorCorrectionLevel: 'H' });
+      
+      const qrLogoUrl = localStorage.getItem('sidebarLogo');
+      if (qrLogoUrl) {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            const imgPromise = new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = (err) => reject(err);
+                img.src = qrLogoUrl;
+            });
+            await imgPromise;
+            
+            const center = canvas.width / 2;
+            const logoSize = canvas.width * 0.25;
+            const logoX = center - logoSize / 2;
+            const logoY = center - logoSize / 2;
+            ctx.fillStyle = 'white';
+            ctx.fillRect(logoX - 2, logoY - 2, logoSize + 4, logoSize + 4);
+            ctx.drawImage(img, logoX, logoY, logoSize, logoSize);
+          }
+      }
+      
+      const qrCodeDataUrl = canvas.toDataURL('image/png');
+      doc.addImage(qrCodeDataUrl, 'PNG', margin, currentY, qrSize, qrSize);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.text('1 YEAR WARRANTY', margin + qrSize / 2, currentY + qrSize + 4, { align: 'center' });
+    } catch (err) {
+        console.error('Failed to generate QR code:', err);
+    }
     
-    currentY += 12 + 10;
-    
+    currentY += 30; // Make space for QR and quote details
+
     const infoStartY = currentY;
     const rightColX = docWidth / 2 + 5;
-    const infoBoxHeight = 40;
+    const infoBoxHeight = 32; // reduced height
     const titleBoxHeight = 7;
     const contentStartY = infoStartY + titleBoxHeight;
     
@@ -395,83 +432,31 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       currentY += termsHeight;
     }
     
-    // --- Notes and QR Code Section (Two Columns) ---
-    currentY += 5; // Space before this section
-    const colGap = 10;
-    const colWidth = (docWidth - margin * 2 - colGap) / 2;
-    const col1X = margin;
-
+    // --- Additional Notes ---
+    currentY += 8; // Space before notes
     const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
-    const qrSize = 25; // Made QR code smaller
-    let notesContentHeight = 0;
-
     if (notesBody) {
-      doc.setFontSize(7);
-      const textMaxWidth = colWidth - 8; // padding
-      const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
-      const notesDim = doc.getTextDimensions(notesBody, { ...textOptions, fontSize: 7 });
-      notesContentHeight = notesDim.h + 18; // Padding for box and title
-    }
+        const textMaxWidth = docWidth - (margin * 2) - 8;
+        const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
+        doc.setFontSize(7);
+        const notesDim = doc.getTextDimensions(notesBody, { ...textOptions, fontSize: 7 });
+        const notesHeight = notesDim.h + 12; // Reduced padding
 
-    const qrSectionHeight = qrSize + 10; 
-    const sectionHeight = Math.max(notesContentHeight, qrSectionHeight);
-
-    if (currentY + sectionHeight > pageHeight - 35) { // 35 for footer + signature
-        doc.addPage();
-        currentY = margin;
+        if (currentY + notesHeight > pageHeight - 35) { // Check for space
+            doc.addPage();
+            currentY = margin;
+        }
+        
+        doc.setFillColor(LIGHT_GRAY);
+        doc.rect(margin, currentY, docWidth - (margin * 2), notesHeight, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(BLACK);
+        doc.text('ADDITIONAL NOTES', margin + 4, currentY + 5);
+        doc.setFont('helvetica', 'normal');
+        doc.text(notesBody, margin + 4, currentY + 10, textOptions);
+        
+        currentY += notesHeight;
     }
-    
-    const boxStartY = currentY;
-    
-    if (notesBody) {
-      doc.setFillColor(LIGHT_GRAY);
-      doc.rect(col1X, boxStartY, colWidth, sectionHeight, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(BLACK);
-      doc.setFontSize(7);
-      doc.text('ADDITIONAL NOTES', col1X + 4, boxStartY + 6);
-      doc.setFont('helvetica', 'normal');
-      doc.text(notesBody, col1X + 4, boxStartY + 14, { align: 'justify' as const, maxWidth: colWidth - 8 });
-    }
-
-    try {
-      const qrX = col1X + colWidth + colGap; // Start of second column
-      const canvas = document.createElement('canvas');
-      await QRCode.toCanvas(canvas, 'https://www.paisanotrailer.com/limited-warranty', { width: 150, errorCorrectionLevel: 'H' });
-      
-      const qrLogoUrl = localStorage.getItem('sidebarLogo');
-      if (qrLogoUrl) {
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            const img = new Image();
-            img.crossOrigin = 'Anonymous';
-            const imgPromise = new Promise<void>((resolve, reject) => {
-                img.onload = () => resolve();
-                img.onerror = (err) => reject(err);
-                img.src = qrLogoUrl;
-            });
-            await imgPromise;
-            
-            const center = canvas.width / 2;
-            const logoSize = canvas.width * 0.25;
-            const logoX = center - logoSize / 2;
-            const logoY = center - logoSize / 2;
-            ctx.fillStyle = 'white';
-            ctx.fillRect(logoX - 2, logoY - 2, logoSize + 4, logoSize + 4);
-            ctx.drawImage(img, logoX, logoY, logoSize, logoSize);
-          }
-      }
-      
-      const qrCodeDataUrl = canvas.toDataURL('image/png');
-      doc.addImage(qrCodeDataUrl, 'PNG', qrX, boxStartY + 4, qrSize, qrSize);
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'bold');
-      doc.text('1 YEAR WARRANTY', qrX + qrSize / 2, boxStartY + 4 + qrSize + 4, { align: 'center' });
-    } catch (err) {
-        console.error('Failed to generate QR code:', err);
-    }
-
-    currentY += sectionHeight;
 
     // --- Signature ---
     const signatureHeight = 20;
