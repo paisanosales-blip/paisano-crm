@@ -223,7 +223,7 @@ export default function NewQuotationPage() {
       const headerConfig = {
           lineHeight: 5,
           logoX: margin,
-          logoY: 7,
+          logoY: 2,
           logoWidth: 65,
           textX: docWidth - margin,
           textY: 11
