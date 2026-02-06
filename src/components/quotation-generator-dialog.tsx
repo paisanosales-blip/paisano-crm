@@ -165,6 +165,10 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     
     const headerTextY = 15;
 
+    // Header background
+    doc.setFillColor(RED);
+    doc.rect(0, 0, docWidth, 5, 'F');
+
     if (logoUrl) {
       try {
         const response = await fetch(logoUrl);
@@ -398,7 +402,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     }
     
     // --- Additional Notes & QR Code ---
-    currentY += 8;
+    currentY += 4;
     const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
       let qrCodeDataUrl = '';
       try {
@@ -433,19 +437,19 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       }
       
       const qrSize = 18;
-      const qrSectionHeight = qrSize + 5; // QR + text below it
+      const qrSectionHeight = qrSize + 5;
       let notesHeight = 0;
 
       if (notesBody) {
         const textMaxWidth = docWidth - (margin * 2) - (qrCodeDataUrl ? qrSize + 5 : 0);
         const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
         const notesDim = doc.getTextDimensions(notesBody, { ...textOptions });
-        notesHeight = notesDim.h + 8; // Title + text + padding
+        notesHeight = notesDim.h + 8;
       }
         
       const requiredHeight = Math.max(notesHeight, qrSectionHeight);
 
-      if (currentY + requiredHeight > pageHeight - 35) { // Check if it fits before signature
+      if (currentY + requiredHeight > pageHeight - 35) {
           doc.addPage();
           currentY = margin;
       }
@@ -453,7 +457,6 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       const notesAndQrYStart = currentY;
 
       if (notesBody) {
-        // Draw Notes
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.text('ADDITIONAL NOTES', margin, notesAndQrYStart);
@@ -462,7 +465,6 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         doc.text(notesBody, margin, notesAndQrYStart + 5, { align: 'justify' as const, maxWidth: docWidth - (margin * 2) - (qrCodeDataUrl ? qrSize + 5 : 0) });
       }
       
-      // Draw QR
       if (qrCodeDataUrl) {
         const qrX = docWidth - margin - qrSize;
         const qrY = notesAndQrYStart;
@@ -475,7 +477,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       currentY += requiredHeight;
 
     // --- Signature ---
-    currentY += 8; // Space between notes/qr and signature
+    currentY += 2; // Space between notes/qr and signature
     const signatureHeight = 20;
     if (currentY + signatureHeight > pageHeight - 35) {
         doc.addPage();
@@ -491,9 +493,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     let pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
-        doc.setFillColor(RED);
-        doc.rect(0, 0, docWidth, 5, 'F');
-
+        
         const footerHeight = 20;
         const footerStartY = pageHeight - footerHeight;
 

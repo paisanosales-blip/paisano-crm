@@ -220,6 +220,10 @@ export default function NewQuotationPage() {
       const LIGHT_GRAY = '#F5F5F5';
       const headerTextY = 15;
 
+      // Header background
+      docPdf.setFillColor(RED);
+      docPdf.rect(0, 0, docWidth, 5, 'F');
+
       if (logoUrl) {
         try {
           const response = await fetch(logoUrl);
@@ -442,7 +446,7 @@ export default function NewQuotationPage() {
       }
       
       // --- Additional Notes & QR Code ---
-      currentY += 8;
+      currentY += 4;
       const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
       let qrCodeDataUrl = '';
       try {
@@ -519,7 +523,7 @@ export default function NewQuotationPage() {
       currentY += requiredHeight;
 
       // --- Signature ---
-      currentY += 8; // Space between notes/qr and signature
+      currentY += 2; // Space between notes/qr and signature
       const signatureHeight = 20;
       if (currentY + signatureHeight > pageHeight - 35) {
           docPdf.addPage();
@@ -535,9 +539,7 @@ export default function NewQuotationPage() {
       let pageCount = (docPdf as any).internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
           docPdf.setPage(i);
-          docPdf.setFillColor(RED);
-          docPdf.rect(0, 0, docWidth, 5, 'F');
-
+          
           const footerHeight = 20;
           const footerStartY = pageHeight - footerHeight;
           
