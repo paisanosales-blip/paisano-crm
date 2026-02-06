@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2 } from 'lucide-react';
+import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2, KeyRound } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   generateMarketingPlan,
@@ -102,6 +102,10 @@ export default function MarketingPage() {
   
   const [planToDelete, setPlanToDelete] = useState<MarketingPlan | null>(null);
   const [isDeletePlanDialogOpen, setIsDeletePlanDialogOpen] = useState(false);
+  
+  const [taskToDelete, setTaskToDelete] = useState<CompletedTask | null>(null);
+  const [isDeleteTaskDialogOpen, setIsDeleteTaskDialogOpen] = useState(false);
+  const [deleteTaskCode, setDeleteTaskCode] = useState('');
 
   const marketingPlansQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -288,6 +292,31 @@ export default function MarketingPage() {
     }
   };
 
+  const handleDeleteTaskClick = (task: CompletedTask) => {
+    setTaskToDelete(task);
+    setIsDeleteTaskDialogOpen(true);
+    setDeleteTaskCode('');
+  };
+
+  const handleDeleteTaskConfirm = async () => {
+    if (!taskToDelete || !firestore || !selectedPlanId) return;
+    
+    if (deleteTaskCode !== 'PAISANO2026') {
+      toast({
+        variant: 'destructive',
+        title: 'Código Incorrecto',
+        description: 'El código especial ingresado no es válido.',
+      });
+      return;
+    }
+
+    const taskDocRef = doc(firestore, 'marketingPlans', selectedPlanId, 'completedTasks', taskToDelete.id);
+    await deleteDoc(taskDocRef);
+    toast({ title: 'Actividad Eliminada', description: 'La actividad completada ha sido eliminada.' });
+    setIsDeleteTaskDialogOpen(false);
+    setTaskToDelete(null);
+  };
+
   const isLoading = isUserLoading || isProfileLoading || arePlansLoading || areTasksLoading;
 
   return (
@@ -428,14 +457,23 @@ export default function MarketingPage() {
                                       <Badge variant="secondary" className="text-xs">{completionData.userName}</Badge>
                                     </div>
                                     <p className="text-xs whitespace-pre-wrap">{completionData.text}</p>
-                                    {completionData.fileUrl && (
-                                        <Button asChild size="sm" variant="outline" className="mt-2 h-7">
-                                            <a href={completionData.fileUrl} target="_blank" rel="noopener noreferrer">
-                                                <Paperclip className="h-3 w-3 mr-2" />
-                                                {completionData.fileName || 'Ver Archivo'}
-                                            </a>
-                                        </Button>
-                                    )}
+                                    <div className="flex justify-between items-center pt-2">
+                                        {completionData.fileUrl ? (
+                                            <Button asChild size="sm" variant="outline" className="h-7">
+                                                <a href={completionData.fileUrl} target="_blank" rel="noopener noreferrer">
+                                                    <Paperclip className="h-3 w-3 mr-2" />
+                                                    {completionData.fileName || 'Ver Archivo'}
+                                                </a>
+                                            </Button>
+                                        ) : <div />}
+
+                                        {userProfile?.role === 'manager' && (
+                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteTaskClick(completionData)} title="Eliminar actividad">
+                                              <Trash2 className="h-4 w-4" />
+                                              <span className="sr-only">Eliminar actividad</span>
+                                          </Button>
+                                        )}
+                                    </div>
                                   </CollapsibleContent>
                                 </Collapsible>
                               )}
@@ -527,6 +565,44 @@ export default function MarketingPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={isDeleteTaskDialogOpen} onOpenChange={setIsDeleteTaskDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar Actividad Completada?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Esta acción es irreversible y eliminará el registro de la publicación. Ingrese el código especial para confirmar.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="py-2 space-y-2">
+                <Label htmlFor="delete-task-code">Código Especial</Label>
+                <div className="relative">
+                    <KeyRound className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        id="delete-task-code"
+                        type="password"
+                        placeholder="Ingrese el código"
+                        className="pl-8"
+                        value={deleteTaskCode}
+                        onChange={(e) => setDeleteTaskCode(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleDeleteTaskConfirm();
+                            }
+                        }}
+                    />
+                </div>
+            </div>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteTaskConfirm} variant="destructive">
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Eliminar Permanentemente
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
