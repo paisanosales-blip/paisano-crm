@@ -411,14 +411,15 @@ export default function NewQuotationPage() {
       docPdf.setTextColor(BLACK);
 
       // --- Terms and Conditions (Full Width, NO BOX) ---
-      currentY += 10;
+      currentY += 12; // Space after totals
       const termsBody = quotationDetails.terms ? quotationDetails.terms.toUpperCase() : '';
       if (termsBody) {
         const textMaxWidth = docWidth - (margin * 2);
         const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
+        docPdf.setFont('helvetica', 'normal');
         docPdf.setFontSize(7);
         const termsDim = docPdf.getTextDimensions(termsBody, { ...textOptions });
-        const termsHeight = termsDim.h + 10;
+        const termsHeight = termsDim.h + 10; // Title + body
 
         if (currentY + termsHeight > pageHeight - 45) {
             docPdf.addPage();
@@ -428,16 +429,17 @@ export default function NewQuotationPage() {
         docPdf.setFont('helvetica', 'bold');
         docPdf.setFontSize(9);
         docPdf.text('TERMS AND CONDITIONS', margin, currentY);
-        currentY += 6;
+        currentY += 6; // Space for title
 
         docPdf.setFont('helvetica', 'normal');
+        docPdf.setFontSize(7);
         docPdf.text(termsBody, margin, currentY, textOptions);
         
-        currentY += termsDim.h;
+        currentY += termsDim.h; // Move past the terms body
+        currentY += 12; // Add a clear gap after the terms section
       }
       
       // --- Additional Notes & QR Code ---
-      currentY += 10;
       const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
       const qrSize = 20; // smaller
       const qrX = docWidth - margin - qrSize;

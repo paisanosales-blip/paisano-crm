@@ -368,15 +368,16 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     currentY = lineY;
     doc.setTextColor(BLACK);
 
-    // --- Terms and Conditions (NO BOX) ---
-    currentY += 10;
+    // --- Terms and Conditions (Full Width, NO BOX) ---
+    currentY += 12; // Space after totals
     const termsBody = quotationDetails.terms ? quotationDetails.terms.toUpperCase() : '';
     if (termsBody) {
       const textMaxWidth = docWidth - (margin * 2);
       const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
+      doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       const termsDim = doc.getTextDimensions(termsBody, { ...textOptions });
-      const termsHeight = termsDim.h + 10;
+      const termsHeight = termsDim.h + 10; // Title + body
 
       if (currentY + termsHeight > pageHeight - 45) {
           doc.addPage();
@@ -386,16 +387,17 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(9);
       doc.text('TERMS AND CONDITIONS', margin, currentY);
-      currentY += 6;
+      currentY += 6; // Space for title
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       doc.text(termsBody, margin, currentY, textOptions);
-      currentY += termsDim.h;
+      
+      currentY += termsDim.h; // Move past the terms body
+      currentY += 12; // Add a clear gap after the terms section
     }
     
     // --- Additional Notes & QR Code ---
-    currentY += 10;
     const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
     const qrSize = 20; // smaller
     const qrX = docWidth - margin - qrSize;
