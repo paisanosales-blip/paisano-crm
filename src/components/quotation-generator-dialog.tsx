@@ -164,7 +164,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
 
     if (logoUrl) {
       try {
-        const format = logoUrl.split(';')[0].split('/')[1]; // Correctly extract format like "png" or "jpeg"
+        const format = logoUrl.split(';')[0].split('/')[1].split('+')[0]; // Correctly extract format like "png" or "jpeg"
         const img = new Image();
         img.src = logoUrl;
         const imgWidth = 65;
@@ -449,8 +449,20 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         doc.text(footerText, docWidth / 2, footerTextY, { align: 'center', baseline: 'middle' });
         doc.text(`PAGE ${i} OF ${pageCount}`, docWidth - margin, footerTextY, { align: 'right', baseline: 'middle' });
     }
+    
+    const pdfBlob = doc.output('blob');
+    const fileName = `QT-${quotationDetails.number}-${prospect.clientName.replace(/\s/g, '_')}.pdf`;
+    
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    const link = document.createElement('a');
+    link.href = pdfUrl;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(pdfUrl);
 
-    const pdfFile = new File([doc.output('blob')], `QT-${quotationDetails.number}-${prospect.clientName.replace(/\s/g, '_')}.pdf`, { type: 'application/pdf' });
+    const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
     onConfirm({
       value: total,

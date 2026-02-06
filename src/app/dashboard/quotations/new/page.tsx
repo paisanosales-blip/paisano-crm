@@ -219,7 +219,7 @@ export default function NewQuotationPage() {
 
       if (logoUrl) {
         try {
-          const format = logoUrl.split(';')[0].split('/')[1]; // Correctly extract format like "png" or "jpeg"
+          const format = logoUrl.split(';')[0].split('/')[1].split('+')[0]; // Correctly extract format like "png" or "jpeg"
           const img = new Image();
           img.src = logoUrl;
           const imgWidth = 65;
@@ -491,7 +491,18 @@ export default function NewQuotationPage() {
       }
 
       const pdfBlob = docPdf.output('blob');
-      const pdfFile = new File([pdfBlob], `QT-${quotationDetails.number}-${selectedClient.clientName.replace(/\s/g, '_')}.pdf`, { type: 'application/pdf' });
+      const fileName = `QT-${quotationDetails.number}-${selectedClient.clientName.replace(/\s/g, '_')}.pdf`;
+      
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(pdfUrl);
+
+      const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
       
       const storageRef = ref(storage, `quotations/${opportunityId}/${pdfFile.name}`);
       const uploadTask = uploadBytesResumable(storageRef, pdfFile);
