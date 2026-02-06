@@ -241,7 +241,7 @@ export default function NewQuotationPage() {
           });
           const format = blob.type.split('/')[1];
           const imgWidth = 65;
-          docPdf.addImage(img.src, format.toUpperCase(), margin, 0, imgWidth, 0, undefined, 'NONE');
+          docPdf.addImage(img.src, format.toUpperCase(), margin, 5, imgWidth, 0, undefined, 'NONE');
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
         }
