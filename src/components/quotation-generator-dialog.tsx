@@ -355,8 +355,8 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         body: tableBody,
         startY: currentY,
         theme: 'striped',
-        headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
-        styles: { fontSize: 10, cellPadding: 3 },
+        headStyles: { font: 'helvetica', fontStyle: 'bold', fillColor: [139, 0, 0], textColor: [255, 255, 255], fontSize: 10 },
+        styles: { font: 'helvetica', fontSize: 10, cellPadding: 3 },
         columnStyles: isIndividualFreight ? columnStyles5 : columnStyles4,
         margin: { left: margin, right: margin }
     });
@@ -469,6 +469,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     const sigXStart = (docWidth - sigWidth) / 2;
     doc.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
     doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
     doc.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
     
     let pageCount = (doc as any).internal.getNumberOfPages();
@@ -482,6 +483,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         
         doc.setFontSize(9);
         doc.setTextColor('#FFFFFF');
+        doc.setFont('helvetica', 'normal');
 
         const footerTextY = footerStartY + (footerHeight / 2);
         const footerText = `paisanosales@gmail.com | 915 408 7478 | www.paisanotrailer.com`;

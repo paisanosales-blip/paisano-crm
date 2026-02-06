@@ -404,8 +404,8 @@ export default function NewQuotationPage() {
           body: tableBody,
           startY: currentY,
           theme: 'striped',
-          headStyles: { fillColor: [139, 0, 0], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 10 },
-          styles: { fontSize: 10, cellPadding: 3 },
+          headStyles: { font: 'helvetica', fontStyle: 'bold', fillColor: [139, 0, 0], textColor: [255, 255, 255], fontSize: 10 },
+          styles: { font: 'helvetica', fontSize: 10, cellPadding: 3 },
           columnStyles: isIndividualFreight ? columnStyles5 : columnStyles4,
           margin: { left: margin, right: margin }
       });
@@ -511,6 +511,7 @@ export default function NewQuotationPage() {
       const sigXStart = (docWidth - sigWidth) / 2;
       docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
       docPdf.setFontSize(9);
+      docPdf.setFont('helvetica', 'normal');
       docPdf.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
       
       let pageCount = (docPdf as any).internal.getNumberOfPages();
@@ -524,6 +525,7 @@ export default function NewQuotationPage() {
           
           docPdf.setFontSize(9);
           docPdf.setTextColor('#FFFFFF');
+          docPdf.setFont('helvetica', 'normal');
 
           const footerTextY = footerStartY + (footerHeight / 2);
           const footerText = `paisanosales@gmail.com | 915 408 7478 | www.paisanotrailer.com`;
