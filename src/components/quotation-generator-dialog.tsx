@@ -213,49 +213,9 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     
     currentY = separatorY + 8;
     
-    const qrSize = 18;
-    const qrX = margin;
-    const qrY = currentY;
-
-    try {
-      const canvas = document.createElement('canvas');
-      await QRCode.toCanvas(canvas, 'https://www.paisanotrailer.com/limited-warranty', { width: 150, errorCorrectionLevel: 'H' });
-      
-      const qrLogoUrl = localStorage.getItem('sidebarLogo');
-      if (qrLogoUrl) {
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            const img = new Image();
-            img.crossOrigin = 'Anonymous';
-            const imgPromise = new Promise<void>((resolve, reject) => {
-                img.onload = () => resolve();
-                img.onerror = (err) => reject(err);
-                img.src = qrLogoUrl;
-            });
-            await imgPromise;
-            
-            const center = canvas.width / 2;
-            const logoSize = canvas.width * 0.25;
-            const logoXCenter = center - logoSize / 2;
-            const logoYCenter = center - logoSize / 2;
-            ctx.fillStyle = 'white';
-            ctx.fillRect(logoXCenter - 2, logoYCenter - 2, logoSize + 4, logoSize + 4);
-            ctx.drawImage(img, logoXCenter, logoYCenter, logoSize, logoSize);
-          }
-      }
-      
-      const qrCodeDataUrl = canvas.toDataURL('image/png');
-      doc.addImage(qrCodeDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
-      doc.setFontSize(6);
-      doc.setFont('helvetica', 'bold');
-      doc.text('1 YEAR WARRANTY', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
-    } catch (err) {
-        console.error('Failed to generate QR code:', err);
-    }
-    
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    const quoteDetailsX = qrX + qrSize + 10;
+    const quoteDetailsX = margin;
     doc.text('QUOTATION #:', quoteDetailsX, currentY);
     doc.text('DATE:', quoteDetailsX, currentY + 6);
     doc.text('VALIDITY:', quoteDetailsX, currentY + 12);
@@ -265,11 +225,11 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.text(new Date().toLocaleDateString('en-GB'), quoteDetailsX + 30, currentY + 6);
     doc.text(quotationDetails.validity.toUpperCase(), quoteDetailsX + 30, currentY + 12);
     
-    currentY += qrSize + 8;
+    currentY += 12 + 8;
 
     const infoStartY = currentY;
     const rightColX = docWidth / 2 + 5;
-    const infoBoxHeight = 22; // Reduced height
+    const infoBoxHeight = 20;
     const titleBoxHeight = 7;
     const contentStartY = infoStartY + titleBoxHeight;
     
@@ -406,7 +366,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     currentY = lineY;
     doc.setTextColor(BLACK);
 
-    // --- Terms and Conditions (Full Width, NO BOX) ---
+    // --- Terms and Conditions ---
     currentY += 10;
     const termsBody = quotationDetails.terms ? quotationDetails.terms.toUpperCase() : '';
     if (termsBody) {
@@ -417,7 +377,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       const termsDim = doc.getTextDimensions(termsBody, { ...textOptions });
       const termsHeight = termsDim.h + 8;
 
-      if (currentY + termsHeight > pageHeight - 45) {
+      if (currentY + termsHeight > pageHeight - 35) {
           doc.addPage();
           currentY = margin;
       }
@@ -437,29 +397,82 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     // --- Additional Notes & QR Code ---
     currentY += 8;
     const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
-    if (notesBody) {
-      const textMaxWidth = docWidth - (margin * 2);
-      const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
-      const notesDim = doc.getTextDimensions(notesBody, { ...textOptions });
-      const notesHeight = notesDim.h + 8;
+      let qrCodeDataUrl = '';
+      try {
+        const canvas = document.createElement('canvas');
+        await QRCode.toCanvas(canvas, 'https://www.paisanotrailer.com/limited-warranty', { width: 150, errorCorrectionLevel: 'H' });
+        
+        const qrLogoUrl = localStorage.getItem('sidebarLogo');
+        if (qrLogoUrl) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              const img = new Image();
+              img.crossOrigin = 'Anonymous';
+              const imgPromise = new Promise<void>((resolve, reject) => {
+                  img.onload = () => resolve();
+                  img.onerror = (err) => reject(err);
+                  img.src = qrLogoUrl;
+              });
+              await imgPromise;
+              
+              const center = canvas.width / 2;
+              const logoSize = canvas.width * 0.25;
+              const logoXCenter = center - logoSize / 2;
+              const logoYCenter = center - logoSize / 2;
+              ctx.fillStyle = 'white';
+              ctx.fillRect(logoXCenter - 2, logoYCenter - 2, logoSize + 4, logoSize + 4);
+              ctx.drawImage(img, logoXCenter, logoYCenter, logoSize, logoSize);
+            }
+        }
+        qrCodeDataUrl = canvas.toDataURL('image/png');
+      } catch (err) {
+          console.error('Failed to generate QR code:', err);
+      }
       
-      if (currentY + notesHeight > pageHeight - 35) {
+      const qrSize = 18;
+      const qrSectionHeight = qrSize + 5; // QR + text below it
+      let notesHeight = 0;
+
+      if (notesBody) {
+        const textMaxWidth = docWidth - (margin * 2) - (qrCodeDataUrl ? qrSize + 5 : 0);
+        const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
+        const notesDim = doc.getTextDimensions(notesBody, { ...textOptions });
+        notesHeight = notesDim.h + 8; // Title + text + padding
+      }
+        
+      const requiredHeight = Math.max(notesHeight, qrSectionHeight);
+
+      if (currentY + requiredHeight > pageHeight - 35) { // Check if it fits before signature
           doc.addPage();
           currentY = margin;
       }
       
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.text('ADDITIONAL NOTES', margin, currentY);
+      const notesAndQrYStart = currentY;
+
+      if (notesBody) {
+        // Draw Notes
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text('ADDITIONAL NOTES', margin, notesAndQrYStart);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.text(notesBody, margin, notesAndQrYStart + 5, { align: 'justify' as const, maxWidth: docWidth - (margin * 2) - (qrCodeDataUrl ? qrSize + 5 : 0) });
+      }
       
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.text(notesBody, margin, currentY + 5, textOptions);
-      currentY += notesDim.h + 5;
-    }
-    
+      // Draw QR
+      if (qrCodeDataUrl) {
+        const qrX = docWidth - margin - qrSize;
+        const qrY = notesAndQrYStart;
+        doc.addImage(qrCodeDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+        doc.setFontSize(6);
+        doc.setFont('helvetica', 'bold');
+        doc.text('1 YEAR WARRANTY', qrX + qrSize / 2, qrY + qrSize + 3, { align: 'center' });
+      }
+      
+      currentY += requiredHeight;
+
     // --- Signature ---
-    currentY += 8;
+    currentY += 8; // Space between notes/qr and signature
     const signatureHeight = 20;
     if (currentY + signatureHeight > pageHeight - 35) {
         doc.addPage();
