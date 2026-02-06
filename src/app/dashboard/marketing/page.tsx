@@ -80,15 +80,23 @@ type CompletedTask = TaskCompletionData & {
 };
 
 export default function MarketingPage() {
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+
+  const [selectedUserId, setSelectedUserId] = useState<string>('me');
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
-  const { data: userProfile } = useDoc(userProfileRef);
+  const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
+
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore || userProfile?.role !== 'manager') return null;
+    return query(collection(firestore, 'users'));
+  }, [firestore, userProfile]);
+  const { data: allUsers, isLoading: areUsersLoading } = useCollection(usersQuery);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
@@ -103,9 +111,20 @@ export default function MarketingPage() {
   const [taskToUncheck, setTaskToUncheck] = useState<string | null>(null);
 
   const marketingPlansQuery = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return query(collection(firestore, 'marketingPlans'));
-  }, [firestore, user]);
+    if (!user || !userProfile) return null;
+    const baseCollection = collection(firestore, 'marketingPlans');
+    const isManager = userProfile.role === 'manager';
+
+    if (isManager) {
+        if (selectedUserId === 'all') {
+            return query(baseCollection);
+        }
+        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
+        return query(baseCollection, where('sellerId', '==', userIdToFilter));
+    }
+    
+    return query(baseCollection, where('sellerId', '==', user.uid));
+  }, [firestore, user, userProfile, selectedUserId]);
   const { data: marketingPlans, isLoading: arePlansLoading } = useCollection<MarketingPlan>(marketingPlansQuery);
 
   const sortedMarketingPlans = useMemo(() => {
@@ -117,8 +136,13 @@ export default function MarketingPage() {
   useEffect(() => {
     if (!selectedPlanId && sortedMarketingPlans.length > 0) {
       setSelectedPlanId(sortedMarketingPlans[0].id);
+    } else if (marketingPlans && !marketingPlans.find(p => p.id === selectedPlanId) && sortedMarketingPlans.length > 0) {
+      // If the selected plan is not in the new list, select the first one
+      setSelectedPlanId(sortedMarketingPlans[0].id);
+    } else if (marketingPlans && marketingPlans.length === 0) {
+      setSelectedPlanId(null);
     }
-  }, [sortedMarketingPlans, selectedPlanId]);
+  }, [sortedMarketingPlans, selectedPlanId, marketingPlans]);
 
   const plan = useMemo(() => {
     if (!selectedPlanId || !marketingPlans) return null;
@@ -257,14 +281,30 @@ export default function MarketingPage() {
     }
   };
 
-  const isLoading = arePlansLoading || areTasksLoading;
+  const isLoading = isUserLoading || isProfileLoading || areUsersLoading || arePlansLoading || areTasksLoading;
 
   return (
     <>
       <div className="grid gap-6">
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-headline font-bold">Asistente de Marketing</h1>
-          <div className="flex w-full sm:w-auto">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+             {userProfile?.role === 'manager' && (
+              <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
+                <SelectTrigger className="w-full sm:w-[220px]">
+                  <SelectValue placeholder="Seleccionar vendedor..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="me">Mis Planes</SelectItem>
+                  <SelectItem value="all">Todos los Planes</SelectItem>
+                  {allUsers?.filter(u => u.id !== user?.uid).map((u: any) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {`${u.firstName} ${u.lastName}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
               <Button onClick={() => setIsConfirmDialogOpen(true)} disabled={isGenerating} className="w-full sm:w-auto">
                 {isGenerating ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
