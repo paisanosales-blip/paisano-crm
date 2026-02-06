@@ -167,7 +167,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
 
     // Header background
     doc.setFillColor(RED);
-    doc.rect(0, 0, docWidth, 5, 'F');
+    doc.rect(0, 0, doc.internal.pageSize.getWidth(), 5, 'F');
 
     if (logoUrl) {
       try {

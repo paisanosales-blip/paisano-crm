@@ -222,7 +222,7 @@ export default function NewQuotationPage() {
 
       // Header background
       docPdf.setFillColor(RED);
-      docPdf.rect(0, 0, docWidth, 5, 'F');
+      docPdf.rect(0, 0, docPdf.internal.pageSize.getWidth(), 5, 'F');
 
       if (logoUrl) {
         try {
