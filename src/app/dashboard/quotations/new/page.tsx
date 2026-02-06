@@ -309,11 +309,12 @@ export default function NewQuotationPage() {
       docPdf.rect(margin, contentStartY, salesPersonBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
       
       docPdf.setFont('helvetica', 'bold');
-      docPdf.setFontSize(9);
+      docPdf.setFontSize(10);
       docPdf.setTextColor('#FFFFFF');
       docPdf.text('SALES PERSON:', margin + 3, infoStartY + 4.5);
       
       docPdf.setFont('helvetica', 'normal');
+      docPdf.setFontSize(9);
       docPdf.setTextColor(BLACK);
       if (userProfile) {
           docPdf.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, contentStartY + 4);
@@ -328,10 +329,12 @@ export default function NewQuotationPage() {
       docPdf.rect(rightColX, contentStartY, buyerBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
 
       docPdf.setFont('helvetica', 'bold');
+      docPdf.setFontSize(10);
       docPdf.setTextColor('#FFFFFF');
       docPdf.text('BUYER:', rightColX + 3, infoStartY + 4.5);
 
       docPdf.setFont('helvetica', 'normal');
+      docPdf.setFontSize(9);
       docPdf.setTextColor(BLACK);
       docPdf.text(selectedClient.clientName.toUpperCase(), rightColX + 3, contentStartY + 4);
       docPdf.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, contentStartY + 9);
@@ -382,8 +385,8 @@ export default function NewQuotationPage() {
           body: tableBody,
           startY: currentY,
           theme: 'striped',
-          headStyles: { font: 'helvetica', fontStyle: 'bold', fillColor: [139, 0, 0], textColor: [255, 255, 255], fontSize: 10 },
-          styles: { font: 'helvetica', fontSize: 10, cellPadding: 3 },
+          headStyles: { font: 'helvetica', fontStyle: 'bold', fillColor: [139, 0, 0], textColor: [255, 255, 255], fontSize: 9 },
+          styles: { font: 'helvetica', fontSize: 9, cellPadding: 3 },
           columnStyles: isIndividualFreight ? columnStyles5 : columnStyles4,
           margin: { left: margin, right: margin }
       });
@@ -443,7 +446,7 @@ export default function NewQuotationPage() {
         }
 
         docPdf.setFont('helvetica', 'bold');
-        docPdf.setFontSize(9);
+        docPdf.setFontSize(8);
         docPdf.text('TERMS AND CONDITIONS', margin, currentY);
         currentY += 5;
 
@@ -519,7 +522,7 @@ export default function NewQuotationPage() {
       const notesAndQrStartY = currentY;
       if (notesBody) {
         docPdf.setFont('helvetica', 'bold');
-        docPdf.setFontSize(9);
+        docPdf.setFontSize(8);
         docPdf.text('ADDITIONAL NOTES', margin, notesAndQrStartY);
         docPdf.setFont('helvetica', 'normal');
         docPdf.setFontSize(7);
@@ -542,7 +545,7 @@ export default function NewQuotationPage() {
       const sigWidth = 80;
       const sigXStart = (docWidth - sigWidth) / 2;
       docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
-      docPdf.setFontSize(9);
+      docPdf.setFontSize(8);
       docPdf.setFont('helvetica', 'normal');
       docPdf.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
       
@@ -834,3 +837,4 @@ export default function NewQuotationPage() {
 }
 
     
+

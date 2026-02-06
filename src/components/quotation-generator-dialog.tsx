@@ -255,11 +255,12 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.rect(margin, contentStartY, salesPersonBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
     
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setTextColor('#FFFFFF');
     doc.text('SALES PERSON:', margin + 3, infoStartY + 4.5);
     
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
     doc.setTextColor(BLACK);
     if (userProfile) {
         doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, contentStartY + 4);
@@ -274,10 +275,12 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.rect(rightColX, contentStartY, buyerBoxWidth, infoBoxHeight - titleBoxHeight, 'F');
 
     doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
     doc.setTextColor('#FFFFFF');
     doc.text('BUYER:', rightColX + 3, infoStartY + 4.5);
 
     doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
     doc.setTextColor(BLACK);
     doc.text(prospect.clientName.toUpperCase(), rightColX + 3, contentStartY + 4);
     doc.text(`ATTN: ${prospect.contactPerson.toUpperCase()}`, rightColX + 3, contentStartY + 9);
@@ -330,8 +333,8 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         body: tableBody,
         startY: currentY,
         theme: 'striped',
-        headStyles: { font: 'helvetica', fontStyle: 'bold', fillColor: [139, 0, 0], textColor: [255, 255, 255], fontSize: 10 },
-        styles: { font: 'helvetica', fontSize: 10, cellPadding: 3 },
+        headStyles: { font: 'helvetica', fontStyle: 'bold', fillColor: [139, 0, 0], textColor: [255, 255, 255], fontSize: 9 },
+        styles: { font: 'helvetica', fontSize: 9, cellPadding: 3 },
         columnStyles: isIndividualFreight ? columnStyles5 : columnStyles4,
         margin: { left: margin, right: margin }
     });
@@ -385,7 +388,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     currentY += 10;
     const termsBody = quotationDetails.terms ? quotationDetails.terms.toUpperCase() : '';
     if (termsBody) {
-      const textMaxWidth = docWidth - (margin * 2);
+      const textMaxWidth = doc.internal.pageSize.width - (margin * 2);
       const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
@@ -398,7 +401,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       }
 
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.text('TERMS AND CONDITIONS', margin, currentY);
       currentY += 5;
 
@@ -474,7 +477,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     const notesAndQrStartY = currentY;
     if (notesBody) {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.text('ADDITIONAL NOTES', margin, notesAndQrStartY);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
@@ -497,7 +500,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     const sigWidth = 80;
     const sigXStart = (docWidth - sigWidth) / 2;
     doc.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
     
@@ -730,3 +733,4 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
 }
 
     
+
