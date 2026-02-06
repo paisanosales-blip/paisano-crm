@@ -222,7 +222,7 @@ export default function NewQuotationPage() {
       // PDF Header Coordinates
       const headerConfig = {
           lineHeight: 5,
-          logoX: margin,
+          logoX: 15,
           logoY: 0,
           logoWidth: 65,
           textX: docWidth - margin,
@@ -454,8 +454,10 @@ export default function NewQuotationPage() {
         currentY += termsDim.h;
       }
       
-      // --- Additional Notes & QR Code ---
-      currentY += 4;
+      // --- Additional Notes, QR Code & Signature (Combined Block) ---
+      const fixedSpacingBeforeSignature = 4;
+      const signatureHeight = 15; // The height of the signature block (line + text)
+
       const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
       let qrCodeDataUrl = '';
       try {
@@ -500,41 +502,43 @@ export default function NewQuotationPage() {
         notesHeight = notesDim.h + 8; // Title + text + padding
       }
       
-      const requiredHeight = Math.max(notesHeight, qrSectionHeight);
-      if (currentY + requiredHeight > pageHeight - 35) { // Check if it fits before signature
+      const notesAndQrHeight = Math.max(notesHeight, qrSectionHeight);
+      
+      // Calculate total height needed for the combined block (including spacing before notes)
+      const combinedBlockHeight = 4 + notesAndQrHeight + fixedSpacingBeforeSignature + signatureHeight;
+
+      // Check if the combined block fits on the current page
+      if (currentY + combinedBlockHeight > pageHeight - 35) {
           docPdf.addPage();
           currentY = margin;
       }
       
-      // Draw Notes
+      currentY += 4; // Spacing before the notes/QR section
+
+      // --- Draw Additional Notes & QR Code ---
+      const notesAndQrStartY = currentY;
       if (notesBody) {
         docPdf.setFont('helvetica', 'bold');
         docPdf.setFontSize(9);
-        docPdf.text('ADDITIONAL NOTES', margin, currentY);
+        docPdf.text('ADDITIONAL NOTES', margin, notesAndQrStartY);
         docPdf.setFont('helvetica', 'normal');
         docPdf.setFontSize(7);
         const textMaxWidth = docWidth - (margin * 2) - (qrCodeDataUrl ? qrSize + 5 : 0);
-        docPdf.text(notesBody, margin, currentY + 5, { align: 'justify' as const, maxWidth: textMaxWidth });
+        docPdf.text(notesBody, margin, notesAndQrStartY + 5, { align: 'justify' as const, maxWidth: textMaxWidth });
       }
       
-      // Draw QR
       if (qrCodeDataUrl) {
         const qrX = docWidth - margin - qrSize;
-        docPdf.addImage(qrCodeDataUrl, 'PNG', qrX, currentY, qrSize, qrSize);
+        docPdf.addImage(qrCodeDataUrl, 'PNG', qrX, notesAndQrStartY, qrSize, qrSize);
         docPdf.setFontSize(6);
         docPdf.setFont('helvetica', 'bold');
-        docPdf.text('1 YEAR WARRANTY', qrX + qrSize / 2, currentY + qrSize + 3, { align: 'center' });
+        docPdf.text('1 YEAR WARRANTY', qrX + qrSize / 2, notesAndQrStartY + qrSize + 3, { align: 'center' });
       }
-      
-      currentY += Math.max(notesHeight, qrSectionHeight);
 
-      // --- Signature ---
-      currentY += 4;
-      const signatureHeight = 15;
-      if (currentY + signatureHeight > pageHeight - 35) {
-          docPdf.addPage();
-          currentY = margin;
-      }
+      currentY = notesAndQrStartY + notesAndQrHeight;
+
+      // --- Draw Signature ---
+      currentY += fixedSpacingBeforeSignature; // Add the fixed spacing
       const sigWidth = 80;
       const sigXStart = (docWidth - sigWidth) / 2;
       docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
