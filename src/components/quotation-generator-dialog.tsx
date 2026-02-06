@@ -163,7 +163,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     const BLACK = '#000000';
     const LIGHT_GRAY = '#F5F5F5';
     
-    const headerTextY = 15;
+    const headerTextY = 11;
 
     // Header background
     doc.setFillColor(RED);
