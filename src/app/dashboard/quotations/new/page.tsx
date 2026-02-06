@@ -218,11 +218,20 @@ export default function NewQuotationPage() {
       const RED = '#8B0000';
       const BLACK = '#000000';
       const LIGHT_GRAY = '#F5F5F5';
-      const headerTextY = 11;
+
+      // PDF Header Coordinates
+      const headerConfig = {
+          lineHeight: 5,
+          logoX: margin,
+          logoY: 11,
+          logoWidth: 65,
+          textX: docWidth - margin,
+          textY: 11
+      };
 
       // Header background
       docPdf.setFillColor(RED);
-      docPdf.rect(0, 0, docPdf.internal.pageSize.getWidth(), 5, 'F');
+      docPdf.rect(0, 0, docPdf.internal.pageSize.getWidth(), headerConfig.lineHeight, 'F');
 
       if (logoUrl) {
         try {
@@ -240,8 +249,7 @@ export default function NewQuotationPage() {
             img.onload = () => resolve();
           });
           const format = blob.type.split('/')[1];
-          const imgWidth = 65;
-          docPdf.addImage(img.src, format.toUpperCase(), margin, headerTextY, imgWidth, 0, undefined, 'NONE');
+          docPdf.addImage(img.src, format.toUpperCase(), headerConfig.logoX, headerConfig.logoY, headerConfig.logoWidth, 0, undefined, 'NONE');
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
         }
@@ -250,11 +258,11 @@ export default function NewQuotationPage() {
       docPdf.setFont('helvetica', 'bold');
       docPdf.setFontSize(16);
       docPdf.setTextColor(BLACK);
-      docPdf.text('PAISANO TRAILER', docWidth - margin, headerTextY, { align: 'right', baseline: 'top' });
+      docPdf.text('PAISANO TRAILER', headerConfig.textX, headerConfig.textY, { align: 'right', baseline: 'top' });
       docPdf.setFont('helvetica', 'normal');
       docPdf.setFontSize(10);
       docPdf.setTextColor(100);
-      const addressY = headerTextY + 10;
+      const addressY = headerConfig.textY + 10;
       const addressLineSpacing = 5;
       docPdf.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
       docPdf.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });

@@ -163,11 +163,19 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     const BLACK = '#000000';
     const LIGHT_GRAY = '#F5F5F5';
     
-    const headerTextY = 11;
+    // PDF Header Coordinates
+    const headerConfig = {
+        lineHeight: 5,
+        logoX: margin,
+        logoY: 11,
+        logoWidth: 65,
+        textX: docWidth - margin,
+        textY: 11
+    };
 
     // Header background
     doc.setFillColor(RED);
-    doc.rect(0, 0, doc.internal.pageSize.getWidth(), 5, 'F');
+    doc.rect(0, 0, doc.internal.pageSize.getWidth(), headerConfig.lineHeight, 'F');
 
     if (logoUrl) {
       try {
@@ -185,8 +193,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
           img.onload = () => resolve();
         });
         const format = blob.type.split('/')[1];
-        const imgWidth = 65;
-        doc.addImage(img.src, format.toUpperCase(), margin, headerTextY, imgWidth, 0, undefined, 'NONE');
+        doc.addImage(img.src, format.toUpperCase(), headerConfig.logoX, headerConfig.logoY, headerConfig.logoWidth, 0, undefined, 'NONE');
       } catch (e) {
         console.error("Error adding logo image to PDF:", e);
       }
@@ -195,13 +202,13 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
     doc.setTextColor(BLACK);
-    doc.text('PAISANO TRAILER', docWidth - margin, headerTextY, { align: 'right', baseline: 'top' });
+    doc.text('PAISANO TRAILER', headerConfig.textX, headerConfig.textY, { align: 'right', baseline: 'top' });
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
     doc.setTextColor(100);
 
-    const addressY = headerTextY + 10;
+    const addressY = headerConfig.textY + 10;
     const addressLineSpacing = 5;
     doc.text('CAMPO MENONITA 51T, NAMIQUIPA,', docWidth - margin, addressY, { align: 'right' });
     doc.text('CHIH. MEX, CP 31978', docWidth - margin, addressY + addressLineSpacing, { align: 'right' });
