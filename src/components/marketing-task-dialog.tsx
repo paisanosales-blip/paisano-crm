@@ -48,6 +48,7 @@ interface MarketingTaskDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: (data: TaskCompletionData) => void;
   taskDescription: string;
+  initialData?: TaskCompletionData | null;
 }
 
 export function MarketingTaskDialog({
@@ -55,11 +56,14 @@ export function MarketingTaskDialog({
   onOpenChange,
   onConfirm,
   taskDescription,
+  initialData,
 }: MarketingTaskDialogProps) {
   const storage = useStorage();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const isEditing = !!initialData;
 
   const form = useForm<TaskCompletionFormValues>({
     resolver: zodResolver(taskCompletionSchema),
@@ -72,14 +76,22 @@ export function MarketingTaskDialog({
   
   useEffect(() => {
     if(open) {
+      if (isEditing && initialData) {
+        form.reset({
+          title: initialData.title,
+          text: initialData.text,
+          file: undefined,
+        });
+      } else {
         form.reset({title: '', text: '', file: undefined});
-        setIsSubmitting(false);
-        setUploadProgress(0);
+      }
+      setIsSubmitting(false);
+      setUploadProgress(0);
     }
-  }, [open, form]);
+  }, [open, form, isEditing, initialData]);
 
   function onSubmit(values: TaskCompletionFormValues) {
-    if (!storage) {
+    if (values.file && !storage) {
         toast({ variant: 'destructive', title: 'Error', description: 'Servicio de almacenamiento no disponible.' });
         return;
     }
@@ -93,14 +105,14 @@ export function MarketingTaskDialog({
             fileUrl,
             fileName,
         });
-        toast({ title: '¡Tarea Completada!', description: 'El registro de la tarea ha sido guardado.' });
+        toast({ title: isEditing ? '¡Tarea Actualizada!' : '¡Tarea Completada!', description: 'El registro de la tarea ha sido guardado.' });
         onOpenChange(false);
     };
     
     if (values.file) {
       setUploadProgress(0);
       const file = values.file;
-      const storageRef = ref(storage, `marketing_uploads/${Date.now()}_${file.name}`);
+      const storageRef = ref(storage!, `marketing_uploads/${Date.now()}_${file.name}`);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       uploadTask.on(
@@ -128,11 +140,11 @@ export function MarketingTaskDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Completar Tarea de Marketing</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar' : 'Completar'} Tarea de Marketing</DialogTitle>
           <DialogDescription>
             <span className="font-semibold">Tarea:</span> "{taskDescription}"
             <br />
-            Llene los siguientes campos para marcar la tarea como completada.
+            {isEditing ? 'Modifique los detalles de la publicación.' : 'Llene los siguientes campos para marcar la tarea como completada.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -172,7 +184,7 @@ export function MarketingTaskDialog({
               name="file"
               render={({ field: { onChange, value, ...rest } }) => (
                 <FormItem>
-                  <FormLabel>Adjuntar Foto o Video (Opcional)</FormLabel>
+                  <FormLabel>{isEditing ? 'Reemplazar Foto o Video (Opcional)' : 'Adjuntar Foto o Video (Opcional)'}</FormLabel>
                   <FormControl>
                     <Input
                       type="file"
@@ -182,6 +194,11 @@ export function MarketingTaskDialog({
                       }}
                     />
                   </FormControl>
+                  {isEditing && initialData?.fileUrl && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Archivo actual: <a href={initialData.fileUrl} target="_blank" rel="noopener noreferrer" className="underline">{initialData.fileName || 'Ver archivo'}</a>
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -193,7 +210,7 @@ export function MarketingTaskDialog({
                 Cancelar
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Guardando...' : 'Completar Tarea'}
+                {isSubmitting ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Completar Tarea')}
               </Button>
             </DialogFooter>
           </form>

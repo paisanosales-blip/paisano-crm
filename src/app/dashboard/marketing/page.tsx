@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2, KeyRound } from 'lucide-react';
+import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2, KeyRound, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   generateMarketingPlan,
@@ -96,6 +96,7 @@ export default function MarketingPage() {
 
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<{ id: string; description: string; points: number; } | null>(null);
+  const [editingTaskData, setEditingTaskData] = useState<CompletedTask | null>(null);
   
   const [uncheckAlertOpen, setUncheckAlertOpen] = useState(false);
   const [taskToUncheck, setTaskToUncheck] = useState<string | null>(null);
@@ -216,11 +217,17 @@ export default function MarketingPage() {
   const handleTaskCheckChange = (taskId: string, task: MarketingTask, checked: boolean) => {
     if (checked) {
       setSelectedTask({ id: taskId, description: task.description, points: task.points });
+      setEditingTaskData(null);
       setIsTaskDialogOpen(true);
     } else {
       setTaskToUncheck(taskId);
       setUncheckAlertOpen(true);
     }
+  };
+
+  const handleEditTaskClick = (task: CompletedTask) => {
+    setEditingTaskData(task);
+    setIsTaskDialogOpen(true);
   };
 
   const handleUncheckConfirm = async () => {
@@ -231,23 +238,41 @@ export default function MarketingPage() {
     setTaskToUncheck(null);
   };
 
-  const handleTaskCompletion = (data: TaskCompletionData) => {
-    if (!selectedTask || !firestore || !selectedPlanId || !user || !userProfile) return;
-    
-    const taskDocRef = doc(firestore, 'marketingPlans', selectedPlanId, 'completedTasks', selectedTask.id);
-    
-    const completedTaskData: CompletedTask = {
-      ...data,
-      id: selectedTask.id,
-      planId: selectedPlanId,
-      userId: user.uid,
-      userName: `${userProfile.firstName} ${userProfile.lastName}`,
-      taskDescription: selectedTask.description,
-      points: selectedTask.points,
-      completedAt: new Date().toISOString(),
-    };
+  const handleTaskDialogConfirm = (data: TaskCompletionData) => {
+    if (editingTaskData) {
+      if (!firestore || !selectedPlanId) return;
+      const taskDocRef = doc(firestore, 'marketingPlans', selectedPlanId, 'completedTasks', editingTaskData.id);
+      
+      const updatedTaskData: CompletedTask = {
+        ...editingTaskData,
+        title: data.title,
+        text: data.text,
+      };
 
-    setDocumentNonBlocking(taskDocRef, completedTaskData, {});
+      if (data.fileUrl !== undefined) {
+        updatedTaskData.fileUrl = data.fileUrl;
+        updatedTaskData.fileName = data.fileName;
+      }
+      
+      setDocumentNonBlocking(taskDocRef, updatedTaskData, {});
+
+    } else {
+      if (!selectedTask || !firestore || !selectedPlanId || !user || !userProfile) return;
+      const taskDocRef = doc(firestore, 'marketingPlans', selectedPlanId, 'completedTasks', selectedTask.id);
+      
+      const completedTaskData: CompletedTask = {
+        ...data,
+        id: selectedTask.id,
+        planId: selectedPlanId,
+        userId: user.uid,
+        userName: `${userProfile.firstName} ${userProfile.lastName}`,
+        taskDescription: selectedTask.description,
+        points: selectedTask.points,
+        completedAt: new Date().toISOString(),
+      };
+
+      setDocumentNonBlocking(taskDocRef, completedTaskData, {});
+    }
   };
 
   const handleGenerationConfirm = () => {
@@ -467,12 +492,18 @@ export default function MarketingPage() {
                                             </Button>
                                         ) : <div />}
 
-                                        {userProfile?.role === 'manager' && (
-                                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteTaskClick(completionData)} title="Eliminar actividad">
-                                              <Trash2 className="h-4 w-4" />
-                                              <span className="sr-only">Eliminar actividad</span>
+                                        <div className="flex items-center">
+                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditTaskClick(completionData)} title="Editar actividad">
+                                              <Pencil className="h-4 w-4" />
+                                              <span className="sr-only">Editar actividad</span>
                                           </Button>
-                                        )}
+                                          {userProfile?.role === 'manager' && (
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteTaskClick(completionData)} title="Eliminar actividad">
+                                                <Trash2 className="h-4 w-4" />
+                                                <span className="sr-only">Eliminar actividad</span>
+                                            </Button>
+                                          )}
+                                        </div>
                                     </div>
                                   </CollapsibleContent>
                                 </Collapsible>
@@ -521,14 +552,19 @@ export default function MarketingPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {selectedTask && (
-        <MarketingTaskDialog 
-            open={isTaskDialogOpen}
-            onOpenChange={setIsTaskDialogOpen}
-            onConfirm={handleTaskCompletion}
-            taskDescription={selectedTask.description}
-        />
-      )}
+      <MarketingTaskDialog 
+        open={isTaskDialogOpen}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setSelectedTask(null);
+            setEditingTaskData(null);
+          }
+          setIsTaskDialogOpen(isOpen);
+        }}
+        onConfirm={handleTaskDialogConfirm}
+        taskDescription={editingTaskData?.taskDescription || selectedTask?.description || ''}
+        initialData={editingTaskData}
+      />
       
        <AlertDialog open={uncheckAlertOpen} onOpenChange={setUncheckAlertOpen}>
         <AlertDialogContent>
