@@ -132,17 +132,19 @@ export default function MarketingPage() {
     return [...marketingPlans].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [marketingPlans]);
 
-  // Effect to select the latest plan by default
+  // Effect to select the latest plan by default, especially when the user filter changes
   useEffect(() => {
-    if (!selectedPlanId && sortedMarketingPlans.length > 0) {
-      setSelectedPlanId(sortedMarketingPlans[0].id);
-    } else if (marketingPlans && !marketingPlans.find(p => p.id === selectedPlanId) && sortedMarketingPlans.length > 0) {
-      // If the selected plan is not in the new list, select the first one
-      setSelectedPlanId(sortedMarketingPlans[0].id);
-    } else if (marketingPlans && marketingPlans.length === 0) {
+    if (sortedMarketingPlans.length > 0) {
+      // If there's no plan selected or the selected plan is not in the current list, select the first one.
+      const isSelectedPlanInList = sortedMarketingPlans.some(p => p.id === selectedPlanId);
+      if (!isSelectedPlanInList) {
+        setSelectedPlanId(sortedMarketingPlans[0].id);
+      }
+    } else {
+      // If the list is empty, clear the selection.
       setSelectedPlanId(null);
     }
-  }, [sortedMarketingPlans, selectedPlanId, marketingPlans]);
+  }, [sortedMarketingPlans]);
 
   const plan = useMemo(() => {
     if (!selectedPlanId || !marketingPlans) return null;
@@ -204,10 +206,23 @@ export default function MarketingPage() {
         socialMediaFocus: 'TikTok',
       });
       
+      const isManager = userProfile.role === 'manager';
+      // Determine the owner of the new plan
+      const planOwnerId = isManager && selectedUserId !== 'me' && selectedUserId !== 'all' ? selectedUserId : user.uid;
+      
+      // Find the owner's profile to get their name
+      const ownerProfile = allUsers?.find((u: any) => u.id === planOwnerId) || userProfile;
+
+      if (isManager && selectedUserId === 'all') {
+          toast({ variant: 'destructive', title: 'Selección no válida', description: 'Por favor, seleccione un vendedor específico para generarle un plan.' });
+          setIsGenerating(false);
+          return;
+      }
+
       const newPlan: Omit<MarketingPlan, 'id'> = {
         code: `PLAN-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
-        sellerId: user.uid,
-        sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+        sellerId: planOwnerId,
+        sellerName: `${ownerProfile.firstName} ${ownerProfile.lastName}`,
         createdAt: new Date().toISOString(),
         weekNumber: getWeek(new Date(), { weekStartsOn: 1 }),
         planData: result,
@@ -215,8 +230,11 @@ export default function MarketingPage() {
 
       const newDocRef = await addDocumentNonBlocking(collection(firestore, 'marketingPlans'), newPlan);
       if (newDocRef) {
-        setSelectedPlanId(newDocRef.id);
-        toast({ title: '¡Nuevo Plan Generado!', description: `Se creó el plan con el código: ${newPlan.code}` });
+        // Only switch to the new plan if the manager generated it for the currently viewed user
+        if (planOwnerId === (selectedUserId === 'me' ? user.uid : selectedUserId)) {
+          setSelectedPlanId(newDocRef.id);
+        }
+        toast({ title: '¡Nuevo Plan Generado!', description: `Se creó el plan para ${ownerProfile.firstName} con el código: ${newPlan.code}` });
       }
 
     } catch (error) {
