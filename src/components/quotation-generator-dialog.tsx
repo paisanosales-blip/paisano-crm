@@ -167,7 +167,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     const headerConfig = {
         lineHeight: 5,
         logoX: margin,
-        logoY: 2,
+        logoY: 0,
         logoWidth: 65,
         textX: docWidth - margin,
         textY: 11
