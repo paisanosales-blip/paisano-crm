@@ -282,7 +282,7 @@ export default function NewQuotationPage() {
       
       const infoStartY = currentY;
       const rightColX = docWidth / 2 + 5;
-      const infoBoxHeight = 20;
+      const infoBoxHeight = 25;
       const titleBoxHeight = 7;
       const contentStartY = infoStartY + titleBoxHeight;
       
@@ -305,6 +305,7 @@ export default function NewQuotationPage() {
       if (userProfile) {
           docPdf.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, contentStartY + 4);
           if (userProfile.email) docPdf.text(userProfile.email.toLowerCase(), margin + 3, contentStartY + 9);
+          if (userProfile.phone) docPdf.text(userProfile.phone, margin + 3, contentStartY + 14);
       }
 
       // --- Buyer Box ---
@@ -321,7 +322,9 @@ export default function NewQuotationPage() {
       docPdf.setTextColor(BLACK);
       docPdf.text(selectedClient.clientName.toUpperCase(), rightColX + 3, contentStartY + 4);
       docPdf.text(`ATTN: ${selectedClient.contactPerson.toUpperCase()}`, rightColX + 3, contentStartY + 9);
-      
+      const buyerContactInfo = [selectedClient.email, selectedClient.phone].filter(Boolean).join(' | ');
+      if (buyerContactInfo) docPdf.text(buyerContactInfo.toLowerCase(), rightColX + 3, contentStartY + 14);
+
       currentY = infoStartY + infoBoxHeight + 8;
       
       const tableWidth = docWidth - (margin * 2);
@@ -532,10 +535,8 @@ export default function NewQuotationPage() {
       let pageCount = (docPdf as any).internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
           docPdf.setPage(i);
-
-          docPdf.setDrawColor(RED);
-          docPdf.setLineWidth(0.2);
-          docPdf.line(0, 5, docWidth, 5);
+          docPdf.setFillColor(RED);
+          docPdf.rect(0, 0, docWidth, 5, 'F');
 
           const footerHeight = 20;
           const footerStartY = pageHeight - footerHeight;

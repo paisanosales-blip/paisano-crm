@@ -229,7 +229,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
 
     const infoStartY = currentY;
     const rightColX = docWidth / 2 + 5;
-    const infoBoxHeight = 20;
+    const infoBoxHeight = 25;
     const titleBoxHeight = 7;
     const contentStartY = infoStartY + titleBoxHeight;
     
@@ -252,6 +252,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     if (userProfile) {
         doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, contentStartY + 4);
         if (userProfile.email) doc.text(userProfile.email.toLowerCase(), margin + 3, contentStartY + 9);
+        if (userProfile.phone) doc.text(userProfile.phone, margin + 3, contentStartY + 14);
     }
 
     // --- Buyer Box ---
@@ -268,7 +269,9 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.setTextColor(BLACK);
     doc.text(prospect.clientName.toUpperCase(), rightColX + 3, contentStartY + 4);
     doc.text(`ATTN: ${prospect.contactPerson.toUpperCase()}`, rightColX + 3, contentStartY + 9);
-    
+    const buyerContactInfo = [prospect.email, prospect.phone].filter(Boolean).join(' | ');
+    if (buyerContactInfo) doc.text(buyerContactInfo.toLowerCase(), rightColX + 3, contentStartY + 14);
+
     currentY = infoStartY + infoBoxHeight + 8;
     
     const tableWidth = docWidth - (margin * 2);
@@ -488,9 +491,8 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     let pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
-        doc.setDrawColor(RED);
-        doc.setLineWidth(0.2);
-        doc.line(0, 5, docWidth, 5);
+        doc.setFillColor(RED);
+        doc.rect(0, 0, docWidth, 5, 'F');
 
         const footerHeight = 20;
         const footerStartY = pageHeight - footerHeight;
