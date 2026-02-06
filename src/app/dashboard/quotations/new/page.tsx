@@ -219,7 +219,7 @@ export default function NewQuotationPage() {
 
       if (logoUrl) {
         try {
-          const format = logoUrl.substring(logoUrl.indexOf('/') + 1, logoUrl.indexOf(';'));
+          const format = logoUrl.split(';')[0].split('/')[1]; // Correctly extract format like "png" or "jpeg"
           const img = new Image();
           img.src = logoUrl;
           const imgWidth = 65;
