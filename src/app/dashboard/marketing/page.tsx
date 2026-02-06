@@ -11,9 +11,8 @@ import {
   useDoc,
   addDocumentNonBlocking,
   setDocumentNonBlocking,
-  deleteDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, query, where } from 'firebase/firestore';
+import { collection, doc, getDocs, deleteDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -63,8 +62,6 @@ type DailyPlan = {
 type MarketingPlan = {
   id: string;
   code: string;
-  sellerId: string;
-  sellerName: string;
   createdAt: string;
   weekNumber: number;
   planData: { weeklyPlan: DailyPlan[] };
@@ -73,7 +70,8 @@ type MarketingPlan = {
 type CompletedTask = TaskCompletionData & {
   id: string; // Will be the taskId like 'Lunes-0'
   planId: string;
-  sellerId: string;
+  userId: string;
+  userName: string;
   taskDescription: string;
   points: number;
   completedAt: string;
@@ -84,19 +82,11 @@ export default function MarketingPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const [selectedUserId, setSelectedUserId] = useState<string>('me');
-
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
-
-  const usersQuery = useMemoFirebase(() => {
-    if (!firestore || userProfile?.role !== 'manager') return null;
-    return query(collection(firestore, 'users'));
-  }, [firestore, userProfile]);
-  const { data: allUsers, isLoading: areUsersLoading } = useCollection(usersQuery);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
@@ -109,22 +99,14 @@ export default function MarketingPage() {
   
   const [uncheckAlertOpen, setUncheckAlertOpen] = useState(false);
   const [taskToUncheck, setTaskToUncheck] = useState<string | null>(null);
+  
+  const [planToDelete, setPlanToDelete] = useState<MarketingPlan | null>(null);
+  const [isDeletePlanDialogOpen, setIsDeletePlanDialogOpen] = useState(false);
 
   const marketingPlansQuery = useMemoFirebase(() => {
-    if (!user || !userProfile) return null;
-    const baseCollection = collection(firestore, 'marketingPlans');
-    const isManager = userProfile.role === 'manager';
-
-    if (isManager) {
-        if (selectedUserId === 'all') {
-            return query(baseCollection);
-        }
-        const userIdToFilter = selectedUserId === 'me' ? user.uid : selectedUserId;
-        return query(baseCollection, where('sellerId', '==', userIdToFilter));
-    }
-    
-    return query(baseCollection, where('sellerId', '==', user.uid));
-  }, [firestore, user, userProfile, selectedUserId]);
+    if (!firestore) return null;
+    return collection(firestore, 'marketingPlans');
+  }, [firestore]);
   const { data: marketingPlans, isLoading: arePlansLoading } = useCollection<MarketingPlan>(marketingPlansQuery);
 
   const sortedMarketingPlans = useMemo(() => {
@@ -132,19 +114,17 @@ export default function MarketingPage() {
     return [...marketingPlans].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [marketingPlans]);
 
-  // Effect to select the latest plan by default, especially when the user filter changes
+  // Effect to select the latest plan by default
   useEffect(() => {
     if (sortedMarketingPlans.length > 0) {
-      // If there's no plan selected or the selected plan is not in the current list, select the first one.
       const isSelectedPlanInList = sortedMarketingPlans.some(p => p.id === selectedPlanId);
       if (!isSelectedPlanInList) {
         setSelectedPlanId(sortedMarketingPlans[0].id);
       }
     } else {
-      // If the list is empty, clear the selection.
       setSelectedPlanId(null);
     }
-  }, [sortedMarketingPlans]);
+  }, [sortedMarketingPlans, selectedPlanId]);
 
   const plan = useMemo(() => {
     if (!selectedPlanId || !marketingPlans) return null;
@@ -172,15 +152,13 @@ export default function MarketingPage() {
     if (completed >= 20) {
         currentRank = 'Maestro';
         progressValue = 100;
-        goalPoints = completed; // No upper goal for Maestro
+        goalPoints = completed;
     } else if (completed >= 10) {
         currentRank = 'Estratega';
-        // Progress from 10 to 20 points
         progressValue = ((completed - 10) / (20 - 10)) * 100;
         goalPoints = 20;
     } else {
         currentRank = 'Aprendiz';
-        // Progress from 0 to 10 points
         progressValue = (completed / 10) * 100;
         goalPoints = 10;
     }
@@ -206,23 +184,8 @@ export default function MarketingPage() {
         socialMediaFocus: 'TikTok',
       });
       
-      const isManager = userProfile.role === 'manager';
-      // Determine the owner of the new plan
-      const planOwnerId = isManager && selectedUserId !== 'me' && selectedUserId !== 'all' ? selectedUserId : user.uid;
-      
-      // Find the owner's profile to get their name
-      const ownerProfile = allUsers?.find((u: any) => u.id === planOwnerId) || userProfile;
-
-      if (isManager && selectedUserId === 'all') {
-          toast({ variant: 'destructive', title: 'Selección no válida', description: 'Por favor, seleccione un vendedor específico para generarle un plan.' });
-          setIsGenerating(false);
-          return;
-      }
-
       const newPlan: Omit<MarketingPlan, 'id'> = {
         code: `PLAN-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
-        sellerId: planOwnerId,
-        sellerName: `${ownerProfile.firstName} ${ownerProfile.lastName}`,
         createdAt: new Date().toISOString(),
         weekNumber: getWeek(new Date(), { weekStartsOn: 1 }),
         planData: result,
@@ -230,11 +193,8 @@ export default function MarketingPage() {
 
       const newDocRef = await addDocumentNonBlocking(collection(firestore, 'marketingPlans'), newPlan);
       if (newDocRef) {
-        // Only switch to the new plan if the manager generated it for the currently viewed user
-        if (planOwnerId === (selectedUserId === 'me' ? user.uid : selectedUserId)) {
-          setSelectedPlanId(newDocRef.id);
-        }
-        toast({ title: '¡Nuevo Plan Generado!', description: `Se creó el plan para ${ownerProfile.firstName} con el código: ${newPlan.code}` });
+        setSelectedPlanId(newDocRef.id);
+        toast({ title: '¡Nuevo Plan de Grupo Generado!', description: `El plan con código ${newPlan.code} ya está disponible para todos.` });
       }
 
     } catch (error) {
@@ -259,16 +219,16 @@ export default function MarketingPage() {
     }
   };
 
-  const handleUncheckConfirm = () => {
+  const handleUncheckConfirm = async () => {
     if (!taskToUncheck || !firestore || !selectedPlanId) return;
     const taskDocRef = doc(firestore, 'marketingPlans', selectedPlanId, 'completedTasks', taskToUncheck);
-    deleteDocumentNonBlocking(taskDocRef);
+    await deleteDoc(taskDocRef);
     setUncheckAlertOpen(false);
     setTaskToUncheck(null);
   };
 
   const handleTaskCompletion = (data: TaskCompletionData) => {
-    if (!selectedTask || !firestore || !selectedPlanId || !user) return;
+    if (!selectedTask || !firestore || !selectedPlanId || !user || !userProfile) return;
     
     const taskDocRef = doc(firestore, 'marketingPlans', selectedPlanId, 'completedTasks', selectedTask.id);
     
@@ -276,7 +236,8 @@ export default function MarketingPage() {
       ...data,
       id: selectedTask.id,
       planId: selectedPlanId,
-      sellerId: user.uid,
+      userId: user.uid,
+      userName: `${userProfile.firstName} ${userProfile.lastName}`,
       taskDescription: selectedTask.description,
       points: selectedTask.points,
       completedAt: new Date().toISOString(),
@@ -298,8 +259,36 @@ export default function MarketingPage() {
       });
     }
   };
+  
+  const handleDeletePlanConfirm = async () => {
+    if (!planToDelete || !firestore) return;
+    setIsGenerating(true); // Reuse isGenerating state for loading
+    
+    try {
+        const tasksRef = collection(firestore, 'marketingPlans', planToDelete.id, 'completedTasks');
+        const tasksSnapshot = await getDocs(tasksRef);
+        
+        const deletePromises: Promise<void>[] = [];
+        tasksSnapshot.forEach(taskDoc => {
+            deletePromises.push(deleteDoc(taskDoc.ref));
+        });
+        await Promise.all(deletePromises);
 
-  const isLoading = isUserLoading || isProfileLoading || areUsersLoading || arePlansLoading || areTasksLoading;
+        await deleteDoc(doc(firestore, 'marketingPlans', planToDelete.id));
+
+        toast({ title: "Plan Eliminado", description: `El plan ${planToDelete.code} y sus tareas han sido eliminados.` });
+        setSelectedPlanId(null);
+    } catch (error) {
+        console.error("Error deleting plan:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar el plan.' });
+    } finally {
+        setIsGenerating(false);
+        setPlanToDelete(null);
+        setIsDeletePlanDialogOpen(false);
+    }
+  };
+
+  const isLoading = isUserLoading || isProfileLoading || arePlansLoading || areTasksLoading;
 
   return (
     <>
@@ -307,22 +296,6 @@ export default function MarketingPage() {
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-headline font-bold">Asistente de Marketing</h1>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-             {userProfile?.role === 'manager' && (
-              <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
-                <SelectTrigger className="w-full sm:w-[220px]">
-                  <SelectValue placeholder="Seleccionar vendedor..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="me">Mis Planes</SelectItem>
-                  <SelectItem value="all">Todos los Planes</SelectItem>
-                  {allUsers?.filter(u => u.id !== user?.uid).map((u: any) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {`${u.firstName} ${u.lastName}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
               <Button onClick={() => setIsConfirmDialogOpen(true)} disabled={isGenerating} className="w-full sm:w-auto">
                 {isGenerating ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -336,14 +309,14 @@ export default function MarketingPage() {
         
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <CardTitle>Progreso del Plan Semanal</CardTitle>
                     <CardDescription>
                         Resumen de tu avance en las metas de marketing de la semana.
                     </CardDescription>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
                     {plan?.code && <Badge variant="outline" className="text-lg py-1 px-3">{plan.code}</Badge>}
                     <Select onValueChange={setSelectedPlanId} value={selectedPlanId || ''} disabled={sortedMarketingPlans.length === 0}>
                         <SelectTrigger className="w-[280px]">
@@ -357,6 +330,12 @@ export default function MarketingPage() {
                             ))}
                         </SelectContent>
                     </Select>
+                    {userProfile?.role === 'manager' && plan && (
+                      <Button variant="outline" size="icon" onClick={() => { setPlanToDelete(plan); setIsDeletePlanDialogOpen(true); }} disabled={isGenerating}>
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Eliminar Plan</span>
+                      </Button>
+                    )}
                 </div>
             </div>
           </CardHeader>
@@ -368,7 +347,7 @@ export default function MarketingPage() {
                 </div>
                 <div>
                     <div className="flex justify-between items-center mb-1">
-                        <Label className="text-sm font-medium">Progreso por Puntos</Label>
+                        <Label className="text-sm font-medium">Progreso al Siguiente Rango</Label>
                         <span className="text-sm font-semibold">
                             {completedPoints} 
                             {rank !== 'Maestro' && ` de ${rankGoalPoints}`} pts.
@@ -385,7 +364,7 @@ export default function MarketingPage() {
             <CardTitle>Plan de Contenido Semanal</CardTitle>
             <CardDescription>
               Aquí tienes una lista de objetivos diarios (L-V) y tareas sugeridas por la IA. 
-              Para generar un nuevo plan que reemplazará al actual, necesitarás el código especial.
+              Para generar un nuevo plan, necesitarás el código especial.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -444,7 +423,10 @@ export default function MarketingPage() {
                                       </Button>
                                   </CollapsibleTrigger>
                                   <CollapsibleContent className="space-y-2 p-3 bg-muted/50 rounded-md">
-                                    <h4 className="font-semibold text-xs">{completionData.title}</h4>
+                                    <div className="flex justify-between items-center">
+                                      <h4 className="font-semibold text-xs">{completionData.title}</h4>
+                                      <Badge variant="secondary" className="text-xs">{completionData.userName}</Badge>
+                                    </div>
                                     <p className="text-xs whitespace-pre-wrap">{completionData.text}</p>
                                     {completionData.fileUrl && (
                                         <Button asChild size="sm" variant="outline" className="mt-2 h-7">
@@ -523,6 +505,24 @@ export default function MarketingPage() {
             <AlertDialogAction onClick={handleUncheckConfirm} variant="destructive">
                 <Trash2 className="mr-2 h-4 w-4" />
                 Sí, eliminar registro
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <AlertDialog open={isDeletePlanDialogOpen} onOpenChange={setIsDeletePlanDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar Plan de Marketing?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente el plan "{planToDelete?.code}" y todas sus tareas completadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isGenerating}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePlanConfirm} variant="destructive" disabled={isGenerating}>
+              {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              {isGenerating ? 'Eliminando...' : 'Eliminar Permanentemente'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
