@@ -484,7 +484,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       currentY += Math.max(notesHeight, qrSectionHeight);
 
     // --- Signature ---
-    currentY += 10;
+    currentY += 4;
     const signatureHeight = 15;
     if (currentY + signatureHeight > pageHeight - 35) {
         doc.addPage();

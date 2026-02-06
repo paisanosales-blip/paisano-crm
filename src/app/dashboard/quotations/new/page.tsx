@@ -529,7 +529,7 @@ export default function NewQuotationPage() {
       currentY += Math.max(notesHeight, qrSectionHeight);
 
       // --- Signature ---
-      currentY += 10;
+      currentY += 4;
       const signatureHeight = 15;
       if (currentY + signatureHeight > pageHeight - 35) {
           docPdf.addPage();
