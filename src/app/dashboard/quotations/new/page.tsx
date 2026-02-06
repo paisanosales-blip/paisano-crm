@@ -436,14 +436,13 @@ export default function NewQuotationPage() {
         docPdf.text(termsBody, margin, currentY, textOptions);
         
         currentY += termsDim.h; // Move past the terms body
-        currentY += 12; // Add a clear gap after the terms section
       }
       
       // --- Additional Notes & QR Code ---
+      currentY += 12; // Add a clear gap after the terms section
       const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
-      const qrSize = 20; // smaller
-      const qrX = docWidth - margin - qrSize;
-      const notesMaxWidth = docWidth - margin - qrX - 10;
+      const qrSize = 20;
+      const notesMaxWidth = docWidth - (margin * 2) - qrSize;
       const notesTextOptions = { align: 'justify' as const, maxWidth: notesMaxWidth };
       docPdf.setFontSize(7);
       const notesDim = notesBody ? docPdf.getTextDimensions(notesBody, notesTextOptions) : { h: 0 };
@@ -466,6 +465,8 @@ export default function NewQuotationPage() {
           docPdf.setFontSize(7);
           docPdf.text(notesBody, margin, currentY + 5, notesTextOptions);
       }
+      
+      const qrX = docWidth - margin - qrSize;
       
       // Draw QR Code
       try {

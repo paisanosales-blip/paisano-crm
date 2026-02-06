@@ -394,14 +394,13 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       doc.text(termsBody, margin, currentY, textOptions);
       
       currentY += termsDim.h; // Move past the terms body
-      currentY += 12; // Add a clear gap after the terms section
     }
     
     // --- Additional Notes & QR Code ---
+    currentY += 12; // Add a clear gap after the terms section
     const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
-    const qrSize = 20; // smaller
-    const qrX = docWidth - margin - qrSize;
-    const notesMaxWidth = docWidth - margin - qrX - 10;
+    const qrSize = 20;
+    const notesMaxWidth = docWidth - (margin * 2) - qrSize;
     const notesTextOptions = { align: 'justify' as const, maxWidth: notesMaxWidth };
     doc.setFontSize(7);
     const notesDim = notesBody ? doc.getTextDimensions(notesBody, notesTextOptions) : { h: 0 };
@@ -423,6 +422,8 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
         doc.setFontSize(7);
         doc.text(notesBody, margin, currentY + 5, notesTextOptions);
     }
+    
+    const qrX = docWidth - margin - qrSize;
     
     try {
       const canvas = document.createElement('canvas');
