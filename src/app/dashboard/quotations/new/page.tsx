@@ -18,6 +18,7 @@ import 'jspdf-autotable';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import QRCode from 'qrcode';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
@@ -41,6 +42,8 @@ type Client = {
   state: string;
   city: string;
 };
+
+const newTerms = 'All applicable tariffs and taxes included in this quotation or invoice correspond exclusively to those in effect as of the date of issuance of this document, as of today. The Customer agrees to accept delivery of the products described herein and to pay the total amount stated in full. The quoted price is valid only on the date this document is issued. The Customer shall be solely and exclusively responsible for the payment of any and all additional taxes, tariffs, duties, fees, charges, or other governmental assessments of any nature whatsoever, whether local, state, or federal, including, without limitation, any increase, adjustment, or new charge imposed by the United States federal government or by any state or local authority after the date of issuance of this quotation or invoice.';
 
 export default function NewQuotationPage() {
   const router = useRouter();
@@ -84,7 +87,7 @@ export default function NewQuotationPage() {
   const [quotationDetails, setQuotationDetails] = useState<QuotationDetails>({
     number: '',
     validity: '30 DAYS',
-    terms: 'PAYMENT TERMS: 10% DOWN PAYMENT, 90% UPON DELIVERY.\nPRICES DO NOT INCLUDE VAT.\nDELIVERY TIMES ARE SUBJECT TO CHANGE WITHOUT PRIOR NOTICE.',
+    terms: newTerms,
     notes: 'THANK YOU FOR YOUR PREFERENCE.',
   });
   const [currency, setCurrency] = useState('USD');
@@ -219,18 +222,22 @@ export default function NewQuotationPage() {
 
       if (logoUrl) {
         try {
-            const response = await fetch(logoUrl);
-            const blob = await response.blob();
-            const base64Logo = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.onerror = (error) => reject(error);
-                reader.readAsDataURL(blob);
-            });
-
-            const format = blob.type.split('/')[1];
-            const imgWidth = 65;
-            docPdf.addImage(base64Logo, format.toUpperCase(), margin, 0, imgWidth, 0, undefined, 'NONE');
+          const response = await fetch(logoUrl);
+          const blob = await response.blob();
+          const base64Logo = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = (error) => reject(error);
+            reader.readAsDataURL(blob);
+          });
+          const img = new Image();
+          img.src = base64Logo;
+          await new Promise<void>((resolve) => {
+            img.onload = () => resolve();
+          });
+          const format = blob.type.split('/')[1];
+          const imgWidth = 65;
+          docPdf.addImage(img.src, format.toUpperCase(), margin, 0, imgWidth, 0, undefined, 'NONE');
         } catch (e) {
             console.error("Error adding logo image to PDF:", e);
         }
@@ -413,7 +420,7 @@ export default function NewQuotationPage() {
       const col1X = margin;
       const col2X = margin + colWidth + colGap;
 
-      docPdf.setFontSize(8);
+      docPdf.setFontSize(7);
       const lineHeight = docPdf.getLineHeight() / docPdf.internal.scaleFactor;
       
       const textOptions = {
@@ -424,8 +431,8 @@ export default function NewQuotationPage() {
       const termsBody = quotationDetails.terms ? quotationDetails.terms.toUpperCase() : '';
       const notesBody = quotationDetails.notes ? quotationDetails.notes.toUpperCase() : '';
 
-      const termsDim = docPdf.getTextDimensions(termsBody, { ...textOptions, fontSize: 8 });
-      const notesDim = docPdf.getTextDimensions(notesBody, { ...textOptions, fontSize: 8 });
+      const termsDim = docPdf.getTextDimensions(termsBody, { ...textOptions, fontSize: 7 });
+      const notesDim = docPdf.getTextDimensions(notesBody, { ...textOptions, fontSize: 7 });
 
       const termsContentHeight = termsBody ? (lineHeight * 2) + termsDim.h : 0;
       const notesContentHeight = notesBody ? (lineHeight * 2) + notesDim.h : 0;
@@ -479,8 +486,58 @@ export default function NewQuotationPage() {
       docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
       docPdf.setFontSize(9);
       docPdf.text('APPROVAL SIGNATURE', docWidth / 2, currentY + 5, { align: 'center' });
-      let pageCount = (docPdf as any).internal.getNumberOfPages();
+      
+      const qrSize = 30;
+      let qrY = currentY + 15;
       const footerHeight = 20;
+
+      if (qrY + qrSize + 10 > pageHeight - footerHeight) {
+          docPdf.addPage();
+          qrY = margin;
+      }
+
+      try {
+        const canvas = document.createElement('canvas');
+        await QRCode.toCanvas(canvas, 'https://www.paisanotrailer.com', { width: 200, errorCorrectionLevel: 'H' });
+        
+        const logoUrl = localStorage.getItem('sidebarLogo');
+        if (logoUrl) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              const img = new Image();
+              img.crossOrigin = 'Anonymous';
+
+              const imgPromise = new Promise<void>((resolve, reject) => {
+                  img.onload = () => resolve();
+                  img.onerror = (err) => reject(err);
+                  img.src = logoUrl;
+              });
+              
+              await imgPromise;
+              
+              const center = canvas.width / 2;
+              const logoSize = canvas.width * 0.25;
+              const logoX = center - logoSize / 2;
+              const logoY = center - logoSize / 2;
+
+              ctx.fillStyle = 'white';
+              ctx.fillRect(logoX - 2, logoY - 2, logoSize + 4, logoSize + 4);
+
+              ctx.drawImage(img, logoX, logoY, logoSize, logoSize);
+            }
+        }
+        
+        const qrCodeDataUrl = canvas.toDataURL('image/png');
+        docPdf.addImage(qrCodeDataUrl, 'PNG', margin, qrY, qrSize, qrSize);
+        
+        docPdf.setFontSize(7);
+        docPdf.setFont('helvetica', 'bold');
+        docPdf.text('1 YEAR WARRANTY', margin + qrSize / 2, qrY + qrSize + 4, { align: 'center' });
+      } catch (err) {
+          console.error('Failed to generate QR code:', err);
+      }
+
+      let pageCount = (docPdf as any).internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
           docPdf.setPage(i);
           const footerStartY = pageHeight - footerHeight;
