@@ -502,12 +502,12 @@ export default function NewQuotationPage() {
       }
       
       // --- Signature ---
+      currentY += 8;
       const signatureHeight = 20;
       if (currentY + signatureHeight > pageHeight - 35) {
           docPdf.addPage();
           currentY = margin;
       }
-      currentY += 8;
       const sigWidth = 80;
       const sigXStart = (docWidth - sigWidth) / 2;
       docPdf.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
@@ -518,6 +518,11 @@ export default function NewQuotationPage() {
       let pageCount = (docPdf as any).internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
           docPdf.setPage(i);
+
+          docPdf.setDrawColor(RED);
+          docPdf.setLineWidth(0.2);
+          docPdf.line(0, 5, docWidth, 5);
+
           const footerHeight = 20;
           const footerStartY = pageHeight - footerHeight;
           

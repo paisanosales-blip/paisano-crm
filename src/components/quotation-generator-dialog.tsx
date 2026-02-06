@@ -459,12 +459,12 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     }
     
     // --- Signature ---
+    currentY += 8;
     const signatureHeight = 20;
     if (currentY + signatureHeight > pageHeight - 35) {
         doc.addPage();
         currentY = margin;
     }
-    currentY += 8;
     const sigWidth = 80;
     const sigXStart = (docWidth - sigWidth) / 2;
     doc.line(sigXStart, currentY, sigXStart + sigWidth, currentY);
@@ -475,6 +475,10 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     let pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
+        doc.setDrawColor(RED);
+        doc.setLineWidth(0.2);
+        doc.line(0, 5, docWidth, 5);
+
         const footerHeight = 20;
         const footerStartY = pageHeight - footerHeight;
 
