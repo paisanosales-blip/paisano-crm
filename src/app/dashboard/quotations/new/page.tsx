@@ -490,40 +490,36 @@ export default function NewQuotationPage() {
       }
       
       const qrSize = 18;
-      const qrSectionHeight = qrSize + 5; // QR + text below it
+      const qrSectionHeight = qrCodeDataUrl ? qrSize + 5 : 0;
       let notesHeight = 0;
-
-      const notesAndQrYStart = currentY;
-      const qrX = docWidth - margin - qrSize;
-      const qrY = notesAndQrYStart;
 
       if (notesBody) {
         const textMaxWidth = docWidth - (margin * 2) - (qrCodeDataUrl ? qrSize + 5 : 0);
         const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
         const notesDim = docPdf.getTextDimensions(notesBody, { ...textOptions });
         notesHeight = notesDim.h + 8; // Title + text + padding
-
-        const requiredHeight = Math.max(notesHeight, qrSectionHeight);
-        if (currentY + requiredHeight > pageHeight - 35) { // Check if it fits before signature
-            docPdf.addPage();
-            currentY = margin;
-        }
-
-        // Draw Notes
+      }
+      
+      const requiredHeight = Math.max(notesHeight, qrSectionHeight);
+      if (currentY + requiredHeight > pageHeight - 35) { // Check if it fits before signature
+          docPdf.addPage();
+          currentY = margin;
+      }
+      
+      // Draw Notes
+      if (notesBody) {
         docPdf.setFont('helvetica', 'bold');
         docPdf.setFontSize(9);
         docPdf.text('ADDITIONAL NOTES', margin, currentY);
         docPdf.setFont('helvetica', 'normal');
         docPdf.setFontSize(7);
-        docPdf.text(notesBody, margin, currentY + 5, textOptions);
+        const textMaxWidth = docWidth - (margin * 2) - (qrCodeDataUrl ? qrSize + 5 : 0);
+        docPdf.text(notesBody, margin, currentY + 5, { align: 'justify' as const, maxWidth: textMaxWidth });
       }
       
       // Draw QR
       if (qrCodeDataUrl) {
-        if (currentY + qrSectionHeight > pageHeight - 35 && !notesBody) {
-          docPdf.addPage();
-          currentY = margin;
-        }
+        const qrX = docWidth - margin - qrSize;
         docPdf.addImage(qrCodeDataUrl, 'PNG', qrX, currentY, qrSize, qrSize);
         docPdf.setFontSize(6);
         docPdf.setFont('helvetica', 'bold');
@@ -533,7 +529,7 @@ export default function NewQuotationPage() {
       currentY += Math.max(notesHeight, qrSectionHeight);
 
       // --- Signature ---
-      currentY += 2; // Space between notes/qr and signature
+      currentY += 10;
       const signatureHeight = 15;
       if (currentY + signatureHeight > pageHeight - 35) {
           docPdf.addPage();
@@ -832,3 +828,5 @@ export default function NewQuotationPage() {
     </>
   );
 }
+
+    

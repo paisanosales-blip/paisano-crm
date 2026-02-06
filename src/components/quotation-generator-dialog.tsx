@@ -445,39 +445,36 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       }
       
       const qrSize = 18;
-      const qrSectionHeight = qrSize + 5;
+      const qrSectionHeight = qrCodeDataUrl ? qrSize + 5 : 0;
       let notesHeight = 0;
-
-      const notesAndQrYStart = currentY;
-      const qrX = docWidth - margin - qrSize;
 
       if (notesBody) {
         const textMaxWidth = docWidth - (margin * 2) - (qrCodeDataUrl ? qrSize + 5 : 0);
         const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
         const notesDim = doc.getTextDimensions(notesBody, { ...textOptions });
-        notesHeight = notesDim.h + 8;
-
-        const requiredHeight = Math.max(notesHeight, qrSectionHeight);
-        if (currentY + requiredHeight > pageHeight - 35) { // Check if it fits before signature
-            doc.addPage();
-            currentY = margin;
-        }
-
-        // Draw Notes
+        notesHeight = notesDim.h + 8; // Title + text + padding
+      }
+      
+      const requiredHeight = Math.max(notesHeight, qrSectionHeight);
+      if (currentY + requiredHeight > pageHeight - 35) { // Check if it fits before signature
+          doc.addPage();
+          currentY = margin;
+      }
+      
+      // Draw Notes
+      if (notesBody) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(9);
         doc.text('ADDITIONAL NOTES', margin, currentY);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(7);
-        doc.text(notesBody, margin, currentY + 5, textOptions);
+        const textMaxWidth = docWidth - (margin * 2) - (qrCodeDataUrl ? qrSize + 5 : 0);
+        doc.text(notesBody, margin, currentY + 5, { align: 'justify' as const, maxWidth: textMaxWidth });
       }
       
       // Draw QR
       if (qrCodeDataUrl) {
-        if (currentY + qrSectionHeight > pageHeight - 35 && !notesBody) {
-          doc.addPage();
-          currentY = margin;
-        }
+        const qrX = docWidth - margin - qrSize;
         doc.addImage(qrCodeDataUrl, 'PNG', qrX, currentY, qrSize, qrSize);
         doc.setFontSize(6);
         doc.setFont('helvetica', 'bold');
@@ -487,7 +484,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       currentY += Math.max(notesHeight, qrSectionHeight);
 
     // --- Signature ---
-    currentY += 2; // Space between notes/qr and signature
+    currentY += 10;
     const signatureHeight = 15;
     if (currentY + signatureHeight > pageHeight - 35) {
         doc.addPage();
@@ -727,3 +724,5 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     </Dialog>
   );
 }
+
+    
