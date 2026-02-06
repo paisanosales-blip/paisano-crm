@@ -219,13 +219,20 @@ export default function NewQuotationPage() {
 
       if (logoUrl) {
         try {
-          const format = logoUrl.split(';')[0].split('/')[1].split('+')[0]; // Correctly extract format like "png" or "jpeg"
-          const img = new Image();
-          img.src = logoUrl;
-          const imgWidth = 65;
-          docPdf.addImage(logoUrl, format.toUpperCase(), margin, 0, imgWidth, 0, undefined, 'NONE');
+            const response = await fetch(logoUrl);
+            const blob = await response.blob();
+            const base64Logo = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = (error) => reject(error);
+                reader.readAsDataURL(blob);
+            });
+
+            const format = blob.type.split('/')[1];
+            const imgWidth = 65;
+            docPdf.addImage(base64Logo, format.toUpperCase(), margin, 0, imgWidth, 0, undefined, 'NONE');
         } catch (e) {
-          console.error("Error adding logo image to PDF:", e);
+            console.error("Error adding logo image to PDF:", e);
         }
       }
 
