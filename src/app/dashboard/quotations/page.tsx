@@ -318,22 +318,24 @@ export default function QuotationsPage() {
                                 const classification = opportunityStage ? getClassification(opportunityStage) : null;
                                 return (
                                 <AccordionItem value={clientName} key={clientName}>
-                                    <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 rounded-md">
-                                        <div className="flex items-center gap-4 flex-grow">
-                                            <Checkbox
-                                                onClick={(e) => e.stopPropagation()}
-                                                onCheckedChange={(checked) => handleSelectClientQuotes(clientName, !!checked)}
-                                                checked={areAllClientQuotesSelected(clientName)}
-                                                aria-label={`Seleccionar todas las cotizaciones de ${clientName}`}
-                                            />
-                                            <span className="font-semibold text-base">{clientName}</span>
-                                            <Badge variant="secondary">{quotes.length} {quotes.length === 1 ? 'cotización' : 'cotizaciones'}</Badge>
-                                            {classification && (
-                                                <Badge variant="outline" className={cn('font-bold uppercase text-xs', getBadgeClass(classification))}>{classification}</Badge>
-                                            )}
-                                        </div>
-                                    </AccordionTrigger>
-                                    <AccordionContent className="pt-0">
+                                    <div className="flex items-center px-4 hover:bg-muted/50 rounded-md">
+                                        <Checkbox
+                                            className="mr-4"
+                                            onCheckedChange={(checked) => handleSelectClientQuotes(clientName, !!checked)}
+                                            checked={areAllClientQuotesSelected(clientName)}
+                                            aria-label={`Seleccionar todas las cotizaciones de ${clientName}`}
+                                        />
+                                        <AccordionTrigger className="flex-1 py-3 px-0 hover:no-underline">
+                                            <div className="flex items-center gap-4 flex-grow">
+                                                <span className="font-semibold text-base">{clientName}</span>
+                                                <Badge variant="secondary">{quotes.length} {quotes.length === 1 ? 'cotización' : 'cotizaciones'}</Badge>
+                                                {classification && (
+                                                    <Badge variant="outline" className={cn('font-bold uppercase text-xs', getBadgeClass(classification))}>{classification}</Badge>
+                                                )}
+                                            </div>
+                                        </AccordionTrigger>
+                                    </div>
+                                    <AccordionContent className="pt-0 pl-8">
                                         <div className="border-t">
                                             <Table>
                                                 <TableHeader>
