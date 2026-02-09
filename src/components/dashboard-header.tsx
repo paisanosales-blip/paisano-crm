@@ -1,7 +1,8 @@
 'use client'
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, Shield } from 'lucide-react';
+import { Search, Shield, Bell, CalendarOff, History, Undo2, ThumbsUp } from 'lucide-react';
 import { doc } from 'firebase/firestore';
 import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 
@@ -19,8 +20,25 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProfileSettingsDialog } from '@/components/profile-settings-dialog';
+import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-export function DashboardHeader() {
+export type Notification = {
+  id: string;
+  type: 'new_submission' | 'changes_requested' | 'task_approved' | 'overdue_follow_up';
+  message: string;
+  link: string;
+  timestamp: string;
+  isRead: boolean;
+};
+
+interface DashboardHeaderProps {
+  notifications: Notification[];
+  onOpenNotifications: () => void;
+}
+
+export function DashboardHeader({ notifications, onOpenNotifications }: DashboardHeaderProps) {
   const auth = useAuth();
   const router = useRouter();
   const firestore = useFirestore();
@@ -45,6 +63,14 @@ export function DashboardHeader() {
 
   const isLoading = isAuthLoading || (user && isProfileLoading);
   const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}`.trim() : user?.email;
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const notificationIcons: Record<Notification['type'], React.ReactNode> = {
+    new_submission: <History className="h-4 w-4 text-gray-500" />,
+    changes_requested: <Undo2 className="h-4 w-4 text-yellow-500" />,
+    task_approved: <ThumbsUp className="h-4 w-4 text-green-500" />,
+    overdue_follow_up: <CalendarOff className="h-4 w-4 text-red-500" />,
+  };
 
   return (
     <>
@@ -62,47 +88,84 @@ export function DashboardHeader() {
             </div>
           </form>
         </div>
-        {isLoading ? (
-           <div className="flex items-center gap-2">
-            <div className="text-right hidden md:block">
-                <Skeleton className="h-4 w-20 mb-1" />
-                <Skeleton className="h-3 w-12" />
-            </div>
-            <Skeleton className="h-9 w-9 rounded-full" />
-          </div>
-        ) : (
-          <DropdownMenu>
+        <div className="flex items-center gap-2">
+            <DropdownMenu onOpenChange={(open) => { if (open) onOpenNotifications(); }}>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative flex items-center gap-3 h-auto p-1 pr-2 rounded-full">
-                    <div className="text-right hidden md:block">
-                        <div className="text-sm font-semibold">{displayName}</div>
-                        <div className="text-xs text-muted-foreground capitalize">{userProfile?.role}</div>
-                    </div>
-                    <Avatar className="h-9 w-9">
-                        <AvatarImage src={userProfile?.avatarUrl} alt={displayName || ''} />
-                        <AvatarFallback>{getInitials(userProfile?.firstName, userProfile?.lastName)}</AvatarFallback>
-                    </Avatar>
-                    <span className="sr-only">Menú de usuario</span>
+                <Button variant="ghost" size="icon" className="relative h-8 w-8">
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                    <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 shrink-0 justify-center rounded-full p-0 text-xs">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                    </Badge>
+                )}
+                <span className="sr-only">Notificaciones</span>
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => setIsSettingsOpen(true)}>Configuración</DropdownMenuItem>
-              <DropdownMenuItem>Soporte</DropdownMenuItem>
-              {userProfile?.role?.toLowerCase() === 'manager' && (
-                <DropdownMenuItem onSelect={() => router.push('/dashboard/users')}>
-                  <Shield />
-                  Usuarios
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut}>
-                Cerrar sesión
-              </DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel>Notificaciones</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {notifications.length > 0 ? (
+                notifications.slice(0, 7).map(notification => ( // Show latest 7
+                    <DropdownMenuItem key={notification.id} asChild className="cursor-pointer">
+                    <Link href={notification.link} className="flex items-start gap-3">
+                        <div className="mt-1">{notificationIcons[notification.type]}</div>
+                        <div className="flex-1">
+                        <p className={`text-xs text-wrap ${!notification.isRead ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{notification.message}</p>
+                        <p className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true, locale: es })}
+                        </p>
+                        </div>
+                    </Link>
+                    </DropdownMenuItem>
+                ))
+                ) : (
+                <DropdownMenuItem disabled>No hay notificaciones nuevas.</DropdownMenuItem>
+                )}
             </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+            </DropdownMenu>
+
+            {isLoading ? (
+            <div className="flex items-center gap-2">
+                <div className="text-right hidden md:block">
+                    <Skeleton className="h-4 w-20 mb-1" />
+                    <Skeleton className="h-3 w-12" />
+                </div>
+                <Skeleton className="h-9 w-9 rounded-full" />
+            </div>
+            ) : (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative flex items-center gap-3 h-auto p-1 pr-2 rounded-full">
+                        <div className="text-right hidden md:block">
+                            <div className="text-sm font-semibold">{displayName}</div>
+                            <div className="text-xs text-muted-foreground capitalize">{userProfile?.role}</div>
+                        </div>
+                        <Avatar className="h-9 w-9">
+                            <AvatarImage src={userProfile?.avatarUrl} alt={displayName || ''} />
+                            <AvatarFallback>{getInitials(userProfile?.firstName, userProfile?.lastName)}</AvatarFallback>
+                        </Avatar>
+                        <span className="sr-only">Menú de usuario</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setIsSettingsOpen(true)}>Configuración</DropdownMenuItem>
+                <DropdownMenuItem>Soporte</DropdownMenuItem>
+                {userProfile?.role?.toLowerCase() === 'manager' && (
+                    <DropdownMenuItem onSelect={() => router.push('/dashboard/users')}>
+                    <Shield className="mr-2"/>
+                    <span>Usuarios</span>
+                    </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                    Cerrar sesión
+                </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            )}
+        </div>
       </header>
       {isSettingsOpen && (
         <ProfileSettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} />

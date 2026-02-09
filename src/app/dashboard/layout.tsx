@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Home, GanttChartSquare, Users, FileText, CalendarCheck, Package, ClipboardSignature, Target, Megaphone } from 'lucide-react';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, query, where, doc, getDocs } from 'firebase/firestore';
 import { isToday, isPast } from 'date-fns';
 
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -18,11 +18,13 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { DashboardHeader } from '@/components/dashboard-header';
+import { DashboardHeader, type Notification } from '@/components/dashboard-header';
 import { Skeleton } from '@/components/ui/skeleton';
 import { IconSwitcher } from '@/components/icon-switcher';
 import { DailySummaryDialog } from '@/components/daily-summary-dialog';
 import { generateDailySummary } from '@/ai/flows/generate-daily-summary';
+import type { CompletedMarketingTask } from '@/lib/types';
+
 
 export default function DashboardLayout({
   children,
@@ -36,6 +38,8 @@ export default function DashboardLayout({
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [summaryText, setSummaryText] = useState('');
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -55,6 +59,106 @@ export default function DashboardLayout({
   }, [firestore, user]);
   const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
 
+  const marketingPlansQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'marketingPlans');
+  }, [firestore]);
+  const { data: marketingPlans, isLoading: arePlansLoading } = useCollection(marketingPlansQuery);
+  
+  useEffect(() => {
+    if (user) {
+      const storedIds = JSON.parse(localStorage.getItem(`readNotifications_${user.uid}`) || '[]');
+      setReadNotificationIds(storedIds);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !userProfile || !firestore || areActivitiesLoading || arePlansLoading) return;
+
+    const buildNotifications = async () => {
+        const generatedNotifications: Notification[] = [];
+
+        if (activities) {
+            const overdueActivities = activities.filter(a => a.dueDate && isPast(new Date(a.dueDate)) && !isToday(new Date(a.dueDate)) && !a.completed);
+            overdueActivities.forEach(act => {
+                const notifId = `activity-${act.id}`;
+                generatedNotifications.push({
+                    id: notifId,
+                    type: 'overdue_follow_up',
+                    message: `Tienes un seguimiento atrasado.`,
+                    link: '/dashboard/follow-ups',
+                    timestamp: act.dueDate,
+                    isRead: readNotificationIds.includes(notifId)
+                });
+            });
+        }
+
+        if (marketingPlans) {
+            for (const plan of marketingPlans) {
+                try {
+                    const tasksSnapshot = await getDocs(collection(firestore, 'marketingPlans', plan.id, 'completedTasks'));
+                    tasksSnapshot.forEach(taskDoc => {
+                        const task = taskDoc.data() as CompletedMarketingTask;
+                        
+                        if (userProfile.role === 'manager' && task.reviewStatus === 'Pendiente') {
+                            const notifId = `task-pending-${taskDoc.id}`;
+                            generatedNotifications.push({
+                                id: notifId,
+                                type: 'new_submission',
+                                message: `${task.userName} ha completado una tarea.`,
+                                link: '/dashboard/marketing',
+                                timestamp: task.completedAt,
+                                isRead: readNotificationIds.includes(notifId)
+                            });
+                        }
+
+                        if (task.userId === user.uid) {
+                            if (task.reviewStatus === 'Requiere Cambios') {
+                                const notifId = `task-changes-${taskDoc.id}`;
+                                generatedNotifications.push({
+                                    id: notifId,
+                                    type: 'changes_requested',
+                                    message: `Tu tarea "${task.taskDescription.substring(0, 30)}..." requiere cambios.`,
+                                    link: '/dashboard/marketing',
+                                    timestamp: task.completedAt,
+                                    isRead: readNotificationIds.includes(notifId)
+                                });
+                            } else if (task.reviewStatus === 'Aprobado' && !readNotificationIds.includes(`task-approved-${taskDoc.id}`)) {
+                               const notifId = `task-approved-${taskDoc.id}`;
+                                 generatedNotifications.push({
+                                    id: notifId,
+                                    type: 'task_approved',
+                                    message: `¡Tu tarea fue aprobada!`,
+                                    link: '/dashboard/marketing',
+                                    timestamp: task.completedAt,
+                                    isRead: readNotificationIds.includes(notifId)
+                                });
+                            }
+                        }
+                    });
+                } catch (e) {
+                    console.warn(`Could not fetch tasks for plan ${plan.id}:`, e);
+                }
+            }
+        }
+
+        generatedNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setNotifications(generatedNotifications);
+    };
+
+    buildNotifications();
+
+  }, [activities, marketingPlans, user, userProfile, firestore, areActivitiesLoading, arePlansLoading, readNotificationIds]);
+
+  const handleOpenNotifications = () => {
+    if (!user) return;
+    const allNotificationIds = notifications.map(n => n.id);
+    const newReadIds = [...new Set([...readNotificationIds, ...allNotificationIds])];
+    localStorage.setItem(`readNotifications_${user.uid}`, JSON.stringify(newReadIds));
+    setReadNotificationIds(newReadIds);
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  };
+
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.replace('/login');
@@ -67,17 +171,14 @@ export default function DashboardLayout({
     if (isDataReady && userProfile) {
       const today = new Date().toISOString().split('T')[0];
       
-      // --- Goals Page Redirect Logic ---
-      // Only for sellers, redirect once per day to the goals page.
       const goalsRedirectKey = `goalsRedirectLastShown_${userProfile.id}`;
       const lastGoalsRedirect = localStorage.getItem(goalsRedirectKey);
       if (userProfile.role === 'seller' && lastGoalsRedirect !== today) {
         localStorage.setItem(goalsRedirectKey, today);
         router.replace('/dashboard/goals');
-        return; // Stop further execution to allow redirect to happen
+        return; 
       }
 
-      // --- Daily Summary Dialog Logic ---
       const summaryKey = `dailySummaryLastShown_${userProfile.id}`;
       const lastSummaryShown = localStorage.getItem(summaryKey);
 
@@ -221,7 +322,7 @@ export default function DashboardLayout({
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <DashboardHeader />
+        <DashboardHeader notifications={notifications} onOpenNotifications={handleOpenNotifications} />
         <main className="flex-1 p-4 md:p-6 bg-muted/30">{children}</main>
       </SidebarInset>
        <DailySummaryDialog
