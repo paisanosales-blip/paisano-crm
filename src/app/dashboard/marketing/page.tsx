@@ -32,7 +32,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2, KeyRound, Pencil, Eye, ThumbsUp, Undo2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2, KeyRound, Pencil, Eye, ThumbsUp, Undo2, FileCheck2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   generateMarketingPlan,
@@ -155,6 +156,24 @@ export default function MarketingPage() {
         rankGoalPoints: goalPoints,
     };
   }, [plan, completedTasks]);
+  
+  const reviewStats = useMemo(() => {
+    if (!completedTasks || !user) {
+      return { tasksForMeToReview: 0, myTasksToCorrect: 0 };
+    }
+
+    const tasksForMeToReview = completedTasks.filter(
+      task => task.reviewStatus === 'Pendiente'
+    ).length;
+
+    const myTasksToCorrect = completedTasks.filter(
+      task => task.userId === user.uid && task.reviewStatus === 'Requiere Cambios'
+    ).length;
+
+    return { tasksForMeToReview, myTasksToCorrect };
+  }, [completedTasks, user]);
+  
+  const isManager = userProfile?.role === 'manager';
 
   const handleGeneratePlan = async () => {
     if (!firestore || !user || !userProfile) {
@@ -364,6 +383,26 @@ export default function MarketingPage() {
               </Button>
           </div>
         </div>
+
+        {isManager && reviewStats.tasksForMeToReview > 0 && (
+          <Alert>
+            <FileCheck2 className="h-4 w-4" />
+            <AlertTitle>Tareas Pendientes de Revisión</AlertTitle>
+            <AlertDescription>
+              Tienes {reviewStats.tasksForMeToReview} tarea(s) de marketing para revisar y aprobar.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {!isManager && reviewStats.myTasksToCorrect > 0 && (
+          <Alert variant="destructive">
+            <Undo2 className="h-4 w-4" />
+            <AlertTitle>Tareas que Requieren Cambios</AlertTitle>
+            <AlertDescription>
+              Tienes {reviewStats.myTasksToCorrect} tarea(s) que necesitan tu atención. Busca los comentarios del manager para corregirlas.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <Card>
           <CardHeader>
