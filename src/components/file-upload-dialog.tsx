@@ -32,9 +32,13 @@ import { UploadCloud } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 const fileUploadSchema = z.object({
-  file: z.instanceof(File).refine(file => file, 'Se requiere un archivo.'),
+  file: z.instanceof(File).optional(),
   description: z.string().optional(),
+}).refine(data => !!data.file, {
+  message: 'Se requiere un archivo.',
+  path: ['file'],
 });
+
 
 type FileUploadFormValues = z.infer<typeof fileUploadSchema>;
 
@@ -73,11 +77,11 @@ export function FileUploadDialog({ open, onOpenChange }: FileUploadDialogProps) 
   };
 
   function onSubmit(values: FileUploadFormValues) {
-    if (!firestore || !user || !userProfile || !storage) {
+    if (!firestore || !user || !userProfile || !storage || !values.file) {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'No se puede subir el archivo. Verifique su sesión.',
+        description: 'No se puede subir el archivo. Verifique su sesión y que haya seleccionado un archivo.',
       });
       return;
     }
