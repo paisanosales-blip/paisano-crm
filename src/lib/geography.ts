@@ -103,25 +103,24 @@ export const cities: { [key: string]: string[] } = {
   AZ: ['Phoenix', 'Tucson', 'Mesa', 'Chandler', 'Scottsdale', 'Glendale', 'Gilbert'],
   AR: ['Little Rock', 'Fayetteville', 'Fort Smith', 'Springdale', 'Jonesboro'],
   CA: [
-    'Anaheim', 'Antioch', 'Bakersfield', 'Berkeley', 'Burbank', 'Carlsbad', 'Chula Vista',
-    'Clovis', 'Concord', 'Corona', 'Costa Mesa', 'Daly City', 'Downey', 'El Cajon',
-    'El Monte', 'Escondido', 'Fairfield', 'Fontana', 'Fremont', 'Fresno', 'Fullerton',
-    'Garden Grove', 'Glendale', 'Hayward', 'Huntington Beach', 'Inglewood', 'Irvine',
-    'Lancaster', 'Long Beach', 'Los Angeles', 'Modesto', 'Moreno Valley', 'Murrieta',
-    'Oakland', 'Oceanside', 'Ontario', 'Orange', 'Palmdale', 'Pasadena', 'Pomona',
-    'Rancho Cucamonga', 'Rialto', 'Richmond', 'Riverside', 'Roseville', 'Sacramento',
-    'Salinas', 'San Bernardino', 'San Diego', 'San Francisco', 'San Jose', 'San Mateo',
-    'Santa Ana', 'Santa Clara', 'Santa Clarita', 'Santa Maria', 'Simi Valley', 'Stockton',
-    'Sunnyvale', 'Temecula', 'Thousand Oaks', 'Torrance', 'Vallejo', 'Ventura',
-    'Victorville', 'Visalia'
+    'Alameda', 'Alhambra', 'Anaheim', 'Antioch', 'Apple Valley', 'Arcadia', 'Bakersfield', 'Bellflower', 'Berkeley', 'Buena Park', 'Burbank', 'Camarillo', 'Carlsbad', 'Carson', 'Chico', 'Chula Vista',
+    'Citrus Heights', 'Clovis', 'Compton', 'Concord', 'Corona', 'Costa Mesa', 'Covina', 'Cupertino', 'Daly City', 'Davis', 'Diamond Bar', 'Downey', 'El Cajon',
+    'El Monte', 'Elk Grove', 'Encinitas', 'Escondido', 'Fairfield', 'Folsom', 'Fontana', 'Fremont', 'Fresno', 'Fullerton', 'Garden Grove', 'Gilroy', 'Glendale', 'Hacienda Heights', 'Hayward', 'Hemet', 'Hesperia', 'Huntington Beach', 'Indio', 'Inglewood', 'Irvine',
+    'Jurupa Valley', 'La Habra', 'La Mesa', 'Lake Forest', 'Lakewood', 'Lancaster', 'Livermore', 'Lodi', 'Long Beach', 'Los Angeles', 'Lynwood', 'Manteca', 'Menifee', 'Merced', 'Milpitas', 'Mission Viejo', 'Modesto', 'Moreno Valley', 'Mountain View', 'Murrieta',
+    'Napa', 'National City', 'Newport Beach', 'Norwalk', 'Novato', 'Oakland', 'Oceanside', 'Ontario', 'Orange', 'Palo Alto', 'Palmdale', 'Pasadena', 'Pico Rivera', 'Pittsburg', 'Pleasanton', 'Pomona',
+    'Rancho Cordova', 'Rancho Cucamonga', 'Redding', 'Redlands', 'Redondo Beach', 'Redwood City', 'Rialto', 'Richmond', 'Riverside', 'Rocklin', 'Roseville', 'Sacramento',
+    'Salinas', 'San Bernardino', 'San Diego', 'San Francisco', 'San Jose', 'San Leandro', 'San Marcos', 'San Mateo', 'San Ramon', 'Santa Ana', 'Santa Barbara', 'Santa Clara', 'Santa Clarita', 'Santa Cruz', 'Santa Maria', 'Santa Monica', 'Santa Rosa', 'Simi Valley', 'South Gate', 'South San Francisco', 'Stockton',
+    'Sunnyvale', 'Temecula', 'Thousand Oaks', 'Torrance', 'Tracy', 'Tustin', 'Union City', 'Upland', 'Vacaville', 'Vallejo', 'Ventura',
+    'Victorville', 'Visalia', 'Vista', 'West Covina', 'Westminster', 'Whittier', 'Yorba Linda', 'Yuba City'
   ].sort(),
   CO: ['Denver', 'Colorado Springs', 'Aurora', 'Fort Collins', 'Lakewood'],
   CT: ['Bridgeport', 'New Haven', 'Stamford', 'Hartford', 'Waterbury'],
   DE: ['Wilmington', 'Dover', 'Newark', 'Middletown', 'Smyrna'],
   FL: [
-    'Cape Coral', 'Clearwater', 'Coral Springs', 'Fort Lauderdale', 'Gainesville', 'Hialeah',
-    'Hollywood', 'Jacksonville', 'Miami', 'Miramar', 'Orlando', 'Palm Bay',
-    'Pembroke Pines', 'Port St. Lucie', 'St. Petersburg', 'Tallahassee', 'Tampa'
+    'Aventura', 'Boca Raton', 'Boynton Beach', 'Bradenton', 'Cape Coral', 'Clearwater', 'Coconut Creek', 'Coral Springs', 'Davie', 'Daytona Beach', 'Deerfield Beach', 'Delray Beach', 'Deltona', 'Doral', 'Fort Lauderdale', 'Fort Myers', 'Gainesville', 'Hialeah',
+    'Hollywood', 'Homestead', 'Jacksonville', 'Jupiter', 'Kissimmee', 'Lakeland', 'Largo', 'Lauderhill', 'Margate', 'Melbourne', 'Miami', 'Miami Beach', 'Miami Gardens', 'Miramar', 'North Miami', 'Orlando', 'Palm Bay', 'Palm Beach Gardens', 'Palm Coast',
+    'Panama City', 'Pembroke Pines', 'Pensacola', 'Pine Hills', 'Pinellas Park', 'Plantation', 'Pompano Beach', 'Port Orange', 'Port St. Lucie', 'Sanford', 'Sarasota', 'Spring Hill', 'St. Petersburg', 'Sunrise', 'Tallahassee', 'Tamarac', 'Tampa', 'Town \'n\' Country',
+    'Wellington', 'West Palm Beach', 'Weston'
   ].sort(),
   GA: ['Atlanta', 'Augusta', 'Columbus', 'Macon', 'Savannah'],
   HI: ['Honolulu', 'Pearl City', 'Hilo', 'Kailua', 'Waipahu'],
@@ -157,16 +156,15 @@ export const cities: { [key: string]: string[] } = {
   SD: ['Sioux Falls', 'Rapid City', 'Aberdeen', 'Brookings', 'Watertown'],
   TN: ['Nashville', 'Memphis', 'Knoxville', 'Chattanooga', 'Clarksville'],
   TX: [
-    'Abilene', 'Amarillo', 'Andrews', 'Arlington', 'Austin', 'Brownsville', 'Carrollton',
-    'Corpus Christi', 'Dallas', 'Denton', 'El Paso', 'Fort Stockton', 'Fort Worth', 'Frisco',
-    'Garland', 'Grand Prairie', 'Houston', 'Irving', 'Kempner', 'Kermit', 'Killeen',
-    'Laredo', 'Lubbock', 'Marion', 'McAllen', 'McKinney', 'Mesquite', 'Midland',
-    'Monahans', 'Odessa', 'Ozona', 'Pasadena', 'Pecos', 'Plano', 'San Antonio',
-    'Seminole', 'Waco'
+    'Abilene', 'Allen', 'Amarillo', 'Andrews', 'Arlington', 'Austin', 'Baytown', 'Beaumont', 'Brownsville', 'Bryan', 'Carrollton', 'Cedar Park', 'College Station', 'Conroe',
+    'Corpus Christi', 'Dallas', 'Denton', 'Edinburg', 'El Paso', 'Euless', 'Flower Mound', 'Fort Stockton', 'Fort Worth', 'Frisco', 'Galveston', 'Garland', 'Georgetown', 'Grand Prairie', 'Grapevine', 'Harlingen', 'Houston', 'Huntsville', 'Irving', 'Keller', 'Kempner', 'Kermit', 'Killeen',
+    'Laredo', 'Lewisville', 'Longview', 'Lubbock', 'Mansfield', 'Marion', 'McAllen', 'McKinney', 'Mesquite', 'Midland', 'Mission', 'Missouri City', 'Monahans', 'New Braunfels', 'North Richland Hills',
+    'Odessa', 'Ozona', 'Pasadena', 'Pecos', 'Pflugerville', 'Pharr', 'Plano', 'Port Arthur', 'Richardson', 'Rockwall', 'Round Rock', 'Rowlett', 'San Angelo', 'San Antonio',
+    'San Marcos', 'Seminole', 'Sherman', 'Sugar Land', 'Temple', 'Texarkana', 'Texas City', 'The Woodlands', 'Tyler', 'Victoria', 'Waco', 'Wichita Falls'
   ].sort(),
   UT: [
-    'Layton', 'Lehi', 'Logan', 'Millcreek', 'Ogden', 'Orem', 'Provo',
-    'Salt Lake City', 'Sandy', 'South Jordan', 'St. George', 'Taylorsville',
+    'American Fork', 'Bountiful', 'Brigham City', 'Cedar City', 'Clearfield', 'Cottonwood Heights', 'Draper', 'Eagle Mountain', 'Farmington', 'Grantsville', 'Heber', 'Herriman', 'Kaysville', 'Kearns', 'Layton', 'Lehi', 'Lindon', 'Logan', 'Magna', 'Midvale', 'Millcreek', 'Murray', 'Ogden', 'Orem', 'Payson', 'Pleasant Grove',
+    'Provo', 'Riverton', 'Roy', 'Salt Lake City', 'Sandy', 'Saratoga Springs', 'South Jordan', 'Spanish Fork', 'Springville', 'St. George', 'Syracuse', 'Taylorsville', 'Tooele', 'Vernal',
     'West Jordan', 'West Valley City'
   ].sort(),
   VT: ['Burlington', 'Essex', 'South Burlington', 'Colchester', 'Rutland'],
