@@ -32,7 +32,7 @@ import { UploadCloud } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 const fileUploadSchema = z.object({
-  file: z.instanceof(File).optional(),
+  file: z.instanceof(File),
   description: z.string().optional(),
 }).refine(data => !!data.file, {
   message: 'Se requiere un archivo.',
@@ -90,7 +90,7 @@ export function FileUploadDialog({ open, onOpenChange }: FileUploadDialogProps) 
     setUploadProgress(0);
 
     const file = values.file;
-    const storageRef = ref(storage, `shared-files/${user.uid}/${Date.now()}_${file.name}`);
+    const storageRef = ref(storage, `shared-files/${Date.now()}_${file.name}`);
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     uploadTask.on(

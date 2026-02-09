@@ -104,9 +104,8 @@ service firebase.storage {
     /**
      * @description Rules for shared files.
      */
-    match /shared-files/{userId}/{allPaths=**} {
-      allow read: if isSignedIn();
-      allow write: if isOwner(userId);
+    match /shared-files/{allPaths=**} {
+      allow read, write: if isSignedIn();
     }
   }
 }
