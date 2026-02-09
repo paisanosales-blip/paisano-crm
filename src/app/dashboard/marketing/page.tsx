@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2, KeyRound, Pencil, Eye, ThumbsUp, Undo2, FileCheck2 } from 'lucide-react';
+import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2, KeyRound, Pencil, Eye, ThumbsUp, Undo2, FileCheck2, History } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   generateMarketingPlan,
@@ -157,6 +157,26 @@ export default function MarketingPage() {
     };
   }, [plan, completedTasks]);
   
+  const planReviewStats = useMemo(() => {
+    if (!completedTasks) {
+      return { pending: 0, changesRequired: 0, approved: 0 };
+    }
+
+    return (completedTasks as CompletedMarketingTask[]).reduce(
+      (acc, task) => {
+        if (task.reviewStatus === 'Pendiente') {
+          acc.pending++;
+        } else if (task.reviewStatus === 'Requiere Cambios') {
+          acc.changesRequired++;
+        } else if (task.reviewStatus === 'Aprobado') {
+          acc.approved++;
+        }
+        return acc;
+      },
+      { pending: 0, changesRequired: 0, approved: 0 }
+    );
+  }, [completedTasks]);
+
   const reviewStats = useMemo(() => {
     if (!completedTasks || !user) {
       return { tasksForMeToReview: 0, myTasksToCorrect: 0 };
@@ -452,6 +472,26 @@ export default function MarketingPage() {
                     </div>
                     <Progress value={progress} className="w-full h-3" />
                 </div>
+              </div>
+              <div className="pt-4 border-t">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-3 text-center">Estado de las Tareas</h4>
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <ThumbsUp className="mx-auto h-6 w-6 text-green-500 mb-1" />
+                      <p className="text-xl font-bold">{planReviewStats.approved}</p>
+                      <p className="text-xs font-medium text-muted-foreground">Aprobadas</p>
+                    </div>
+                    <div>
+                      <History className="mx-auto h-6 w-6 text-gray-500 mb-1" />
+                      <p className="text-xl font-bold">{planReviewStats.pending}</p>
+                      <p className="text-xs font-medium text-muted-foreground">Pendientes</p>
+                    </div>
+                    <div>
+                      <Undo2 className="mx-auto h-6 w-6 text-yellow-500 mb-1" />
+                      <p className="text-xl font-bold">{planReviewStats.changesRequired}</p>
+                      <p className="text-xs font-medium text-muted-foreground">Con Cambios</p>
+                    </div>
+                  </div>
               </div>
             </CardContent>
         </Card>
