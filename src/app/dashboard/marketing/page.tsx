@@ -517,29 +517,31 @@ export default function MarketingPage() {
                   </div>
               </div>
                <div className="pt-4 border-t">
-                  <h4 className="text-sm font-medium text-muted-foreground mb-3 text-center">Actividades Aprobadas por Red Social</h4>
-                  <div className="grid grid-cols-4 gap-4 text-center">
-                      <div>
-                          <TiktokIcon className="mx-auto h-6 w-6 text-foreground mb-1" />
-                          <p className="text-xl font-bold">{socialMediaStats.tiktok}</p>
-                          <p className="text-xs font-medium text-muted-foreground">TikTok</p>
-                      </div>
-                      <div>
-                          <InstagramIcon className="mx-auto h-6 w-6 text-pink-500 mb-1" />
-                          <p className="text-xl font-bold">{socialMediaStats.instagram}</p>
-                          <p className="text-xs font-medium text-muted-foreground">Instagram</p>
-                      </div>
-                      <div>
-                          <FacebookIcon className="mx-auto h-6 w-6 text-blue-600 mb-1" />
-                          <p className="text-xl font-bold">{socialMediaStats.facebook}</p>
-                          <p className="text-xs font-medium text-muted-foreground">Facebook</p>
-                      </div>
-                      <div>
-                          <LinkedinIcon className="mx-auto h-6 w-6 text-sky-700 mb-1" />
-                          <p className="text-xl font-bold">{socialMediaStats.linkedin}</p>
-                          <p className="text-xs font-medium text-muted-foreground">LinkedIn</p>
-                      </div>
-                  </div>
+                    <div className="p-4 rounded-lg bg-muted/50 mt-4">
+                        <h4 className="text-sm font-medium text-muted-foreground mb-3 text-center">Actividades Aprobadas por Red Social</h4>
+                        <div className="grid grid-cols-4 gap-4 text-center">
+                            <div>
+                                <TiktokIcon className="mx-auto h-6 w-6 text-foreground mb-1" />
+                                <p className="text-xl font-bold">{socialMediaStats.tiktok}</p>
+                                <p className="text-xs font-medium text-muted-foreground">TikTok</p>
+                            </div>
+                            <div>
+                                <InstagramIcon className="mx-auto h-6 w-6 text-pink-500 mb-1" />
+                                <p className="text-xl font-bold">{socialMediaStats.instagram}</p>
+                                <p className="text-xs font-medium text-muted-foreground">Instagram</p>
+                            </div>
+                            <div>
+                                <FacebookIcon className="mx-auto h-6 w-6 text-blue-600 mb-1" />
+                                <p className="text-xl font-bold">{socialMediaStats.facebook}</p>
+                                <p className="text-xs font-medium text-muted-foreground">Facebook</p>
+                            </div>
+                            <div>
+                                <LinkedinIcon className="mx-auto h-6 w-6 text-sky-700 mb-1" />
+                                <p className="text-xl font-bold">{socialMediaStats.linkedin}</p>
+                                <p className="text-xs font-medium text-muted-foreground">LinkedIn</p>
+                            </div>
+                        </div>
+                    </div>
               </div>
             </CardContent>
         </Card>

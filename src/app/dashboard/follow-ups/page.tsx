@@ -22,7 +22,7 @@ import {
   formatDistanceToNow,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users, ListTodo, AlertOctagon, CalendarClock, CheckCheck, Lightbulb, RefreshCcw, History, MessageCircle } from 'lucide-react';
+import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users, ListTodo, AlertOctagon, CalendarClock, CheckCheck, Lightbulb, RefreshCcw, History, MessageCircle, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,6 +53,7 @@ import { FollowUpDialog, type FollowUpSubmitPayload } from '@/components/follow-
 import { CompleteFollowUpDialog, type CompletionPayload } from '@/components/complete-follow-up-dialog';
 import { generateFollowUpSummary } from '@/ai/flows/generate-follow-up-summary';
 import { getClassification, getBadgeClass } from '@/lib/types';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const groupStyleKeys = {
     destructive: {
@@ -689,6 +690,29 @@ export default function FollowUpsPage() {
                                         )}
                                     </div>
                                 )}
+                                <Collapsible className="pt-1">
+                                    <CollapsibleTrigger asChild>
+                                        <Button variant="ghost" className="w-full justify-start text-xs h-8 -ml-2 text-muted-foreground">
+                                            <History className="h-4 w-4 mr-2" />
+                                            Historial del Cliente ({activity.prospect.activities.length} {activity.prospect.activities.length === 1 ? 'actividad' : 'actividades'})
+                                        </Button>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="pl-4 pr-2">
+                                        {activity.prospect.activities.length > 0 ? (
+                                            <div className="space-y-2 mt-1 border-l-2 ml-2 pl-4 py-2">
+                                                {activity.prospect.activities.slice(0, 5).map((act: any) => (
+                                                    <div key={act.id} className="text-xs">
+                                                        <p className="font-semibold">{act.type} - {format(new Date(act.createdDate), "dd/MM/yy")}</p>
+                                                        <p className="text-muted-foreground italic">"{act.description || 'Sin descripción.'}"</p>
+                                                    </div>
+                                                ))}
+                                                {activity.prospect.activities.length > 5 && <p className="text-xs text-muted-foreground mt-2">... y más.</p>}
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-muted-foreground pl-4 py-2">No hay historial de actividades.</p>
+                                        )}
+                                    </CollapsibleContent>
+                                </Collapsible>
                                 <div className="flex items-center gap-4 pt-2 mt-2 border-t">
                                     <a 
                                         href={activity.prospect?.phone ? `https://wa.me/${(activity.prospect.country === 'US' ? '1' : '52')}${activity.prospect.phone.replace(/\D/g, '')}` : '#'}
@@ -746,6 +770,13 @@ export default function FollowUpsPage() {
                                     >
                                         <Phone className="h-5 w-5" />
                                     </a>
+                                    <div className={cn(
+                                        "flex items-center gap-1.5 text-xs ml-auto",
+                                        activity.prospect?.language ? "text-muted-foreground" : "text-muted-foreground/40"
+                                    )}>
+                                        <Globe className="h-4 w-4" />
+                                        <span>{activity.prospect?.language || 'N/A'}</span>
+                                    </div>
                                 </div>
                             </div>
                             
