@@ -11,6 +11,7 @@ import {
   useDoc,
   addDocumentNonBlocking,
   setDocumentNonBlocking,
+  updateDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc, getDocs, deleteDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2, KeyRound, Pencil } from 'lucide-react';
+import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2, KeyRound, Pencil, Eye, ThumbsUp, Undo2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   generateMarketingPlan,
@@ -41,41 +42,15 @@ import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { MarketingTaskDialog, type TaskCompletionData } from '@/components/marketing-task-dialog';
+import { MarketingTaskDialog } from '@/components/marketing-task-dialog';
+import { MarketingReviewDialog, type ReviewConfirmPayload } from '@/components/marketing-review-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { MarketingPlan, CompletedMarketingTask, TaskCompletionData } from '@/lib/types';
+
 
 const GENERATION_CODE = 'PAISANO2026';
-
-type MarketingTask = {
-  description: string;
-  points: number;
-};
-
-type DailyPlan = {
-  day: string;
-  theme: string;
-  tasks: MarketingTask[];
-};
-
-type MarketingPlan = {
-  id: string;
-  code: string;
-  createdAt: string;
-  weekNumber: number;
-  planData: { weeklyPlan: DailyPlan[] };
-};
-
-type CompletedTask = TaskCompletionData & {
-  id: string; // Will be the taskId like 'Lunes-0'
-  planId: string;
-  userId: string;
-  userName: string;
-  taskDescription: string;
-  points: number;
-  completedAt: string;
-};
 
 export default function MarketingPage() {
   const { user, isUserLoading } = useUser();
@@ -96,7 +71,7 @@ export default function MarketingPage() {
 
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<{ id: string; description: string; points: number; } | null>(null);
-  const [editingTaskData, setEditingTaskData] = useState<CompletedTask | null>(null);
+  const [editingTaskData, setEditingTaskData] = useState<CompletedMarketingTask | null>(null);
   
   const [uncheckAlertOpen, setUncheckAlertOpen] = useState(false);
   const [taskToUncheck, setTaskToUncheck] = useState<string | null>(null);
@@ -104,9 +79,12 @@ export default function MarketingPage() {
   const [planToDelete, setPlanToDelete] = useState<MarketingPlan | null>(null);
   const [isDeletePlanDialogOpen, setIsDeletePlanDialogOpen] = useState(false);
   
-  const [taskToDelete, setTaskToDelete] = useState<CompletedTask | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<CompletedMarketingTask | null>(null);
   const [isDeleteTaskDialogOpen, setIsDeleteTaskDialogOpen] = useState(false);
   const [deleteTaskCode, setDeleteTaskCode] = useState('');
+
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [taskToReview, setTaskToReview] = useState<CompletedMarketingTask | null>(null);
 
   const marketingPlansQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -141,14 +119,16 @@ export default function MarketingPage() {
     return collection(firestore, 'marketingPlans', selectedPlanId, 'completedTasks');
   }, [firestore, selectedPlanId]);
 
-  const { data: completedTasks, isLoading: areTasksLoading } = useCollection<CompletedTask>(completedTasksQuery);
+  const { data: completedTasks, isLoading: areTasksLoading } = useCollection<CompletedMarketingTask>(completedTasksQuery);
 
   const { completedPoints, progress, rank, rankGoalPoints } = useMemo(() => {
     if (!plan?.planData) {
       return { totalPoints: 0, completedPoints: 0, progress: 0, rank: 'Aprendiz' as const, rankGoalPoints: 10 };
     }
     
-    const completed = completedTasks?.reduce((acc, task) => acc + task.points, 0) || 0;
+    const completed = completedTasks
+      ?.filter(task => task.reviewStatus === 'Aprobado')
+      .reduce((acc, task) => acc + task.points, 0) || 0;
     
     let currentRank: 'Aprendiz' | 'Estratega' | 'Maestro' = 'Aprendiz';
     let progressValue = 0;
@@ -214,7 +194,7 @@ export default function MarketingPage() {
     }
   };
   
-  const handleTaskCheckChange = (taskId: string, task: MarketingTask, checked: boolean) => {
+  const handleTaskCheckChange = (taskId: string, task: {description: string, points: number}, checked: boolean) => {
     if (checked) {
       setSelectedTask({ id: taskId, description: task.description, points: task.points });
       setEditingTaskData(null);
@@ -225,7 +205,7 @@ export default function MarketingPage() {
     }
   };
 
-  const handleEditTaskClick = (task: CompletedTask) => {
+  const handleEditTaskClick = (task: CompletedMarketingTask) => {
     setEditingTaskData(task);
     setIsTaskDialogOpen(true);
   };
@@ -240,27 +220,30 @@ export default function MarketingPage() {
 
   const handleTaskDialogConfirm = (data: TaskCompletionData) => {
     if (editingTaskData) {
-      if (!firestore || !selectedPlanId) return;
+      if (!firestore || !selectedPlanId || !user) return;
       const taskDocRef = doc(firestore, 'marketingPlans', selectedPlanId, 'completedTasks', editingTaskData.id);
       
-      const updatedTaskData: CompletedTask = {
+      const updatedTaskData: CompletedMarketingTask = {
         ...editingTaskData,
         title: data.title,
         text: data.text,
+        fileUrl: data.fileUrl,
+        fileName: data.fileName,
       };
-
-      if (data.fileUrl !== undefined) {
-        updatedTaskData.fileUrl = data.fileUrl;
-        updatedTaskData.fileName = data.fileName;
+      
+      // If the user who submitted it is editing it, reset status for re-review
+      if (editingTaskData.userId === user.uid) {
+        updatedTaskData.reviewStatus = 'Pendiente';
+        updatedTaskData.reviewFeedback = '';
       }
       
-      setDocumentNonBlocking(taskDocRef, updatedTaskData, {});
+      setDocumentNonBlocking(taskDocRef, updatedTaskData, { merge: true });
 
     } else {
       if (!selectedTask || !firestore || !selectedPlanId || !user || !userProfile) return;
       const taskDocRef = doc(firestore, 'marketingPlans', selectedPlanId, 'completedTasks', selectedTask.id);
       
-      const completedTaskData: CompletedTask = {
+      const completedTaskData: CompletedMarketingTask = {
         ...data,
         id: selectedTask.id,
         planId: selectedPlanId,
@@ -269,10 +252,31 @@ export default function MarketingPage() {
         taskDescription: selectedTask.description,
         points: selectedTask.points,
         completedAt: new Date().toISOString(),
+        reviewStatus: 'Pendiente', // Default status
       };
 
       setDocumentNonBlocking(taskDocRef, completedTaskData, {});
     }
+  };
+  
+  const handleReviewClick = (task: CompletedMarketingTask) => {
+    setTaskToReview(task);
+    setIsReviewDialogOpen(true);
+  };
+
+  const handleReviewConfirm = (payload: ReviewConfirmPayload) => {
+      if (!taskToReview || !firestore || !selectedPlanId) return;
+
+      const taskDocRef = doc(firestore, 'marketingPlans', selectedPlanId, 'completedTasks', taskToReview.id);
+      
+      updateDocumentNonBlocking(taskDocRef, {
+          reviewStatus: payload.reviewStatus,
+          reviewFeedback: payload.reviewFeedback,
+      });
+      
+      toast({ title: 'Revisión Guardada' });
+      setIsReviewDialogOpen(false);
+      setTaskToReview(null);
   };
 
   const handleGenerationConfirm = () => {
@@ -317,7 +321,7 @@ export default function MarketingPage() {
     }
   };
 
-  const handleDeleteTaskClick = (task: CompletedTask) => {
+  const handleDeleteTaskClick = (task: CompletedMarketingTask) => {
     setTaskToDelete(task);
     setIsDeleteTaskDialogOpen(true);
     setDeleteTaskCode('');
@@ -367,7 +371,7 @@ export default function MarketingPage() {
                 <div>
                     <CardTitle>Progreso del Plan Semanal</CardTitle>
                     <CardDescription>
-                        Resumen de tu avance en las metas de marketing de la semana.
+                        Resumen de tu avance en las metas de marketing de la semana (solo puntos de tareas aprobadas).
                     </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
@@ -447,6 +451,12 @@ export default function MarketingPage() {
                           const taskId = `${dayPlan.day}-${index}`;
                           const completionData = completedTasks?.find(t => t.id === taskId);
                           const isCompleted = !!completionData;
+                          
+                           const statusDetails = {
+                              'Pendiente': { label: 'Pendiente', icon: <Pencil className="h-3 w-3" />, className: 'bg-gray-100 text-gray-800' },
+                              'Aprobado': { label: 'Aprobado', icon: <ThumbsUp className="h-3 w-3" />, className: 'bg-green-100 text-green-800' },
+                              'Requiere Cambios': { label: 'Requiere Cambios', icon: <Undo2 className="h-3 w-3" />, className: 'bg-yellow-100 text-yellow-800' },
+                            }[completionData?.reviewStatus || 'Pendiente'];
 
                           return (
                             <li key={taskId} className="flex flex-col items-start gap-3">
@@ -482,6 +492,21 @@ export default function MarketingPage() {
                                       <Badge variant="secondary" className="text-xs">{completionData.userName}</Badge>
                                     </div>
                                     <p className="text-xs whitespace-pre-wrap">{completionData.text}</p>
+                                     <div className="mt-2 pt-2 border-t">
+                                        <div className="flex items-center justify-between">
+                                            <h5 className="text-xs font-semibold text-muted-foreground">REVISIÓN</h5>
+                                            <Badge variant="outline" className={cn("text-xs", statusDetails.className)}>
+                                                {statusDetails.icon}
+                                                <span className="ml-1.5">{statusDetails.label}</span>
+                                            </Badge>
+                                        </div>
+                                        {completionData.reviewStatus === 'Requiere Cambios' && completionData.reviewFeedback && (
+                                            <div className="mt-2 p-2 rounded-md bg-yellow-50 text-yellow-900 border border-yellow-200 text-xs">
+                                                <p className="font-bold">Comentarios:</p>
+                                                <p className="italic">"{completionData.reviewFeedback}"</p>
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="flex justify-between items-center pt-2">
                                         {completionData.fileUrl ? (
                                             <Button asChild size="sm" variant="outline" className="h-7">
@@ -493,10 +518,18 @@ export default function MarketingPage() {
                                         ) : <div />}
 
                                         <div className="flex items-center">
-                                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditTaskClick(completionData)} title="Editar actividad">
-                                              <Pencil className="h-4 w-4" />
-                                              <span className="sr-only">Editar actividad</span>
-                                          </Button>
+                                          {userProfile?.role === 'manager' && (
+                                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleReviewClick(completionData)} title="Revisar actividad">
+                                                  <Eye className="h-4 w-4" />
+                                                  <span className="sr-only">Revisar actividad</span>
+                                              </Button>
+                                          )}
+                                          {(completionData.userId === user?.uid || userProfile?.role === 'manager') && (
+                                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditTaskClick(completionData)} title="Editar actividad">
+                                                  <Pencil className="h-4 w-4" />
+                                                  <span className="sr-only">Editar actividad</span>
+                                              </Button>
+                                          )}
                                           {userProfile?.role === 'manager' && (
                                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteTaskClick(completionData)} title="Eliminar actividad">
                                                 <Trash2 className="h-4 w-4" />
@@ -638,7 +671,15 @@ export default function MarketingPage() {
                 </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
-    </AlertDialog>
+      </AlertDialog>
+
+      <MarketingReviewDialog
+        open={isReviewDialogOpen}
+        onOpenChange={setIsReviewDialogOpen}
+        onConfirm={handleReviewConfirm}
+        task={taskToReview}
+        isSubmitting={isGenerating}
+      />
     </>
   );
 }

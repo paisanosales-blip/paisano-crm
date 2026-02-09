@@ -125,3 +125,41 @@ export type Template = {
   type: 'Email' | 'WhatsApp' | 'SMS';
   createdAt: string;
 };
+
+export type MarketingTask = {
+  description: string;
+  points: number;
+};
+
+export type DailyPlan = {
+  day: string;
+  theme: string;
+  tasks: MarketingTask[];
+};
+
+export type MarketingPlan = {
+  id: string;
+  code: string;
+  createdAt: string;
+  weekNumber: number;
+  planData: { weeklyPlan: DailyPlan[] };
+};
+
+export interface TaskCompletionData {
+  title: string;
+  text: string;
+  fileUrl?: string;
+  fileName?: string;
+}
+
+export type CompletedMarketingTask = TaskCompletionData & {
+  id: string;
+  planId: string;
+  userId: string;
+  userName: string;
+  taskDescription: string;
+  points: number;
+  completedAt: string;
+  reviewStatus: 'Pendiente' | 'Aprobado' | 'Requiere Cambios';
+  reviewFeedback?: string;
+};

@@ -611,7 +611,16 @@
         "fileUrl": { "type": "string", "format": "uri" },
         "fileName": { "type": "string" },
         "points": { "type": "number" },
-        "completedAt": { "type": "string", "format": "date-time" }
+        "completedAt": { "type": "string", "format": "date-time" },
+        "reviewStatus": {
+          "type": "string",
+          "description": "The review status of the completed task.",
+          "enum": ["Pendiente", "Aprobado", "Requiere Cambios"]
+        },
+        "reviewFeedback": {
+          "type": "string",
+          "description": "Feedback from the manager for the completed task."
+        }
       },
       "required": ["id", "planId", "userId", "userName", "taskDescription", "title", "text", "points", "completedAt"]
     }

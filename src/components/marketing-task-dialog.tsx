@@ -27,6 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
+import type { TaskCompletionData } from '@/lib/types';
 
 const taskCompletionSchema = z.object({
   title: z.string().min(1, 'El título es requerido.'),
@@ -35,13 +36,6 @@ const taskCompletionSchema = z.object({
 });
 
 type TaskCompletionFormValues = z.infer<typeof taskCompletionSchema>;
-
-export interface TaskCompletionData {
-  title: string;
-  text: string;
-  fileUrl?: string;
-  fileName?: string;
-}
 
 interface MarketingTaskDialogProps {
   open: boolean;
@@ -132,7 +126,10 @@ export function MarketingTaskDialog({
         }
       );
     } else {
-        performConfirm();
+        // If editing and no new file is provided, keep the old file info
+        const existingFileUrl = isEditing ? initialData?.fileUrl : undefined;
+        const existingFileName = isEditing ? initialData?.fileName : undefined;
+        performConfirm(existingFileUrl, existingFileName);
     }
   }
 
