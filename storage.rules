@@ -90,12 +90,8 @@ service firebase.storage {
     /**
      * @description Rules for global app assets like logos.
      * @path /app/{allPaths=**}
-     * @allow read: public
-     * @allow write: If user is a manager.
-     */
-    match /app/{allPaths=**} {
-      allow read: if true;
-      allow write: if isManager();
+     * @allow read: if true;
+     * @allow write: if isManager();
     }
 
     /**
@@ -103,6 +99,14 @@ service firebase.storage {
      */
     match /marketing_uploads/{allPaths=**} {
       allow read, write: if isSignedIn();
+    }
+
+    /**
+     * @description Rules for shared files.
+     */
+    match /shared-files/{userId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
     }
   }
 }

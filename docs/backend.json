@@ -623,6 +623,23 @@
         }
       },
       "required": ["id", "planId", "userId", "userName", "taskDescription", "title", "text", "points", "completedAt"]
+    },
+    "SharedFile": {
+      "title": "Shared File",
+      "type": "object",
+      "description": "Represents a shared file uploaded by a user.",
+      "properties": {
+        "id": { "type": "string" },
+        "fileName": { "type": "string" },
+        "fileUrl": { "type": "string", "format": "uri" },
+        "fileType": { "type": "string" },
+        "fileSize": { "type": "number" },
+        "uploadedByUserId": { "type": "string" },
+        "uploadedByUserName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" }
+      },
+      "required": ["fileName", "fileUrl", "fileType", "fileSize", "uploadedByUserId", "uploadedByUserName", "createdAt"]
     }
   },
   "auth": {
@@ -780,6 +797,15 @@
             { "name": "planId", "description": "The ID of the parent marketing plan." },
             { "name": "taskId", "description": "The ID of the completed task (e.g., 'Lunes-0')." }
           ]
+        }
+      },
+      {
+        "path": "/sharedFiles/{fileId}",
+        "definition": {
+          "entityName": "SharedFile",
+          "schema": { "$ref": "#/backend/entities/SharedFile" },
+          "description": "Stores metadata for shared files uploaded by users.",
+          "params": [{ "name": "fileId", "description": "Unique ID for the shared file."}]
         }
       }
     ],

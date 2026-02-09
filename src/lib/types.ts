@@ -163,3 +163,15 @@ export type CompletedMarketingTask = TaskCompletionData & {
   reviewStatus: 'Pendiente' | 'Aprobado' | 'Requiere Cambios';
   reviewFeedback?: string;
 };
+
+export type SharedFile = {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  fileSize: number;
+  uploadedByUserId: string;
+  uploadedByUserName: string;
+  createdAt: string;
+  description?: string;
+};

@@ -90,5 +90,14 @@ service cloud.firestore {
         allow read, write, delete: if isSignedIn();
       }
     }
+
+    // =====================================================================
+    // Shared Files
+    // =====================================================================
+    match /sharedFiles/{fileId} {
+      allow read: if isSignedIn();
+      allow create: if request.resource.data.uploadedByUserId == request.auth.uid;
+      allow update, delete: if isManager() || resource.data.uploadedByUserId == request.auth.uid;
+    }
   }
 }
