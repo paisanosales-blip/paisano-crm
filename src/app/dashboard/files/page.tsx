@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import {
   useFirestore,
   useUser,
@@ -36,6 +37,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { MoreHorizontal, PlusCircle, File, FileText, Image as ImageIcon, Download, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -78,6 +86,8 @@ export default function SharedFilesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [fileToDelete, setFileToDelete] = useState<SharedFile | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewFile, setPreviewFile] = useState<SharedFile | null>(null);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -91,6 +101,15 @@ export default function SharedFilesPage() {
   }, [firestore]);
 
   const { data: files, isLoading } = useCollection<SharedFile>(filesQuery);
+
+  const handlePreviewClick = (file: SharedFile) => {
+    if (file.fileType.startsWith('image/')) {
+        setPreviewFile(file);
+        setIsPreviewOpen(true);
+    } else {
+        window.open(file.fileUrl, '_blank', 'noopener, noreferrer');
+    }
+  };
 
   const handleDeleteClick = (file: SharedFile) => {
     setFileToDelete(file);
@@ -159,7 +178,7 @@ export default function SharedFilesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[40px]"></TableHead>
+                  <TableHead className="w-[80px]">Vista Previa</TableHead>
                   <TableHead>Nombre del Archivo</TableHead>
                   <TableHead>Tamaño</TableHead>
                   <TableHead>Subido por</TableHead>
@@ -174,19 +193,37 @@ export default function SharedFilesPage() {
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
                       <TableCell colSpan={6}>
-                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-12 w-full" />
                       </TableCell>
                     </TableRow>
                   ))
                 ) : files && files.length > 0 ? (
                   files.map((file: SharedFile) => (
                     <TableRow key={file.id}>
-                      <TableCell>
-                        <FileTypeIcon fileType={file.fileType} />
+                       <TableCell>
+                        <button
+                          onClick={() => handlePreviewClick(file)}
+                          className="w-16 h-12 flex items-center justify-center bg-muted rounded-md overflow-hidden relative group"
+                        >
+                          {file.fileType.startsWith('image/') ? (
+                            <>
+                              <Image
+                                src={file.fileUrl}
+                                alt={file.fileName}
+                                fill
+                                className="object-cover transition-transform group-hover:scale-110"
+                              />
+                            </>
+                          ) : (
+                            <FileTypeIcon fileType={file.fileType} />
+                          )}
+                        </button>
                       </TableCell>
                       <TableCell className="font-semibold">
-                        {file.fileName}
-                         {file.description && <p className="text-xs font-normal text-muted-foreground mt-1">{file.description}</p>}
+                         <button onClick={() => handlePreviewClick(file)} className="text-left hover:underline">
+                            {file.fileName}
+                         </button>
+                         {file.description && <p className="text-xs font-normal text-muted-foreground mt-1 max-w-xs truncate">{file.description}</p>}
                       </TableCell>
                       <TableCell>{formatFileSize(file.fileSize)}</TableCell>
                       <TableCell>{file.uploadedByUserName || 'N/A'}</TableCell>
@@ -259,6 +296,25 @@ export default function SharedFilesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl h-[90vh]">
+            <DialogHeader>
+                <DialogTitle>{previewFile?.fileName}</DialogTitle>
+                <DialogDescription>{previewFile?.description}</DialogDescription>
+            </DialogHeader>
+            <div className="mt-4 flex-grow relative">
+                {previewFile && previewFile.fileType.startsWith('image/') && (
+                    <Image
+                        src={previewFile.fileUrl}
+                        alt={previewFile.fileName || 'Image preview'}
+                        fill
+                        className="object-contain"
+                    />
+                )}
+            </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
