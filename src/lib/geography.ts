@@ -102,11 +102,27 @@ export const cities: { [key: string]: string[] } = {
   AK: ['Anchorage', 'Fairbanks', 'Juneau', 'Sitka', 'Ketchikan'],
   AZ: ['Phoenix', 'Tucson', 'Mesa', 'Chandler', 'Scottsdale', 'Glendale', 'Gilbert'],
   AR: ['Little Rock', 'Fayetteville', 'Fort Smith', 'Springdale', 'Jonesboro'],
-  CA: ['Los Angeles', 'San Diego', 'San Jose', 'San Francisco', 'Fresno', 'Sacramento', 'Long Beach', 'Oakland'],
+  CA: [
+    'Anaheim', 'Antioch', 'Bakersfield', 'Berkeley', 'Burbank', 'Carlsbad', 'Chula Vista',
+    'Clovis', 'Concord', 'Corona', 'Costa Mesa', 'Daly City', 'Downey', 'El Cajon',
+    'El Monte', 'Escondido', 'Fairfield', 'Fontana', 'Fremont', 'Fresno', 'Fullerton',
+    'Garden Grove', 'Glendale', 'Hayward', 'Huntington Beach', 'Inglewood', 'Irvine',
+    'Lancaster', 'Long Beach', 'Los Angeles', 'Modesto', 'Moreno Valley', 'Murrieta',
+    'Oakland', 'Oceanside', 'Ontario', 'Orange', 'Palmdale', 'Pasadena', 'Pomona',
+    'Rancho Cucamonga', 'Rialto', 'Richmond', 'Riverside', 'Roseville', 'Sacramento',
+    'Salinas', 'San Bernardino', 'San Diego', 'San Francisco', 'San Jose', 'San Mateo',
+    'Santa Ana', 'Santa Clara', 'Santa Clarita', 'Santa Maria', 'Simi Valley', 'Stockton',
+    'Sunnyvale', 'Temecula', 'Thousand Oaks', 'Torrance', 'Vallejo', 'Ventura',
+    'Victorville', 'Visalia'
+  ].sort(),
   CO: ['Denver', 'Colorado Springs', 'Aurora', 'Fort Collins', 'Lakewood'],
   CT: ['Bridgeport', 'New Haven', 'Stamford', 'Hartford', 'Waterbury'],
   DE: ['Wilmington', 'Dover', 'Newark', 'Middletown', 'Smyrna'],
-  FL: ['Jacksonville', 'Miami', 'Tampa', 'Orlando', 'St. Petersburg', 'Hialeah'],
+  FL: [
+    'Cape Coral', 'Clearwater', 'Coral Springs', 'Fort Lauderdale', 'Gainesville', 'Hialeah',
+    'Hollywood', 'Jacksonville', 'Miami', 'Miramar', 'Orlando', 'Palm Bay',
+    'Pembroke Pines', 'Port St. Lucie', 'St. Petersburg', 'Tallahassee', 'Tampa'
+  ].sort(),
   GA: ['Atlanta', 'Augusta', 'Columbus', 'Macon', 'Savannah'],
   HI: ['Honolulu', 'Pearl City', 'Hilo', 'Kailua', 'Waipahu'],
   ID: ['Boise', 'Meridian', 'Nampa', 'Idaho Falls', 'Caldwell'],
@@ -140,8 +156,19 @@ export const cities: { [key: string]: string[] } = {
   SC: ['Charleston', 'Columbia', 'North Charleston', 'Mount Pleasant', 'Rock Hill'],
   SD: ['Sioux Falls', 'Rapid City', 'Aberdeen', 'Brookings', 'Watertown'],
   TN: ['Nashville', 'Memphis', 'Knoxville', 'Chattanooga', 'Clarksville'],
-  TX: ['Abilene', 'Andrews', 'Arlington', 'Austin', 'Dallas', 'El Paso', 'Fort Stockton', 'Fort Worth', 'Houston', 'Kempner', 'Kermit', 'Marion', 'Midland', 'Monahans', 'Odessa', 'Ozona', 'Pecos', 'San Antonio', 'Seminole'],
-  UT: ['Salt Lake City', 'West Valley City', 'Provo', 'West Jordan', 'Orem', 'Weber County'],
+  TX: [
+    'Abilene', 'Amarillo', 'Andrews', 'Arlington', 'Austin', 'Brownsville', 'Carrollton',
+    'Corpus Christi', 'Dallas', 'Denton', 'El Paso', 'Fort Stockton', 'Fort Worth', 'Frisco',
+    'Garland', 'Grand Prairie', 'Houston', 'Irving', 'Kempner', 'Kermit', 'Killeen',
+    'Laredo', 'Lubbock', 'Marion', 'McAllen', 'McKinney', 'Mesquite', 'Midland',
+    'Monahans', 'Odessa', 'Ozona', 'Pasadena', 'Pecos', 'Plano', 'San Antonio',
+    'Seminole', 'Waco'
+  ].sort(),
+  UT: [
+    'Layton', 'Lehi', 'Logan', 'Millcreek', 'Ogden', 'Orem', 'Provo',
+    'Salt Lake City', 'Sandy', 'South Jordan', 'St. George', 'Taylorsville',
+    'West Jordan', 'West Valley City'
+  ].sort(),
   VT: ['Burlington', 'Essex', 'South Burlington', 'Colchester', 'Rutland'],
   VA: ['Virginia Beach', 'Norfolk', 'Chesapeake', 'Richmond', 'Newport News'],
   WA: ['Seattle', 'Spokane', 'Tacoma', 'Vancouver', 'Bellevue'],
