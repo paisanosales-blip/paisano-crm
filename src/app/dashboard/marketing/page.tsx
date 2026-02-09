@@ -49,6 +49,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { MarketingPlan, CompletedMarketingTask, TaskCompletionData } from '@/lib/types';
+import { TiktokIcon, InstagramIcon, FacebookIcon, LinkedinIcon } from '@/components/social-icons';
 
 
 const GENERATION_CODE = 'PAISANO2026';
@@ -192,6 +193,28 @@ export default function MarketingPage() {
 
     return { tasksForMeToReview, myTasksToCorrect };
   }, [completedTasks, user]);
+
+  const socialMediaStats = useMemo(() => {
+    const stats = {
+      tiktok: 0,
+      instagram: 0,
+      facebook: 0,
+      linkedin: 0,
+    };
+    if (!completedTasks) return stats;
+
+    const approvedTasks = completedTasks.filter(task => task.reviewStatus === 'Aprobado');
+
+    for (const task of approvedTasks) {
+        const description = task.taskDescription.toLowerCase();
+        if (description.includes('tiktok')) stats.tiktok++;
+        if (description.includes('instagram')) stats.instagram++;
+        if (description.includes('facebook')) stats.facebook++;
+        if (description.includes('linkedin')) stats.linkedin++;
+    }
+
+    return stats;
+  }, [completedTasks]);
   
   const isManager = userProfile?.role === 'manager';
 
@@ -491,6 +514,31 @@ export default function MarketingPage() {
                       <p className="text-xl font-bold">{planReviewStats.changesRequired}</p>
                       <p className="text-xs font-medium text-muted-foreground">Con Cambios</p>
                     </div>
+                  </div>
+              </div>
+               <div className="pt-4 border-t">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-3 text-center">Actividades Aprobadas por Red Social</h4>
+                  <div className="grid grid-cols-4 gap-4 text-center">
+                      <div>
+                          <TiktokIcon className="mx-auto h-6 w-6 text-foreground mb-1" />
+                          <p className="text-xl font-bold">{socialMediaStats.tiktok}</p>
+                          <p className="text-xs font-medium text-muted-foreground">TikTok</p>
+                      </div>
+                      <div>
+                          <InstagramIcon className="mx-auto h-6 w-6 text-pink-500 mb-1" />
+                          <p className="text-xl font-bold">{socialMediaStats.instagram}</p>
+                          <p className="text-xs font-medium text-muted-foreground">Instagram</p>
+                      </div>
+                      <div>
+                          <FacebookIcon className="mx-auto h-6 w-6 text-blue-600 mb-1" />
+                          <p className="text-xl font-bold">{socialMediaStats.facebook}</p>
+                          <p className="text-xs font-medium text-muted-foreground">Facebook</p>
+                      </div>
+                      <div>
+                          <LinkedinIcon className="mx-auto h-6 w-6 text-sky-700 mb-1" />
+                          <p className="text-xl font-bold">{socialMediaStats.linkedin}</p>
+                          <p className="text-xs font-medium text-muted-foreground">LinkedIn</p>
+                      </div>
                   </div>
               </div>
             </CardContent>
