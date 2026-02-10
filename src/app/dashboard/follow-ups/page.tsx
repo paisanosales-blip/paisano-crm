@@ -54,6 +54,7 @@ import { CompleteFollowUpDialog, type CompletionPayload } from '@/components/com
 import { generateFollowUpSummary } from '@/ai/flows/generate-follow-up-summary';
 import { getClassification, getBadgeClass } from '@/lib/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ResponseRateChart } from '@/components/response-rate-chart';
 
 const groupStyleKeys = {
     destructive: {
@@ -174,8 +175,14 @@ export default function FollowUpsPage() {
   }, [firestore, user, userProfile, selectedUserId]);
   const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
 
+  const allActivitiesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'activities');
+  }, [firestore]);
+  const { data: allActivities, isLoading: areAllActivitiesLoading } = useCollection(allActivitiesQuery);
 
-  const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areActivitiesLoading || areLeadsLoading || areOppsLoading || areQuotsLoading;
+
+  const isLoading = isUserAuthLoading || isProfileLoading || areUsersLoading || areActivitiesLoading || areLeadsLoading || areOppsLoading || areQuotsLoading || areAllActivitiesLoading;
 
   const followUpStats = useMemo(() => {
     if (!activities) {
@@ -387,6 +394,50 @@ export default function FollowUpsPage() {
     return pendingGroups;
 
   }, [activities, leads, opportunities, quotations, showCompleted]);
+  
+  const responseRateByDay = useMemo(() => {
+    if (!allActivities) return [];
+
+    const completedCalls = (allActivities as any[]).filter(
+      (a) => a.type === 'Llamada' && a.completed && a.completedDate && a.clientResponded !== undefined
+    );
+
+    const dayStats: Record<string, { responded: number; notResponded: number }> = {
+      'Lunes': { responded: 0, notResponded: 0 },
+      'Martes': { responded: 0, notResponded: 0 },
+      'Miércoles': { responded: 0, notResponded: 0 },
+      'Jueves': { responded: 0, notResponded: 0 },
+      'Viernes': { responded: 0, notResponded: 0 },
+      'Sábado': { responded: 0, notResponded: 0 },
+      'Domingo': { responded: 0, notResponded: 0 },
+    };
+    
+    const dayMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+    completedCalls.forEach(call => {
+      const callDate = new Date(call.completedDate);
+      const dayOfWeek = callDate.getDay();
+      const dayName = dayMap[dayOfWeek];
+      
+      if(dayName) {
+          if (call.clientResponded) {
+            dayStats[dayName].responded++;
+          } else {
+            dayStats[dayName].notResponded++;
+          }
+      }
+    });
+
+    return Object.entries(dayStats).map(([day, stats]) => {
+      const total = stats.responded + stats.notResponded;
+      const rate = total > 0 ? (stats.responded / total) * 100 : 0;
+      return {
+        day,
+        'Tasa de Respuesta': parseFloat(rate.toFixed(1)),
+        'Llamadas Totales': total
+      };
+    });
+  }, [allActivities]);
   
  const handleToggleActivityComplete = (activity: any, completed: boolean) => {
     if (!firestore) return;
@@ -621,6 +672,8 @@ export default function FollowUpsPage() {
                 )}
             </CardContent>
         </Card>
+
+        <ResponseRateChart data={responseRateByDay} isLoading={isLoading} />
 
         {isLoading && !assistantSummary ? (
             <div className="space-y-4">
