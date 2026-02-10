@@ -102,6 +102,7 @@ export default function PipelinePage() {
   const [filterStage, setFilterStage] = useState<OpportunityStage | 'Todos'>('Todos');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string>('me');
+  const [sortBy, setSortBy] = useState('createdDate_desc');
   const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
   const [quotationChoiceOpen, setQuotationChoiceOpen] = useState(false);
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
@@ -765,11 +766,7 @@ export default function PipelinePage() {
       return { ...lead, opportunity, quotation, activities: relatedActivities };
     }).filter(item => item.opportunity);
 
-    // Sort by opportunity creation date, newest first
-    return mappedProspects.sort((a, b) => {
-      if (!a.opportunity?.createdDate || !b.opportunity?.createdDate) return 0;
-      return new Date(b.opportunity.createdDate).getTime() - new Date(a.opportunity.createdDate).getTime();
-    });
+    return mappedProspects;
 
   }, [leads, opportunities, quotations, activities]);
 
@@ -808,7 +805,7 @@ export default function PipelinePage() {
   const filteredProspects = React.useMemo(() => {
     const lowercasedQuery = searchQuery.toLowerCase();
     
-    return clientProspects.filter(prospect => {
+    let prospects = clientProspects.filter(prospect => {
       // Stage filter
       const stage = prospect.opportunity?.stage;
       const stageMatch = filterStage === 'Todos' 
@@ -828,7 +825,48 @@ export default function PipelinePage() {
       
       return true;
     });
-  }, [clientProspects, filterStage, searchQuery]);
+
+    // Sorting logic
+    const [sortField, sortDirection] = sortBy.split('_');
+
+    return [...prospects].sort((a, b) => {
+      let valA: any, valB: any;
+
+      switch (sortField) {
+        case 'createdDate':
+          valA = a.opportunity?.createdDate ? new Date(a.opportunity.createdDate).getTime() : 0;
+          valB = b.opportunity?.createdDate ? new Date(b.opportunity.createdDate).getTime() : 0;
+          break;
+        case 'value':
+          valA = a.opportunity?.value || 0;
+          valB = b.opportunity?.value || 0;
+          break;
+        case 'expectedCloseDate':
+          valA = a.opportunity?.expectedCloseDate ? new Date(a.opportunity.expectedCloseDate).getTime() : 0;
+          valB = b.opportunity?.expectedCloseDate ? new Date(b.opportunity.expectedCloseDate).getTime() : 0;
+          break;
+        case 'clientName':
+          valA = a.clientName || '';
+          valB = b.clientName || '';
+          if (sortDirection === 'asc') {
+            return (valA as string).localeCompare(valB as string);
+          } else {
+            return (valB as string).localeCompare(valA as string);
+          }
+        default:
+          return 0;
+      }
+
+      if (valA < valB) {
+        return sortDirection === 'asc' ? -1 : 1;
+      }
+      if (valA > valB) {
+        return sortDirection === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+
+  }, [clientProspects, filterStage, searchQuery, sortBy]);
   
   const allStagesForFilter: Array<OpportunityStage | 'Todos'> = ['Todos', ...stages, 'Financiamiento Externo', 'Descartado'];
 
@@ -944,6 +982,19 @@ export default function PipelinePage() {
               </SelectItem>
             ))}
           </SelectContent>
+        </Select>
+        <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full sm:w-[220px]">
+                <SelectValue placeholder="Ordenar por..." />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="createdDate_desc">Más Recientes</SelectItem>
+                <SelectItem value="createdDate_asc">Más Antiguos</SelectItem>
+                <SelectItem value="value_desc">Mayor Valor</SelectItem>
+                <SelectItem value="value_asc">Menor Valor</SelectItem>
+                <SelectItem value="expectedCloseDate_asc">Cierre Próximo</SelectItem>
+                <SelectItem value="clientName_asc">Nombre Cliente (A-Z)</SelectItem>
+            </SelectContent>
         </Select>
       </div>
 
