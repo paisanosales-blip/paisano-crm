@@ -44,7 +44,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { MoreHorizontal, PlusCircle, File, FileText, Image as ImageIcon, Download, Trash2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, File, FileText, Image as ImageIcon, Download, Trash2, Link as LinkIcon } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -116,6 +116,15 @@ export default function SharedFilesPage() {
     setIsDeleteDialogOpen(true);
   };
   
+  const handleCopyLink = (fileId: string) => {
+    const url = `${window.location.origin}/dashboard/files/${fileId}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: 'Enlace Copiado',
+      description: 'El enlace para compartir ha sido copiado al portapapeles.',
+    });
+  };
+
   const handleDeleteConfirm = async () => {
     if (!fileToDelete || !firestore) {
       toast({
@@ -242,6 +251,10 @@ export default function SharedFilesPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleCopyLink(file.id)}>
+                              <LinkIcon className="mr-2 h-4 w-4" />
+                              Copiar Enlace
+                            </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                               <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
                                 <Download className="mr-2 h-4 w-4" />
