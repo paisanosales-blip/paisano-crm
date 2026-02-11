@@ -13,7 +13,7 @@ import { TrendingUp, DollarSign, Target, UserCheck, Users, FileText, UserX, Land
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, subMonths, addMonths, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { format, subMonths, addMonths, startOfMonth, endOfMonth, isWithinInterval, startOfWeek, endOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getClassification } from '@/lib/types';
 import { DashboardCharts } from '@/components/dashboard-charts';
@@ -25,6 +25,7 @@ export default function DashboardPage() {
     const firestore = useFirestore();
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedUserId, setSelectedUserId] = useState<string>('me');
+    const [reportType, setReportType] = useState<'monthly' | 'weekly'>('monthly');
 
     const usersQuery = useMemoFirebase(() => {
         if (!firestore) return null;
@@ -67,52 +68,54 @@ export default function DashboardPage() {
     
     const isLoading = isUserAuthLoading || areOppsLoading || areLeadsLoading || areQuotsLoading || areUsersLoading;
 
-    const { monthlyData } = useMemo(() => {
-        const start = startOfMonth(currentMonth);
-        const end = endOfMonth(currentMonth);
+    const { periodData } = useMemo(() => {
+        const isWeekly = reportType === 'weekly';
+        const reportDate = isWeekly ? new Date() : currentMonth;
+        const start = isWeekly ? startOfWeek(reportDate, { weekStartsOn: 1 }) : startOfMonth(reportDate);
+        const end = isWeekly ? endOfWeek(reportDate, { weekStartsOn: 1 }) : endOfMonth(reportDate);
 
-        const opportunitiesCreatedInMonth = (allOpportunities || []).filter(item => {
+        const opportunitiesCreatedInPeriod = (allOpportunities || []).filter(item => {
             const itemDate = new Date(item.createdDate);
             return isWithinInterval(itemDate, { start, end });
         });
 
-        const quotationsCreatedInMonth = (allQuotations || []).filter(item => {
+        const quotationsCreatedInPeriod = (allQuotations || []).filter(item => {
             const itemDate = new Date(item.createdDate);
             return isWithinInterval(itemDate, { start, end });
         });
         
-        const opportunitiesClosedInMonth = (allOpportunities || []).filter(item => {
+        const opportunitiesClosedInPeriod = (allOpportunities || []).filter(item => {
             if (!item.closingDate || item.stage !== 'Cierre de venta') return false;
             const itemDate = new Date(item.closingDate);
             return isWithinInterval(itemDate, { start, end });
         });
 
-        const opportunitiesMovedToFinancingInMonth = (allOpportunities || []).filter(item => {
+        const opportunitiesMovedToFinancingInPeriod = (allOpportunities || []).filter(item => {
             if (!item.financiamientoExternoDate || item.stage !== 'Financiamiento Externo') return false;
             const itemDate = new Date(item.financiamientoExternoDate);
             return isWithinInterval(itemDate, { start, end });
         });
 
-        const opportunitiesDiscardedInMonth = (allOpportunities || []).filter(item => {
+        const opportunitiesDiscardedInPeriod = (allOpportunities || []).filter(item => {
             if (!item.discardedDate || item.stage !== 'Descartado') return false;
             const itemDate = new Date(item.discardedDate);
             return isWithinInterval(itemDate, { start, end });
         });
 
         return {
-            monthlyData: {
-                opportunities: opportunitiesCreatedInMonth,
-                quotations: quotationsCreatedInMonth,
-                closedOpportunities: opportunitiesClosedInMonth,
-                movedToFinancing: opportunitiesMovedToFinancingInMonth,
-                discardedOpportunities: opportunitiesDiscardedInMonth,
+            periodData: {
+                opportunities: opportunitiesCreatedInPeriod,
+                quotations: quotationsCreatedInPeriod,
+                closedOpportunities: opportunitiesClosedInPeriod,
+                movedToFinancing: opportunitiesMovedToFinancingInPeriod,
+                discardedOpportunities: opportunitiesDiscardedInPeriod,
             }
         }
 
-    }, [currentMonth, allOpportunities, allQuotations]);
+    }, [currentMonth, allOpportunities, allQuotations, reportType]);
 
     const dashboardStats = React.useMemo(() => {
-        const { opportunities, quotations, closedOpportunities, movedToFinancing, discardedOpportunities } = monthlyData;
+        const { opportunities, quotations, closedOpportunities, movedToFinancing, discardedOpportunities } = periodData;
 
         const emptyStats = {
             totalProspectosRegistrados: 0,
@@ -186,7 +189,7 @@ export default function DashboardPage() {
             clientesEnFinanciamiento: movedToFinancing.length,
             prospectosDescartados: discardedOpportunities.length,
         };
-    }, [monthlyData, allQuotations, allOpportunities]);
+    }, [periodData, allQuotations, allOpportunities]);
     
     const selectedUserData = useMemo(() => {
         if (!allUsers || !user) return null;
@@ -201,8 +204,13 @@ export default function DashboardPage() {
             alert("Los datos para el reporte no están listos. Por favor, espere.");
             return;
         }
+
+        const isWeekly = reportType === 'weekly';
+        const reportDate = isWeekly ? new Date() : currentMonth;
+        const start = isWeekly ? startOfWeek(reportDate, { weekStartsOn: 1 }) : startOfMonth(reportDate);
+        const end = isWeekly ? endOfWeek(reportDate, { weekStartsOn: 1 }) : endOfMonth(reportDate);
         
-        const { opportunities, discardedOpportunities } = monthlyData;
+        const { opportunities, discardedOpportunities } = periodData;
 
         const csvRows = [];
         const EOL = "\r\n";
@@ -211,17 +219,21 @@ export default function DashboardPage() {
         const formatRow = (row: any[]) => row.map(formatCell).join(',');
         
         csvRows.push(formatRow(["REPORTE DE RENDIMIENTO - PAISANO TRAILER"]));
-        csvRows.push(formatRow(["Mes:", format(currentMonth, "MMMM yyyy", { locale: es })]));
+        if (isWeekly) {
+            csvRows.push(formatRow(["Semana:", `${format(start, "dd MMM yyyy", { locale: es })} - ${format(end, "dd MMM yyyy", { locale: es })}`]));
+        } else {
+            csvRows.push(formatRow(["Mes:", format(currentMonth, "MMMM yyyy", { locale: es })]));
+        }
         csvRows.push(formatRow(["Vendedor:", `${selectedUserData.firstName} ${selectedUserData.lastName}`]));
         csvRows.push("");
 
-        csvRows.push(formatRow(["RESUMEN DEL MES"]));
+        csvRows.push(formatRow(["RESUMEN DEL PERIODO"]));
         csvRows.push(formatRow(["Métrica", "Valor"]));
         csvRows.push(formatRow(["Nuevos Prospectos (Oportunidades Creadas)", dashboardStats.prospectosActivos]));
         csvRows.push(formatRow(["Nuevos Clientes Potenciales", dashboardStats.clientesPotenciales]));
         csvRows.push(formatRow(["Nuevos Clientes (Ganados)", dashboardStats.clientesGanados]));
-        csvRows.push(formatRow(["Ingresos del Mes (USD)", new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dashboardStats.ingresosTotalesUSD)]));
-        csvRows.push(formatRow(["Ingresos del Mes (MXN)", new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(dashboardStats.ingresosTotalesMXN)]));
+        csvRows.push(formatRow(["Ingresos del Periodo (USD)", new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dashboardStats.ingresosTotalesUSD)]));
+        csvRows.push(formatRow(["Ingresos del Periodo (MXN)", new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(dashboardStats.ingresosTotalesMXN)]));
         csvRows.push(formatRow(["Tasa de Conversión (%)", dashboardStats.tasaDeConversion]));
         csvRows.push(formatRow(["Cotizaciones Hechas", dashboardStats.cotizacionesHechas]));
         csvRows.push(formatRow(["Prospectos No Atendidos", dashboardStats.clientesNoAtendidos]));
@@ -230,7 +242,7 @@ export default function DashboardPage() {
         csvRows.push("");
 
         const leadsMap = new Map((allLeads || []).map(lead => [lead.id, lead]));
-        csvRows.push(formatRow(["DETALLE DE OPORTUNIDADES DEL MES"]));
+        csvRows.push(formatRow(["DETALLE DE OPORTUNIDADES DEL PERIODO"]));
         csvRows.push(formatRow(["Cliente", "Nombre Oportunidad", "Etapa", "Valor", "Moneda", "Fecha de Cierre Prevista", "Fecha de Creación"]));
         opportunities.forEach((opp: any) => {
           const lead = leadsMap.get(opp.leadId);
@@ -246,7 +258,7 @@ export default function DashboardPage() {
         });
         csvRows.push("");
         
-        csvRows.push(formatRow(["DETALLE DE OPORTUNIDADES DESCARTADAS DEL MES"]));
+        csvRows.push(formatRow(["DETALLE DE OPORTUNIDADES DESCARTADAS DEL PERIODO"]));
         csvRows.push(formatRow(["Cliente", "Nombre Oportunidad", "Motivo del Descarte", "Fecha de Descarte"]));
         discardedOpportunities.forEach((opp: any) => {
             const lead = leadsMap.get(opp.leadId);
@@ -263,7 +275,7 @@ export default function DashboardPage() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        const fileName = `Reporte_Panel_${format(currentMonth, "yyyy_MM")}_${selectedUserData.firstName}.csv`;
+        const fileName = `Reporte_Panel_${isWeekly ? 'Semanal' : 'Mensual'}_${format(new Date(), "yyyy-MM-dd")}_${selectedUserData.firstName}.csv`;
         link.setAttribute("download", fileName);
         document.body.appendChild(link);
         link.click();
@@ -277,9 +289,9 @@ export default function DashboardPage() {
         <div className="grid gap-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h1 className="text-2xl font-headline font-bold">Panel de Estadísticas</h1>
-                 <div className="flex items-center gap-4">
+                 <div className="flex flex-wrap items-center gap-4">
                      <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
-                        <SelectTrigger className="w-[220px]">
+                        <SelectTrigger className="w-full sm:w-[220px]">
                             <SelectValue placeholder="Seleccionar usuario..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -297,13 +309,25 @@ export default function DashboardPage() {
                         Descargar Reporte
                     </Button>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" size="icon" onClick={handlePrevMonth}>
+                        <Select onValueChange={(value) => setReportType(value as 'monthly' | 'weekly')} value={reportType}>
+                            <SelectTrigger className="w-[120px]">
+                                <SelectValue placeholder="Tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="monthly">Mensual</SelectItem>
+                                <SelectItem value="weekly">Semanal</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Button variant="outline" size="icon" onClick={handlePrevMonth} disabled={reportType === 'weekly'}>
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
                         <span className="text-lg font-semibold w-40 text-center capitalize">
-                            {format(currentMonth, 'MMMM yyyy', { locale: es })}
+                            {reportType === 'monthly'
+                                ? format(currentMonth, 'MMMM yyyy', { locale: es })
+                                : 'Semana Actual'
+                            }
                         </span>
-                        <Button variant="outline" size="icon" onClick={handleNextMonth} disabled={endOfMonth(currentMonth) > new Date()}>
+                        <Button variant="outline" size="icon" onClick={handleNextMonth} disabled={reportType === 'weekly' || endOfMonth(currentMonth) >= endOfMonth(new Date())}>
                             <ChevronRight className="h-4 w-4" />
                         </Button>
                     </div>
@@ -327,12 +351,12 @@ export default function DashboardPage() {
                     </Card>
                      <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Nuevos Prospectos (Mes)</CardTitle>
+                            <CardTitle className="text-sm font-medium">Nuevos Prospectos ({reportType === 'monthly' ? 'Mes' : 'Semana'})</CardTitle>
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.prospectosActivos}</div>
-                            <p className="text-xs text-muted-foreground">Oportunidades creadas en el mes.</p>
+                            <p className="text-xs text-muted-foreground">Oportunidades creadas en el periodo.</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -352,18 +376,18 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">+{dashboardStats.clientesGanados}</div>
-                            <p className="text-xs text-muted-foreground">Oportunidades cerradas como ganadas en el mes.</p>
+                            <p className="text-xs text-muted-foreground">Oportunidades cerradas como ganadas en el periodo.</p>
                         </CardContent>
                     </Card>
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Ingresos del Mes</CardTitle>
+                            <CardTitle className="text-sm font-medium">Ingresos del Periodo</CardTitle>
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dashboardStats.ingresosTotalesUSD)}</div>
                             <p className="text-sm text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(dashboardStats.ingresosTotalesMXN)}</p>
-                            <p className="text-xs text-muted-foreground mt-1">De cotizaciones que se hicieron clientes en el mes.</p>
+                            <p className="text-xs text-muted-foreground mt-1">De cotizaciones que se hicieron clientes en el periodo.</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -373,7 +397,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.tasaDeConversion}%</div>
-                            <p className="text-xs text-muted-foreground">Nuevos clientes / Nuevas oportunidades del mes.</p>
+                            <p className="text-xs text-muted-foreground">Nuevos clientes / Nuevas oportunidades del periodo.</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -383,7 +407,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.cotizacionesHechas}</div>
-                            <p className="text-xs text-muted-foreground">Generadas este mes.</p>
+                            <p className="text-xs text-muted-foreground">Generadas este periodo.</p>
                         </CardContent>
                     </Card>
                     <Card>
@@ -403,7 +427,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.clientesEnFinanciamiento}</div>
-                            <p className="text-xs text-muted-foreground">Movidos a financiamiento este mes.</p>
+                            <p className="text-xs text-muted-foreground">Movidos a financiamiento este periodo.</p>
                         </CardContent>
                     </Card>
                      <Card>
@@ -413,7 +437,7 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-2xl font-bold">{dashboardStats.prospectosDescartados}</div>
-                            <p className="text-xs text-muted-foreground">Prospectos marcados como perdidos en el mes.</p>
+                            <p className="text-xs text-muted-foreground">Prospectos marcados como perdidos en el periodo.</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -421,7 +445,7 @@ export default function DashboardPage() {
             <div className="grid gap-6 mt-4">
                 <DashboardCharts opportunities={allOpportunities} leads={allLeads} isLoading={isLoading} />
                 {!isLoading && (
-                  <LostOpportunitiesAnalysis discardedOpportunities={monthlyData.discardedOpportunities} />
+                  <LostOpportunitiesAnalysis discardedOpportunities={periodData.discardedOpportunities} />
                 )}
             </div>
         </div>

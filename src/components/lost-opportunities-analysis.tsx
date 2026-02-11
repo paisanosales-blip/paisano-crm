@@ -54,7 +54,7 @@ export function LostOpportunitiesAnalysis({ discardedOpportunities }: LostOpport
       <CardHeader>
         <CardTitle>Análisis de Oportunidades Perdidas</CardTitle>
         <CardDescription>
-          Utilice la IA para identificar las principales razones por las que se descartan prospectos en el mes seleccionado.
+          Utilice la IA para identificar las principales razones por las que se descartan prospectos en el periodo seleccionado.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
