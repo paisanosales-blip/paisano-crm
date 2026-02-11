@@ -150,6 +150,7 @@ export interface TaskCompletionData {
   text: string;
   fileUrl?: string;
   fileName?: string;
+  fileType?: string;
 }
 
 export type CompletedMarketingTask = TaskCompletionData & {

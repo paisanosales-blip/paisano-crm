@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Image from 'next/image';
 import { getWeek, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -291,9 +292,9 @@ export default function MarketingPage() {
         text: data.text,
         fileUrl: data.fileUrl,
         fileName: data.fileName,
+        fileType: data.fileType,
       };
       
-      // If the user who submitted it is editing it, reset status for re-review
       if (editingTaskData.userId === user.uid) {
         updatedTaskData.reviewStatus = 'Pendiente';
         updatedTaskData.reviewFeedback = '';
@@ -314,7 +315,7 @@ export default function MarketingPage() {
         taskDescription: selectedTask.description,
         points: selectedTask.points,
         completedAt: new Date().toISOString(),
-        reviewStatus: 'Pendiente', // Default status
+        reviewStatus: 'Pendiente',
       };
 
       setDocumentNonBlocking(taskDocRef, completedTaskData, {});
@@ -621,6 +622,27 @@ export default function MarketingPage() {
                                       <Badge variant="secondary" className="text-xs">{completionData.userName}</Badge>
                                     </div>
                                     <p className="text-xs whitespace-pre-wrap">{completionData.text}</p>
+                                    {completionData.fileUrl && (
+                                      <div className="mt-2">
+                                        {completionData.fileType?.startsWith('image/') ? (
+                                          <a href={completionData.fileUrl} target="_blank" rel="noopener noreferrer" className="block relative aspect-video rounded-md overflow-hidden group">
+                                            <Image
+                                              src={completionData.fileUrl}
+                                              alt={completionData.fileName || 'Vista previa'}
+                                              fill
+                                              className="object-cover transition-transform group-hover:scale-105"
+                                            />
+                                          </a>
+                                        ) : (
+                                          <Button asChild size="sm" variant="outline" className="h-auto max-w-full">
+                                            <a href={completionData.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center p-2">
+                                              <Paperclip className="h-3 w-3 mr-2 shrink-0" />
+                                              <span className="truncate">{completionData.fileName || 'Ver Archivo'}</span>
+                                            </a>
+                                          </Button>
+                                        )}
+                                      </div>
+                                    )}
                                      <div className="mt-2 pt-2 border-t">
                                         <div className="flex items-center justify-between">
                                             <h5 className="text-xs font-semibold text-muted-foreground">REVISIÓN</h5>
@@ -637,15 +659,7 @@ export default function MarketingPage() {
                                         )}
                                     </div>
                                     <div className="flex justify-between items-center pt-2">
-                                        {completionData.fileUrl ? (
-                                            <Button asChild size="sm" variant="outline" className="h-7">
-                                                <a href={completionData.fileUrl} target="_blank" rel="noopener noreferrer">
-                                                    <Paperclip className="h-3 w-3 mr-2" />
-                                                    {completionData.fileName || 'Ver Archivo'}
-                                                </a>
-                                            </Button>
-                                        ) : <div />}
-
+                                        <div />
                                         <div className="flex items-center">
                                           {userProfile?.role === 'manager' && (
                                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleReviewClick(completionData)} title="Revisar actividad">

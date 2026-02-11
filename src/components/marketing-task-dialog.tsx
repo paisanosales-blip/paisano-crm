@@ -92,12 +92,13 @@ export function MarketingTaskDialog({
     
     setIsSubmitting(true);
     
-    const performConfirm = (fileUrl?: string, fileName?: string) => {
+    const performConfirm = (fileUrl?: string, fileName?: string, fileType?: string) => {
         onConfirm({
             title: values.title,
             text: values.text,
             fileUrl,
             fileName,
+            fileType,
         });
         toast({ title: isEditing ? '¡Tarea Actualizada!' : '¡Tarea Completada!', description: 'El registro de la tarea ha sido guardado.' });
         onOpenChange(false);
@@ -121,15 +122,15 @@ export function MarketingTaskDialog({
         },
         () => {
           getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-            performConfirm(downloadURL, file.name);
+            performConfirm(downloadURL, file.name, file.type);
           });
         }
       );
     } else {
-        // If editing and no new file is provided, keep the old file info
         const existingFileUrl = isEditing ? initialData?.fileUrl : undefined;
         const existingFileName = isEditing ? initialData?.fileName : undefined;
-        performConfirm(existingFileUrl, existingFileName);
+        const existingFileType = isEditing ? initialData?.fileType : undefined;
+        performConfirm(existingFileUrl, existingFileName, existingFileType);
     }
   }
 
