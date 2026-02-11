@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from './ui/checkbox';
 
 export interface FirstContactConfirmPayload {
   lead: any;
@@ -44,6 +45,7 @@ export function FirstContactDialog({
   const firestore = useFirestore();
   const { user } = useUser();
   const [observation, setObservation] = useState('');
+  const [scheduleInfoFollowUp, setScheduleInfoFollowUp] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const userProfileRef = useMemoFirebase(() => {
@@ -55,6 +57,7 @@ export function FirstContactDialog({
   useEffect(() => {
     if (open) {
       setObservation('');
+      setScheduleInfoFollowUp(true);
     }
   }, [open]);
 
@@ -100,6 +103,20 @@ export function FirstContactDialog({
         addDocumentNonBlocking(collection(firestore, 'activities'), activityData);
       }
 
+      if (scheduleInfoFollowUp) {
+        const followUpData = {
+          leadId: lead.id,
+          sellerId: user.uid,
+          sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+          type: 'Nota' as const,
+          description: 'PENDIENTE ENVIAR INFORMACIÓN',
+          completed: false,
+          createdDate: new Date().toISOString(),
+          dueDate: new Date().toISOString(),
+        };
+        addDocumentNonBlocking(collection(firestore, 'activities'), followUpData);
+      }
+
       toast({ title: 'Primer Contacto Registrado', description: 'El prospecto está ahora en tu flujo de ventas.' });
       
       onConfirm({ lead, opportunity: { ...opportunityData, id: opportunityRef.id } });
@@ -132,6 +149,16 @@ export function FirstContactDialog({
                     onChange={(e) => setObservation(e.target.value)}
                     className="min-h-[120px]"
                 />
+            </div>
+             <div className="flex items-center space-x-2 pt-2">
+              <Checkbox
+                id="schedule-info-follow-up"
+                checked={scheduleInfoFollowUp}
+                onCheckedChange={(checked) => setScheduleInfoFollowUp(!!checked)}
+              />
+              <Label htmlFor="schedule-info-follow-up" className="text-sm font-medium leading-none cursor-pointer">
+                PENDIENTE ENVIAR INFORMACIÓN
+              </Label>
             </div>
         </div>
         <DialogFooter>
