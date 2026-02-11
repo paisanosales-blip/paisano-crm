@@ -9,7 +9,7 @@ import {
 } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, DollarSign, Target, UserCheck, Users, FileText, UserX, Landmark, ArchiveX } from 'lucide-react';
+import { TrendingUp, DollarSign, Target, UserCheck, Users, FileText, UserX, Landmark, ArchiveX, FileDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -187,7 +187,88 @@ export default function DashboardPage() {
             prospectosDescartados: discardedOpportunities.length,
         };
     }, [monthlyData, allQuotations, allOpportunities]);
+    
+    const selectedUserData = useMemo(() => {
+        if (!allUsers || !user) return null;
+        const currentUserProfile = allUsers.find((u: any) => u.id === user.uid);
+        if (selectedUserId === 'me') return currentUserProfile;
+        if (selectedUserId === 'all') return { firstName: 'Todos', lastName: 'los Vendedores', id: 'all' };
+        return allUsers.find((u: any) => u.id === selectedUserId);
+    }, [selectedUserId, user, allUsers]);
 
+    const handleDownloadReport = () => {
+        if (!selectedUserData || isLoading) {
+            alert("Los datos para el reporte no están listos. Por favor, espere.");
+            return;
+        }
+        
+        const { opportunities, discardedOpportunities } = monthlyData;
+
+        const csvRows = [];
+        const EOL = "\r\n";
+
+        const formatCell = (value: any) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+        const formatRow = (row: any[]) => row.map(formatCell).join(',');
+        
+        csvRows.push(formatRow(["REPORTE DE RENDIMIENTO - PAISANO TRAILER"]));
+        csvRows.push(formatRow(["Mes:", format(currentMonth, "MMMM yyyy", { locale: es })]));
+        csvRows.push(formatRow(["Vendedor:", `${selectedUserData.firstName} ${selectedUserData.lastName}`]));
+        csvRows.push("");
+
+        csvRows.push(formatRow(["RESUMEN DEL MES"]));
+        csvRows.push(formatRow(["Métrica", "Valor"]));
+        csvRows.push(formatRow(["Nuevos Prospectos (Oportunidades Creadas)", dashboardStats.prospectosActivos]));
+        csvRows.push(formatRow(["Nuevos Clientes Potenciales", dashboardStats.clientesPotenciales]));
+        csvRows.push(formatRow(["Nuevos Clientes (Ganados)", dashboardStats.clientesGanados]));
+        csvRows.push(formatRow(["Ingresos del Mes (USD)", new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dashboardStats.ingresosTotalesUSD)]));
+        csvRows.push(formatRow(["Ingresos del Mes (MXN)", new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(dashboardStats.ingresosTotalesMXN)]));
+        csvRows.push(formatRow(["Tasa de Conversión (%)", dashboardStats.tasaDeConversion]));
+        csvRows.push(formatRow(["Cotizaciones Hechas", dashboardStats.cotizacionesHechas]));
+        csvRows.push(formatRow(["Prospectos No Atendidos", dashboardStats.clientesNoAtendidos]));
+        csvRows.push(formatRow(["Clientes en Financiamiento", dashboardStats.clientesEnFinanciamiento]));
+        csvRows.push(formatRow(["Prospectos Descartados", dashboardStats.prospectosDescartados]));
+        csvRows.push("");
+
+        const leadsMap = new Map((allLeads || []).map(lead => [lead.id, lead]));
+        csvRows.push(formatRow(["DETALLE DE OPORTUNIDADES DEL MES"]));
+        csvRows.push(formatRow(["Cliente", "Nombre Oportunidad", "Etapa", "Valor", "Moneda", "Fecha de Cierre Prevista", "Fecha de Creación"]));
+        opportunities.forEach((opp: any) => {
+          const lead = leadsMap.get(opp.leadId);
+          csvRows.push(formatRow([
+            lead?.clientName || 'N/A',
+            opp.name,
+            opp.stage,
+            opp.value,
+            opp.currency,
+            format(new Date(opp.expectedCloseDate), "yyyy-MM-dd"),
+            format(new Date(opp.createdDate), "yyyy-MM-dd")
+          ]));
+        });
+        csvRows.push("");
+        
+        csvRows.push(formatRow(["DETALLE DE OPORTUNIDADES DESCARTADAS DEL MES"]));
+        csvRows.push(formatRow(["Cliente", "Nombre Oportunidad", "Motivo del Descarte", "Fecha de Descarte"]));
+        discardedOpportunities.forEach((opp: any) => {
+            const lead = leadsMap.get(opp.leadId);
+            csvRows.push(formatRow([
+                lead?.clientName || 'N/A',
+                opp.name,
+                opp.discardReason || 'Sin motivo',
+                format(new Date(opp.discardedDate), "yyyy-MM-dd")
+            ]));
+        });
+
+        const csvContent = csvRows.join(EOL);
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        const fileName = `Reporte_Panel_${format(currentMonth, "yyyy_MM")}_${selectedUserData.firstName}.csv`;
+        link.setAttribute("download", fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
     const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
@@ -211,6 +292,10 @@ export default function DashboardPage() {
                             ))}
                         </SelectContent>
                     </Select>
+                     <Button onClick={handleDownloadReport} variant="outline" disabled={isLoading}>
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Descargar Reporte
+                    </Button>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" size="icon" onClick={handlePrevMonth}>
                             <ChevronLeft className="h-4 w-4" />
