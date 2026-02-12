@@ -19,6 +19,7 @@ import { getClassification } from '@/lib/types';
 import { DashboardCharts } from '@/components/dashboard-charts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LostOpportunitiesAnalysis } from '@/components/lost-opportunities-analysis';
+import { SellerActivitySummary } from '@/components/seller-activity-summary';
 
 export default function DashboardPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
@@ -62,11 +63,21 @@ export default function DashboardPage() {
         return query(baseCollection, where('sellerId', '==', activeUserId));
     }, [firestore, activeUserId]);
 
+    const activitiesQuery = useMemoFirebase(() => {
+        if (!activeUserId) return null;
+        const baseCollection = collection(firestore, 'activities');
+        if (activeUserId === 'all') {
+            return query(baseCollection);
+        }
+        return query(baseCollection, where('sellerId', '==', activeUserId));
+    }, [firestore, activeUserId]);
+
     const { data: allOpportunities, isLoading: areOppsLoading } = useCollection(opportunitiesQuery);
     const { data: allLeads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
     const { data: allQuotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
+    const { data: allActivities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
     
-    const isLoading = isUserAuthLoading || areOppsLoading || areLeadsLoading || areQuotsLoading || areUsersLoading;
+    const isLoading = isUserAuthLoading || areOppsLoading || areLeadsLoading || areQuotsLoading || areUsersLoading || areActivitiesLoading;
 
     const { periodData } = useMemo(() => {
         const isWeekly = reportType === 'weekly';
@@ -443,6 +454,13 @@ export default function DashboardPage() {
                 </div>
             )}
             <div className="grid gap-6 mt-4">
+                {selectedUserData && selectedUserData.id !== 'all' && !isLoading && (
+                    <SellerActivitySummary 
+                        sellerName={selectedUserData.firstName}
+                        opportunities={allOpportunities}
+                        activities={allActivities}
+                    />
+                )}
                 <DashboardCharts opportunities={allOpportunities} leads={allLeads} isLoading={isLoading} />
                 {!isLoading && (
                   <LostOpportunitiesAnalysis discardedOpportunities={periodData.discardedOpportunities} />
