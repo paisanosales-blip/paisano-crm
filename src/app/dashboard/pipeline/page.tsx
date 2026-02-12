@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX } from 'lucide-react';
-import { format } from 'date-fns';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   useUser,
@@ -777,6 +777,8 @@ export default function PipelinePage() {
         prospectsWithoutFollowUp: 0,
         potentialClients: 0,
         initialContact: 0,
+        financingClients: 0,
+        newProspectsThisMonth: 0,
       };
     }
 
@@ -794,11 +796,25 @@ export default function PipelinePage() {
       p => p.opportunity?.stage === 'Primer contacto' || p.opportunity?.stage === 'Envió de Información'
     ).length;
 
+    const financingClients = clientProspects.filter(p => p.opportunity?.stage === 'Financiamiento Externo').length;
+    
+    const today = new Date();
+    const monthStart = startOfMonth(today);
+    const monthEnd = endOfMonth(today);
+    const newProspectsThisMonth = clientProspects.filter(p => {
+        if (!p.opportunity?.createdDate) return false;
+        const createdDate = new Date(p.opportunity.createdDate);
+        return isWithinInterval(createdDate, { start: monthStart, end: monthEnd });
+    }).length;
+
+
     return {
       activeProspects: active.length,
       prospectsWithoutFollowUp,
       potentialClients,
       initialContact,
+      financingClients,
+      newProspectsThisMonth,
     };
   }, [clientProspects]);
 
@@ -908,11 +924,11 @@ export default function PipelinePage() {
       </div>
 
       {isLoading ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
-                {Array.from({length: 4}).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 mb-6">
+                {Array.from({length: 6}).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
             </div>
         ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 mb-6">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Prospectos Activos</CardTitle>
@@ -951,6 +967,26 @@ export default function PipelinePage() {
                     <CardContent>
                         <div className="text-2xl font-bold">{pipelineStats.initialContact}</div>
                         <p className="text-xs text-muted-foreground">Contacto inicial o envío de info.</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">En Financiamiento</CardTitle>
+                        <Landmark className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{pipelineStats.financingClients}</div>
+                        <p className="text-xs text-muted-foreground">Prospectos en proceso de financiamiento.</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Nuevos Prospectos del Mes</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{pipelineStats.newProspectsThisMonth}</div>
+                        <p className="text-xs text-muted-foreground">Oportunidades creadas en el mes actual.</p>
                     </CardContent>
                 </Card>
             </div>
