@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -779,6 +779,8 @@ export default function PipelinePage() {
         initialContact: 0,
         financingClients: 0,
         newProspectsThisMonth: 0,
+        respondedLastFollowUp: 0,
+        notRespondedLastFollowUp: 0,
       };
     }
 
@@ -786,6 +788,20 @@ export default function PipelinePage() {
       p => p.opportunity && p.opportunity.stage !== 'Cierre de venta' && p.opportunity.stage !== 'Descartado' && p.opportunity.stage !== 'Financiamiento Externo'
     );
     
+    let respondedLastFollowUp = 0;
+    let notRespondedLastFollowUp = 0;
+
+    active.forEach((p: any) => {
+        const lastCompletedActivity = p.activities.find((act: any) => act.completed);
+        if (lastCompletedActivity) {
+            if (lastCompletedActivity.clientResponded === true) {
+                respondedLastFollowUp++;
+            } else if (lastCompletedActivity.clientResponded === false) {
+                notRespondedLastFollowUp++;
+            }
+        }
+    });
+
     const prospectsWithoutFollowUp = active.filter(p => p.activities.length === 0).length;
 
     const potentialClients = active.filter(
@@ -815,6 +831,8 @@ export default function PipelinePage() {
       initialContact,
       financingClients,
       newProspectsThisMonth,
+      respondedLastFollowUp,
+      notRespondedLastFollowUp,
     };
   }, [clientProspects]);
 
@@ -924,11 +942,11 @@ export default function PipelinePage() {
       </div>
 
       {isLoading ? (
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 mb-6">
-                {Array.from({length: 6}).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
+            <div className="grid gap-6 grid-cols-2 md:grid-cols-4 mb-6">
+                {Array.from({length: 8}).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
             </div>
         ) : (
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 mb-6">
+            <div className="grid gap-6 grid-cols-2 md:grid-cols-4 mb-6">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Prospectos Activos</CardTitle>
@@ -942,11 +960,11 @@ export default function PipelinePage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Clientes sin Seguimiento</CardTitle>
-                        <UserX className="h-4 w-4 text-muted-foreground" />
+                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{pipelineStats.prospectsWithoutFollowUp}</div>
-                        <p className="text-xs text-muted-foreground">Prospectos activos sin actividades registradas.</p>
+                        <p className="text-xs text-muted-foreground">Prospectos activos sin actividades.</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -987,6 +1005,26 @@ export default function PipelinePage() {
                     <CardContent>
                         <div className="text-2xl font-bold">{pipelineStats.newProspectsThisMonth}</div>
                         <p className="text-xs text-muted-foreground">Oportunidades creadas en el mes actual.</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Respondieron Últ. Seg.</CardTitle>
+                        <UserCheck className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{pipelineStats.respondedLastFollowUp}</div>
+                        <p className="text-xs text-muted-foreground">Clientes que sí respondieron.</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">No Respondieron Últ. Seg.</CardTitle>
+                        <UserX className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{pipelineStats.notRespondedLastFollowUp}</div>
+                        <p className="text-xs text-muted-foreground">Clientes sin respuesta.</p>
                     </CardContent>
                 </Card>
             </div>
