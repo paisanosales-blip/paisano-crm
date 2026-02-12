@@ -616,7 +616,16 @@ export default function MarketingPage() {
                                           Ver detalles de la publicación
                                       </Button>
                                   </CollapsibleTrigger>
-                                  <CollapsibleContent className="space-y-2 p-3 bg-muted/50 rounded-md">
+                                  <CollapsibleContent
+                                    className={cn(
+                                      'space-y-2 p-3 pl-4 rounded-md border-l-4',
+                                      completionData?.reviewStatus === 'Aprobado'
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-950/40'
+                                        : completionData?.reviewStatus === 'Requiere Cambios'
+                                        ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950/40'
+                                        : 'border-gray-400 bg-muted/50'
+                                    )}
+                                  >
                                     <div className="flex justify-between items-center">
                                       <h4 className="font-semibold text-xs">{completionData.title}</h4>
                                       <Badge variant="secondary" className="text-xs">{completionData.userName}</Badge>
