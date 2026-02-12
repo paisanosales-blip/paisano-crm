@@ -432,6 +432,7 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
                       <SelectItem value="EMPRESA DE TRANSPORTE">EMPRESA DE TRANSPORTE</SelectItem>
                       <SelectItem value="Sand Industry">Sand Industry</SelectItem>
                       <SelectItem value="USUARIO FINAL">USUARIO FINAL</SelectItem>
+                      <SelectItem value="De construccion">De construccion</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -492,3 +493,5 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
     </Dialog>
   );
 }
+
+    
