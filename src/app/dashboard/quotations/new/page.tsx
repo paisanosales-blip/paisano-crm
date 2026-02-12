@@ -92,6 +92,7 @@ export default function NewQuotationPage() {
   });
   const [currency, setCurrency] = useState('USD');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [assignToCompany, setAssignToCompany] = useState(false);
 
   useEffect(() => {
     const lastNumberStr = localStorage.getItem('lastQuotationNumber');
@@ -185,11 +186,13 @@ export default function NewQuotationPage() {
       const q = query(oppsCollection, where('leadId', '==', selectedClient.id));
       const oppsSnapshot = await getDocs(q);
 
+      const sellerName = assignToCompany ? 'Paisano Trailer' : `${userProfile.firstName} ${userProfile.lastName}`;
+
       if (oppsSnapshot.empty) {
         const opportunityData = {
           leadId: selectedClient.id,
           sellerId: user.uid,
-          sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+          sellerName: sellerName,
           stage: 'Primer contacto',
           name: `Oportunidad para ${selectedClient.clientName}`,
           value: total,
@@ -316,7 +319,11 @@ export default function NewQuotationPage() {
       docPdf.setFont('helvetica', 'normal');
       docPdf.setFontSize(9);
       docPdf.setTextColor(BLACK);
-      if (userProfile) {
+      if (assignToCompany) {
+        docPdf.text('PAISANO TRAILER', margin + 3, contentStartY + 4);
+        docPdf.text('paisanosales@gmail.com', margin + 3, contentStartY + 9);
+        docPdf.text('915 408 7478', margin + 3, contentStartY + 14);
+      } else if (userProfile) {
           docPdf.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, contentStartY + 4);
           if (userProfile.email) docPdf.text(userProfile.email.toLowerCase(), margin + 3, contentStartY + 9);
           if (userProfile.phone) docPdf.text(userProfile.phone, margin + 3, contentStartY + 14);
@@ -598,7 +605,7 @@ export default function NewQuotationPage() {
       const quotationData = {
         opportunityId,
         sellerId: user.uid,
-        sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+        sellerName: sellerName,
         pdfUrl: downloadURL,
         value: total,
         currency,
@@ -698,6 +705,11 @@ export default function NewQuotationPage() {
                         <Label htmlFor="individual-freight">Flete INDIVIDUAL</Label>
                     </div>
                   </div>
+              </div>
+
+               <div className="flex items-center space-x-2">
+                <Checkbox id="assign-to-company" checked={assignToCompany} onCheckedChange={(checked) => setAssignToCompany(!!checked)} />
+                <Label htmlFor="assign-to-company">Sin Vendedor (usar datos generales de la empresa)</Label>
               </div>
 
               <div>
@@ -835,6 +847,3 @@ export default function NewQuotationPage() {
     </>
   );
 }
-
-    
-
