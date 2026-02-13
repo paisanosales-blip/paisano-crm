@@ -711,9 +711,9 @@ export default function FollowUpsPage() {
                           className={cn(
                             'flex items-start gap-4 rounded-lg border p-4 transition-all',
                             activity.completed
-                              ? activity.clientResponded === true
+                              ? activity.clientResponded == true
                                 ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/40'
-                                : activity.clientResponded === false
+                                : activity.clientResponded == false
                                 ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/40'
                                 : 'bg-muted/50'
                               : 'bg-card hover:bg-muted/60'
