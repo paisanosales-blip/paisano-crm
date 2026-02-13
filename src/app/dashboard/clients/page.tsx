@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   useUser,
   useFirestore,
@@ -57,6 +58,7 @@ export default function ProspectsPage() {
   const { user, isUserLoading: isUserAuthLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
@@ -337,7 +339,9 @@ export default function ProspectsPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                             <DropdownMenuItem onSelect={() => handleEditClick(client)}>Editar</DropdownMenuItem>
-                            <DropdownMenuItem>Ver Detalles</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => router.push(`/dashboard/clients/${client.id}`)}>
+                              Ver Detalles
+                            </DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onSelect={() => handleDeleteClick(client)}>
                               Eliminar
                             </DropdownMenuItem>

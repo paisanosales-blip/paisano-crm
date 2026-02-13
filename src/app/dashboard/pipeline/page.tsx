@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -1114,7 +1115,9 @@ export default function PipelinePage() {
               <Card key={prospect.id} className={cn("border-4 border-black", tagClass || 'border-l-transparent', cardBgClass)}>
                 <CardHeader className="flex flex-row items-start justify-between p-2 pb-0">
                   <div>
-                    <CardTitle className="text-base">{prospect.clientName}</CardTitle>
+                    <Link href={`/dashboard/clients/${prospect.id}`}>
+                        <CardTitle className="text-base hover:underline cursor-pointer">{prospect.clientName}</CardTitle>
+                    </Link>
                     <CardDescription className="text-xs">{prospect.contactPerson}</CardDescription>
                   </div>
                    <DropdownMenu>
