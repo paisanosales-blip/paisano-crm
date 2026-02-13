@@ -791,7 +791,7 @@ export default function FollowUpsPage() {
                                                 ? "text-green-500 hover:text-green-600" 
                                                 : "text-muted-foreground/40 cursor-not-allowed"
                                         )}
-                                        title={activity.prospect?.phone ? `WhatsApp: ${activity.prospect.phone}` : 'No hay teléfono para WhatsApp'}
+                                        title={activity.prospect?.phone || 'No hay teléfono para WhatsApp'}
                                     >
                                         <MessageSquare className="h-5 w-5" />
                                     </a>
@@ -804,7 +804,7 @@ export default function FollowUpsPage() {
                                                 ? "text-foreground/80 hover:text-foreground" 
                                                 : "text-muted-foreground/40 cursor-not-allowed"
                                         )}
-                                         title={activity.prospect?.phone ? `Mensaje de texto: ${activity.prospect.phone}`: 'No hay teléfono'}
+                                         title={activity.prospect?.phone || 'No hay teléfono'}
                                     >
                                         <MessageCircle className="h-5 w-5" />
                                     </a>
@@ -819,7 +819,7 @@ export default function FollowUpsPage() {
                                                 ? "text-blue-500 hover:text-blue-600" 
                                                 : "text-muted-foreground/40 cursor-not-allowed"
                                         )}
-                                        title={activity.prospect?.email ? `Email: ${activity.prospect.email}`: 'No hay email'}
+                                        title={activity.prospect?.email || 'No hay email'}
                                     >
                                         <Mail className="h-5 w-5" />
                                     </a>
@@ -832,7 +832,7 @@ export default function FollowUpsPage() {
                                                 ? "text-foreground/80 hover:text-foreground" 
                                                 : "text-muted-foreground/40 cursor-not-allowed"
                                         )}
-                                         title={activity.prospect?.phone ? `Llamar: ${activity.prospect.phone}`: 'No hay teléfono'}
+                                         title={activity.prospect?.phone || 'No hay teléfono'}
                                     >
                                         <Phone className="h-5 w-5" />
                                     </a>
