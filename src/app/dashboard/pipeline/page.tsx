@@ -951,7 +951,7 @@ export default function PipelinePage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Prospectos Activos</CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <Users className="h-4 w-4 text-sky-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{pipelineStats.activeProspects}</div>
@@ -961,7 +961,7 @@ export default function PipelinePage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Clientes sin Seguimiento</CardTitle>
-                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                        <HelpCircle className="h-4 w-4 text-amber-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{pipelineStats.prospectsWithoutFollowUp}</div>
@@ -971,7 +971,7 @@ export default function PipelinePage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Clientes Potenciales</CardTitle>
-                        <Target className="h-4 w-4 text-muted-foreground" />
+                        <Target className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{pipelineStats.potentialClients}</div>
@@ -981,7 +981,7 @@ export default function PipelinePage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">En Etapas Iniciales</CardTitle>
-                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <Phone className="h-4 w-4 text-slate-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{pipelineStats.initialContact}</div>
@@ -991,7 +991,7 @@ export default function PipelinePage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">En Financiamiento</CardTitle>
-                        <Landmark className="h-4 w-4 text-muted-foreground" />
+                        <Landmark className="h-4 w-4 text-orange-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{pipelineStats.financingClients}</div>
@@ -1001,7 +1001,7 @@ export default function PipelinePage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Nuevos Prospectos del Mes</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                        <TrendingUp className="h-4 w-4 text-indigo-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{pipelineStats.newProspectsThisMonth}</div>
@@ -1011,7 +1011,7 @@ export default function PipelinePage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Respondieron Últ. Seg.</CardTitle>
-                        <UserCheck className="h-4 w-4 text-muted-foreground" />
+                        <UserCheck className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{pipelineStats.respondedLastFollowUp}</div>
@@ -1021,7 +1021,7 @@ export default function PipelinePage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">No Respondieron Últ. Seg.</CardTitle>
-                        <UserX className="h-4 w-4 text-muted-foreground" />
+                        <UserX className="h-4 w-4 text-red-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{pipelineStats.notRespondedLastFollowUp}</div>
@@ -1112,7 +1112,7 @@ export default function PipelinePage() {
             const tagClass = prospect.tag ? tagClasses[prospect.tag as keyof typeof tagClasses] : '';
 
             return (
-              <Card key={prospect.id} className={cn("border-4 border-black", tagClass || 'border-l-transparent', cardBgClass)}>
+              <Card key={prospect.id} className={cn("border-l-4", tagClass || 'border-l-transparent', cardBgClass)}>
                 <CardHeader className="flex flex-row items-start justify-between p-2 pb-0">
                   <div>
                     <Link href={`/dashboard/clients/${prospect.id}`}>
