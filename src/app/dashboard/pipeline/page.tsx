@@ -905,27 +905,6 @@ export default function PipelinePage() {
   
   const allStagesForFilter: Array<OpportunityStage | 'Todos'> = ['Todos', ...stages, 'Financiamiento Externo', 'Descartado'];
 
-  const getCardBgClass = (stage: OpportunityStage) => {
-    switch (stage) {
-      case 'Primer contacto':
-        return 'bg-slate-50 dark:bg-slate-900/40';
-      case 'Envió de Información':
-        return 'bg-sky-50 dark:bg-sky-950/40';
-      case 'Envió de Cotización':
-        return 'bg-blue-50 dark:bg-blue-950/40';
-      case 'Negociación':
-        return 'bg-indigo-50 dark:bg-indigo-950/40';
-      case 'Cierre de venta':
-        return 'bg-green-50 dark:bg-green-950/40';
-      case 'Financiamiento Externo':
-        return 'bg-amber-50 dark:bg-amber-950/40';
-      case 'Descartado':
-        return 'bg-red-50 dark:bg-red-950/40';
-      default:
-        return 'bg-card';
-    }
-  };
-
   return (
     <>
     <div className="flex flex-col h-full">
@@ -958,7 +937,7 @@ export default function PipelinePage() {
             </div>
         ) : (
             <div className="grid gap-6 grid-cols-2 md:grid-cols-4 mb-6">
-                <Card>
+                <Card className="bg-muted/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Prospectos Activos</CardTitle>
                         <Users className="h-4 w-4 text-sky-500" />
@@ -968,7 +947,7 @@ export default function PipelinePage() {
                         <p className="text-xs text-muted-foreground">Oportunidades en el flujo de ventas.</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-muted/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Clientes sin Seguimiento</CardTitle>
                         <HelpCircle className="h-4 w-4 text-amber-500" />
@@ -978,7 +957,7 @@ export default function PipelinePage() {
                         <p className="text-xs text-muted-foreground">Prospectos activos sin actividades.</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-muted/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Clientes Potenciales</CardTitle>
                         <Target className="h-4 w-4 text-blue-500" />
@@ -988,7 +967,7 @@ export default function PipelinePage() {
                         <p className="text-xs text-muted-foreground">En cotización o negociación.</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-muted/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">En Etapas Iniciales</CardTitle>
                         <Phone className="h-4 w-4 text-slate-500" />
@@ -998,7 +977,7 @@ export default function PipelinePage() {
                         <p className="text-xs text-muted-foreground">Contacto inicial o envío de info.</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-muted/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">En Financiamiento</CardTitle>
                         <Landmark className="h-4 w-4 text-orange-500" />
@@ -1008,7 +987,7 @@ export default function PipelinePage() {
                         <p className="text-xs text-muted-foreground">Prospectos en proceso de financiamiento.</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-muted/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Nuevos Prospectos del Mes</CardTitle>
                         <TrendingUp className="h-4 w-4 text-indigo-500" />
@@ -1018,7 +997,7 @@ export default function PipelinePage() {
                         <p className="text-xs text-muted-foreground">Oportunidades creadas en el mes actual.</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-muted/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Respondieron Últ. Seg.</CardTitle>
                         <UserCheck className="h-4 w-4 text-green-500" />
@@ -1028,7 +1007,7 @@ export default function PipelinePage() {
                         <p className="text-xs text-muted-foreground">Clientes que sí respondieron.</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="bg-muted/50">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">No Respondieron Últ. Seg.</CardTitle>
                         <UserX className="h-4 w-4 text-red-500" />
@@ -1097,7 +1076,6 @@ export default function PipelinePage() {
           filteredProspects.map(prospect => {
             if (!prospect.opportunity) return null;
             const classification = getClassification(prospect.opportunity.stage);
-            const cardBgClass = getCardBgClass(prospect.opportunity.stage);
             const isFinancingStage = prospect.opportunity.stage === 'Financiamiento Externo';
             const isDiscarded = prospect.opportunity.stage === 'Descartado';
             const currentIndex = isFinancingStage ? -1 : stages.indexOf(prospect.opportunity.stage);
@@ -1115,14 +1093,8 @@ export default function PipelinePage() {
 
             const quotationFollowUp = prospect.activities.find((act: any) => act.quotationId && prospect.quotation && act.quotationId === prospect.quotation.id);
 
-            const tagClasses = {
-                danger: 'border-l-red-500',
-                success: 'border-l-green-500',
-            };
-            const tagClass = prospect.tag ? tagClasses[prospect.tag as keyof typeof tagClasses] : '';
-
             return (
-              <Card key={prospect.id} className={cn("border-l-4", tagClass || 'border-l-transparent', cardBgClass)}>
+              <Card key={prospect.id} className="border-2 border-black bg-muted/50">
                 <CardHeader className="flex flex-row items-start justify-between p-2 pb-0">
                   <div>
                     <Link href={`/dashboard/clients/${prospect.id}`}>
