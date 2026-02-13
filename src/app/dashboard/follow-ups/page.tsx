@@ -56,6 +56,7 @@ import { generateFollowUpSummary } from '@/ai/flows/generate-follow-up-summary';
 import { getClassification, getBadgeClass } from '@/lib/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ResponseRateChart } from '@/components/response-rate-chart';
+import { ClientTimelineDialog } from '@/components/client-timeline-dialog';
 
 const groupStyleKeys = {
     destructive: {
@@ -106,6 +107,9 @@ export default function FollowUpsPage() {
 
   const [assistantSummary, setAssistantSummary] = useState('');
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
+  
+  const [isTimelineOpen, setIsTimelineOpen] = useState(false);
+  const [timelineLeadId, setTimelineLeadId] = useState<string | null>(null);
 
 
   const userProfileRef = useMemoFirebase(() => {
@@ -515,6 +519,11 @@ export default function FollowUpsPage() {
     setActivityToDelete(activity);
     setIsDeleteDialogOpen(true);
   };
+  
+  const handleViewTimeline = (leadId: string) => {
+    setTimelineLeadId(leadId);
+    setIsTimelineOpen(true);
+  };
 
   const handleDeleteActivityConfirm = () => {
     if (!activityToDelete || !firestore) return;
@@ -765,10 +774,8 @@ export default function FollowUpsPage() {
                                         ) : (
                                             <p className="text-xs text-muted-foreground pl-4 py-2">No hay historial de actividades.</p>
                                         )}
-                                        <Button asChild size="sm" variant="link" className="w-full justify-start pl-3 text-xs h-auto mt-2 text-primary hover:underline">
-                                          <Link href={`/dashboard/clients/${activity.leadId}`}>
+                                        <Button variant="link" size="sm" className="w-full justify-start pl-3 text-xs h-auto mt-2 text-primary hover:underline" onClick={() => handleViewTimeline(activity.leadId)}>
                                             Ver línea de tiempo completa
-                                          </Link>
                                         </Button>
                                     </CollapsibleContent>
                                 </Collapsible>
@@ -878,6 +885,12 @@ export default function FollowUpsPage() {
           </div>
         )}
       </div>
+
+       <ClientTimelineDialog 
+        open={isTimelineOpen}
+        onOpenChange={setIsTimelineOpen}
+        leadId={timelineLeadId}
+       />
 
        {currentProspect && (
             <FollowUpDialog

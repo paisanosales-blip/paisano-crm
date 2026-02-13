@@ -247,7 +247,7 @@ export default function ClientDetailPage() {
                                 <div className="pl-8">
                                     <p className="font-semibold text-foreground">{event.title}</p>
                                     <p className="text-sm text-muted-foreground">{event.description}</p>
-                                     {event.type === 'quotation_sent' && (
+                                     {event.title.startsWith('Cotización') && event.data.pdfUrl && (
                                         <Button asChild variant="link" size="sm" className="pl-0 h-auto text-xs mt-1">
                                             <a href={event.data.pdfUrl} target="_blank" rel="noopener noreferrer">
                                                 <FileDown className="mr-1.5 h-3 w-3" /> Ver PDF (v{event.data.version})
