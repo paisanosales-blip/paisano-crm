@@ -905,14 +905,24 @@ export default function PipelinePage() {
   
   const allStagesForFilter: Array<OpportunityStage | 'Todos'> = ['Todos', ...stages, 'Financiamiento Externo', 'Descartado'];
 
-  const getCardBgClass = (classification: ClientClassification) => {
-    switch (classification) {
-        case 'PROSPECTO': return 'bg-gray-100/80 dark:bg-gray-800/40';
-        case 'CLIENTE POTENCIAL': return 'bg-blue-50 dark:bg-blue-950/40';
-        case 'CLIENTE': return 'bg-green-50 dark:bg-green-950/40';
-        case 'FINANCIAMIENTO': return 'bg-amber-50 dark:bg-amber-950/40';
-        case 'PERDIDO': return 'bg-red-50 dark:bg-red-950/40';
-        default: return 'bg-card';
+  const getCardBgClass = (stage: OpportunityStage) => {
+    switch (stage) {
+      case 'Primer contacto':
+        return 'bg-slate-50 dark:bg-slate-900/40';
+      case 'Envió de Información':
+        return 'bg-sky-50 dark:bg-sky-950/40';
+      case 'Envió de Cotización':
+        return 'bg-blue-50 dark:bg-blue-950/40';
+      case 'Negociación':
+        return 'bg-indigo-50 dark:bg-indigo-950/40';
+      case 'Cierre de venta':
+        return 'bg-green-50 dark:bg-green-950/40';
+      case 'Financiamiento Externo':
+        return 'bg-amber-50 dark:bg-amber-950/40';
+      case 'Descartado':
+        return 'bg-red-50 dark:bg-red-950/40';
+      default:
+        return 'bg-card';
     }
   };
 
@@ -1087,7 +1097,7 @@ export default function PipelinePage() {
           filteredProspects.map(prospect => {
             if (!prospect.opportunity) return null;
             const classification = getClassification(prospect.opportunity.stage);
-            const cardBgClass = getCardBgClass(classification);
+            const cardBgClass = getCardBgClass(prospect.opportunity.stage);
             const isFinancingStage = prospect.opportunity.stage === 'Financiamiento Externo';
             const isDiscarded = prospect.opportunity.stage === 'Descartado';
             const currentIndex = isFinancingStage ? -1 : stages.indexOf(prospect.opportunity.stage);
