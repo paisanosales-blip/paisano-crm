@@ -350,7 +350,7 @@ export default function DashboardPage() {
                 </div>
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
+                    <Card className="bg-slate-50 dark:bg-slate-900/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Total Prospectos Registrados</CardTitle>
                             <Users className="h-4 w-4 text-muted-foreground" />
@@ -360,7 +360,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-muted-foreground">Total histórico de oportunidades.</p>
                         </CardContent>
                     </Card>
-                     <Card className="bg-muted/50">
+                     <Card className="bg-sky-50 dark:bg-sky-950/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Nuevos Prospectos ({reportType === 'monthly' ? 'Mes' : 'Semana'})</CardTitle>
                             <Users className="h-4 w-4 text-muted-foreground" />
@@ -370,7 +370,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-muted-foreground">Oportunidades creadas en el periodo.</p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="bg-blue-50 dark:bg-blue-950/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Nuevos Clientes Potenciales</CardTitle>
                             <Target className="h-4 w-4 text-muted-foreground" />
@@ -380,7 +380,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-muted-foreground">Nuevas oportunidades en cotización o negociación.</p>
                         </CardContent>
                     </Card>
-                    <Card className="bg-muted/50">
+                    <Card className="bg-green-50 dark:bg-green-950/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Nuevos Clientes</CardTitle>
                             <UserCheck className="h-4 w-4 text-muted-foreground" />
@@ -390,7 +390,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-muted-foreground">Oportunidades cerradas como ganadas en el periodo.</p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="bg-emerald-50 dark:bg-emerald-950/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Ingresos del Periodo</CardTitle>
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -401,7 +401,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-muted-foreground mt-1">De cotizaciones que se hicieron clientes en el periodo.</p>
                         </CardContent>
                     </Card>
-                    <Card className="bg-muted/50">
+                    <Card className="bg-indigo-50 dark:bg-indigo-950/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Tasa de Conversión</CardTitle>
                             <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -411,7 +411,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-muted-foreground">Nuevos clientes / Nuevas oportunidades del periodo.</p>
                         </CardContent>
                     </Card>
-                    <Card>
+                    <Card className="bg-violet-50 dark:bg-violet-950/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Cotizaciones Hechas</CardTitle>
                             <FileText className="h-4 w-4 text-muted-foreground" />
@@ -421,7 +421,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-muted-foreground">Generadas este periodo.</p>
                         </CardContent>
                     </Card>
-                    <Card className="bg-muted/50">
+                    <Card className="bg-amber-50 dark:bg-amber-950/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Prospectos No Atendidos</CardTitle>
                             <UserX className="h-4 w-4 text-muted-foreground" />
@@ -431,7 +431,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-muted-foreground">Nuevas oportunidades que siguen en 'Primer contacto'.</p>
                         </CardContent>
                     </Card>
-                     <Card>
+                     <Card className="bg-orange-50 dark:bg-orange-950/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Financiamiento Externo</CardTitle>
                             <Landmark className="h-4 w-4 text-muted-foreground" />
@@ -441,7 +441,7 @@ export default function DashboardPage() {
                             <p className="text-xs text-muted-foreground">Movidos a financiamiento este periodo.</p>
                         </CardContent>
                     </Card>
-                     <Card className="bg-muted/50">
+                     <Card className="bg-red-50 dark:bg-red-950/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Prospectos Descartados</CardTitle>
                             <ArchiveX className="h-4 w-4 text-muted-foreground" />
