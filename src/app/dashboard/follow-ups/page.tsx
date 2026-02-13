@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import Link from 'next/link';
 import {
   useUser,
   useFirestore,
@@ -764,6 +765,11 @@ export default function FollowUpsPage() {
                                         ) : (
                                             <p className="text-xs text-muted-foreground pl-4 py-2">No hay historial de actividades.</p>
                                         )}
+                                        <Button asChild size="sm" variant="link" className="w-full justify-start pl-3 text-xs h-auto mt-2 text-primary hover:underline">
+                                          <Link href={`/dashboard/clients/${activity.leadId}`}>
+                                            Ver línea de tiempo completa
+                                          </Link>
+                                        </Button>
                                     </CollapsibleContent>
                                 </Collapsible>
                                 <div className="flex items-center gap-4 pt-2 mt-2 border-t">
