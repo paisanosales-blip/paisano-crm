@@ -712,9 +712,9 @@ export default function FollowUpsPage() {
                             'flex items-start gap-4 rounded-lg border p-4 transition-all',
                             activity.completed
                               ? activity.clientResponded === true
-                                ? 'bg-green-50 dark:bg-green-950/40'
+                                ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/40'
                                 : activity.clientResponded === false
-                                ? 'bg-red-50 dark:bg-red-950/40'
+                                ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/40'
                                 : 'bg-muted/50'
                               : 'bg-card hover:bg-muted/60'
                           )}
