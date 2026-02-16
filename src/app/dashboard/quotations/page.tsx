@@ -345,6 +345,7 @@ export default function QuotationsPage() {
                             .map(([clientName, quotes]) => {
                                 const opportunityStage = quotes[0]?.opportunityStage;
                                 const classification = opportunityStage ? getClassification(opportunityStage) : null;
+                                const latestQuoteDate = quotes[0]?.createdDate;
                                 return (
                                 <AccordionItem value={clientName} key={clientName}>
                                     <div className="flex items-center px-4 hover:bg-muted/50 rounded-md">
@@ -362,6 +363,11 @@ export default function QuotationsPage() {
                                                     <Badge variant="outline" className={cn('font-bold uppercase text-xs', getBadgeClass(classification))}>{classification}</Badge>
                                                 )}
                                             </div>
+                                            {latestQuoteDate && (
+                                                <span className="text-sm text-muted-foreground mr-4 font-normal">
+                                                    Última: {format(new Date(latestQuoteDate), "dd MMM yyyy", { locale: es })}
+                                                </span>
+                                            )}
                                         </AccordionTrigger>
                                     </div>
                                     <AccordionContent className="pt-0 pl-8">
