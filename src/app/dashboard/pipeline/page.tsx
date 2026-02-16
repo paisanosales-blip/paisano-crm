@@ -81,6 +81,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { QuotationGeneratorDialog } from '@/components/quotation-generator-dialog';
 import { FinancingDialog, type FinancingConfirmPayload } from '@/components/financing-dialog';
 import { suggestNextAction } from '@/ai/flows/suggest-next-action';
+import { enrichProspectData } from '@/ai/flows/enrich-prospect-data';
 import { DiscardProspectDialog, type DiscardConfirmPayload } from '@/components/discard-prospect-dialog';
 import { Input } from '@/components/ui/input';
 import { FirstContactDialog } from '@/components/first-contact-dialog';
@@ -132,6 +133,7 @@ export default function PipelinePage() {
   const [isDiscardDialogOpen, setIsDiscardDialogOpen] = useState(false);
   const [isFirstContactDialogOpen, setIsFirstContactDialogOpen] = useState(false);
   const [prospectForFirstContact, setProspectForFirstContact] = useState<any | null>(null);
+  const [enrichingProspectId, setEnrichingProspectId] = useState<string | null>(null);
 
   const { toast } = useToast();
 
@@ -358,7 +360,7 @@ export default function PipelinePage() {
     setActivityToDelete(activity);
     setIsDeleteDialogOpen(true);
   };
-
+  
   const handleDeleteActivityConfirm = () => {
     if (!activityToDelete || !firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el seguimiento.' });
@@ -706,12 +708,6 @@ export default function PipelinePage() {
     handleNewFollowUpClick(currentProspect, followUpQuotationId);
   };
 
-  const handleScheduleNewQuotationFollowUp = (prospect: any) => {
-      setCurrentProspect(prospect);
-      setFollowUpQuotationId(prospect.quotation?.id || null);
-      setIsFollowUpDialogOpen(true);
-  };
-
   const handleGetSuggestion = async (prospect: any) => {
     if (!prospect) return;
 
@@ -746,6 +742,41 @@ export default function PipelinePage() {
       });
     } finally {
       setIsSuggestionLoading(false);
+    }
+  };
+
+  const handleEnrichProspect = async (prospect: any) => {
+    if (!prospect || !firestore) return;
+    setEnrichingProspectId(prospect.id);
+    try {
+      const result = await enrichProspectData({ companyName: prospect.clientName });
+
+      const updates = Object.fromEntries(
+        Object.entries(result).filter(([, value]) => value !== '' && value !== undefined && value !== null)
+      );
+
+      if (Object.keys(updates).length > 0) {
+        const leadRef = doc(firestore, 'leads', prospect.id);
+        updateDocumentNonBlocking(leadRef, updates);
+        toast({
+          title: 'Prospecto Enriquecido',
+          description: `Se encontró y actualizó nueva información para ${prospect.clientName}.`,
+        });
+      } else {
+        toast({
+          title: 'No se encontró información adicional',
+          description: `La IA no pudo encontrar nuevos datos para ${prospect.clientName}.`,
+        });
+      }
+    } catch (error) {
+      console.error("Error enriching prospect data:", error);
+      toast({
+        variant: 'destructive',
+        title: 'Error de IA',
+        description: 'No se pudo enriquecer la información del prospecto.',
+      });
+    } finally {
+      setEnrichingProspectId(null);
     }
   };
 
@@ -1189,24 +1220,38 @@ export default function PipelinePage() {
                             </Button>
                         </CollapsibleTrigger>
                         <CollapsibleContent className="px-1 py-1 space-y-1 border-t">
-                            <div className="grid grid-cols-2 gap-2">
-                                <Button size="sm" className="w-full h-8" onClick={() => handleNewFollowUpClick(prospect)}>
+                            <div className="flex flex-wrap gap-2">
+                                <Button size="sm" className="h-8 flex-1 min-w-[150px]" onClick={() => handleNewFollowUpClick(prospect)}>
                                   <PlusCircle className="mr-2 h-4 w-4" />
-                                  Agregar Seguimiento
+                                  Seguimiento
                                 </Button>
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="w-full h-8"
+                                    className="h-8 flex-1 min-w-[150px]"
                                     onClick={() => handleGetSuggestion(prospect)}
-                                    disabled={isSuggestionLoading}
+                                    disabled={isSuggestionLoading || enrichingProspectId === prospect.id}
                                 >
-                                    {isSuggestionLoading ? (
+                                    {isSuggestionLoading && prospectForSuggestion?.id === prospect.id ? (
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     ) : (
                                         <Sparkles className="mr-2 h-4 w-4" />
                                     )}
                                     Sugerir Acción
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 flex-1 min-w-[150px]"
+                                    onClick={() => handleEnrichProspect(prospect)}
+                                    disabled={enrichingProspectId === prospect.id || isSuggestionLoading}
+                                >
+                                    {enrichingProspectId === prospect.id ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Sparkles className="mr-2 h-4 w-4 text-purple-500" />
+                                    )}
+                                    Enriquecer
                                 </Button>
                             </div>
                             {prospect.activities.length > 0 ? (

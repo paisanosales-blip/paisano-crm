@@ -13,3 +13,4 @@ import '@/ai/flows/generate-follow-up-summary.ts';
 import '@/ai/flows/generate-sales-coaching.ts';
 import '@/ai/flows/generate-marketing-plan.ts';
 import '@/ai/flows/summarize-seller-activity.ts';
+import '@/ai/flows/enrich-prospect-data.ts';
