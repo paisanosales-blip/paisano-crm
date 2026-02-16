@@ -20,7 +20,7 @@ service cloud.firestore {
     // App Settings
     // =====================================================================
     match /settings/{settingId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isManager();
     }
 
@@ -95,7 +95,7 @@ service cloud.firestore {
     // Shared Files
     // =====================================================================
     match /sharedFiles/{fileId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow create: if request.resource.data.uploadedByUserId == request.auth.uid;
       allow update, delete: if isManager() || resource.data.uploadedByUserId == request.auth.uid;
     }
