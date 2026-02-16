@@ -25,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, PlusCircle, FileDown, Mail, DollarSign, Send, FileCheck, FileX, Trash2 } from "lucide-react";
+import { MoreHorizontal, PlusCircle, FileDown, Mail, DollarSign, Send, FileCheck, FileX, Trash2, Search } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -35,6 +35,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { getClassification, getBadgeClass } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 
 export default function QuotationsPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
@@ -46,6 +47,7 @@ export default function QuotationsPage() {
     const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [selectedQuoteIds, setSelectedQuoteIds] = useState<Set<string>>(new Set());
+    const [searchTerm, setSearchTerm] = useState('');
 
     const userProfileRef = useMemoFirebase(() => {
       if (!user) return null;
@@ -156,7 +158,17 @@ export default function QuotationsPage() {
 
     const groupedQuotations = React.useMemo(() => {
         if (!enrichedQuotations) return {};
-        const groups = enrichedQuotations.reduce((acc, quote) => {
+
+        const lowercasedQuery = searchTerm.toLowerCase();
+
+        const filtered = searchTerm
+        ? enrichedQuotations.filter(q => 
+            q.clientName?.toLowerCase().includes(lowercasedQuery) ||
+            q.contactPerson?.toLowerCase().includes(lowercasedQuery)
+          )
+        : enrichedQuotations;
+
+        const groups = filtered.reduce((acc, quote) => {
             const clientName = quote.clientName || 'Cliente Desconocido';
             if (!acc[clientName]) acc[clientName] = [];
             acc[clientName].push(quote);
@@ -165,7 +177,7 @@ export default function QuotationsPage() {
 
         Object.values(groups).forEach(quotes => quotes.sort((a, b) => Number(b.version) - Number(a.version)));
         return groups;
-    }, [enrichedQuotations]);
+    }, [enrichedQuotations, searchTerm]);
 
     const handleSelectQuote = (quoteId: string, checked: boolean) => {
         setSelectedQuoteIds(prev => {
@@ -254,9 +266,9 @@ export default function QuotationsPage() {
     return (
       <>
         <div className="grid gap-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <h1 className="text-2xl font-headline font-bold">Cotizaciones</h1>
-                <div className="flex items-center gap-4">
+                <div className="flex w-full sm:w-auto items-center gap-2 flex-wrap justify-end">
                     {selectedQuoteIds.size > 0 && (
                         <Button variant="destructive" onClick={handleBulkDeleteClick} disabled={isDeleting}>
                             <Trash2 className="mr-2 h-4 w-4" />
@@ -265,7 +277,7 @@ export default function QuotationsPage() {
                     )}
                     {userProfile?.role === 'manager' && (
                         <Select onValueChange={setSelectedUserId} value={selectedUserId} disabled={isLoading}>
-                            <SelectTrigger className="w-[220px]">
+                            <SelectTrigger className="w-full sm:w-[220px]">
                                 <SelectValue placeholder="Seleccionar vendedor..." />
                             </SelectTrigger>
                             <SelectContent>
@@ -307,6 +319,17 @@ export default function QuotationsPage() {
                     <CardDescription>Rastrea y gestiona todas las cotizaciones de clientes generadas desde el flujo de ventas.</CardDescription>
                 </CardHeader>
                  <CardContent className="px-2 pt-2">
+                    <div className="p-4 pt-0">
+                        <div className="relative w-full max-w-sm">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Buscar por cliente o contacto..."
+                                className="pl-8"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                    </div>
                     {isLoading ? (
                         <div className="p-4"><Skeleton className="h-48 w-full" /></div>
                     ) : Object.keys(groupedQuotations).length > 0 ? (

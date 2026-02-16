@@ -37,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Mail, Phone } from 'lucide-react';
+import { MoreHorizontal, Mail, Phone, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,6 +52,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 
 
 export default function ProspectsPage() {
@@ -67,6 +68,7 @@ export default function ProspectsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>('me');
   const [activeTab, setActiveTab] = useState('prospects');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -132,14 +134,26 @@ export default function ProspectsPage() {
       opportunityStage: opportunitiesMap.get(lead.id)?.stage,
     }));
     
+    let tabFilteredData;
     if (activeTab === 'prospects') {
-        return enrichedLeads.filter(lead => lead.opportunityStage && lead.opportunityStage !== 'Cierre de venta' && lead.opportunityStage !== 'Descartado');
+        tabFilteredData = enrichedLeads.filter(lead => lead.opportunityStage && lead.opportunityStage !== 'Cierre de venta' && lead.opportunityStage !== 'Descartado');
+    } else if (activeTab === 'clients') {
+        tabFilteredData = enrichedLeads.filter(lead => lead.opportunityStage === 'Cierre de venta');
+    } else {
+      tabFilteredData = [];
     }
-    if (activeTab === 'clients') {
-        return enrichedLeads.filter(lead => lead.opportunityStage === 'Cierre de venta');
+
+    if (!searchQuery) {
+      return tabFilteredData;
     }
-    return [];
-  }, [leads, opportunities, activeTab]);
+
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return tabFilteredData.filter(lead => 
+      lead.clientName?.toLowerCase().includes(lowercasedQuery) ||
+      lead.contactPerson?.toLowerCase().includes(lowercasedQuery) ||
+      lead.email?.toLowerCase().includes(lowercasedQuery)
+    );
+  }, [leads, opportunities, activeTab, searchQuery]);
 
 
   const handleEditClick = (client: any) => {
@@ -256,12 +270,23 @@ export default function ProspectsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-4">
-                <TabsList>
-                    <TabsTrigger value="prospects">Prospectos</TabsTrigger>
-                    <TabsTrigger value="clients">Clientes</TabsTrigger>
-                </TabsList>
-            </Tabs>
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center mb-4">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList>
+                      <TabsTrigger value="prospects">Prospectos</TabsTrigger>
+                      <TabsTrigger value="clients">Clientes</TabsTrigger>
+                  </TabsList>
+              </Tabs>
+              <div className="relative w-full sm:w-auto sm:max-w-xs">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por cliente, contacto..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
             <Table>
               <TableHeader>
                 <TableRow>
