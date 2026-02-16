@@ -21,6 +21,8 @@ import {
   isFuture,
   isThisWeek,
   formatDistanceToNow,
+  isSameDay,
+  differenceInDays,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users, ListTodo, AlertOctagon, CalendarClock, CheckCheck, Lightbulb, RefreshCcw, History, MessageCircle, Globe } from 'lucide-react';
@@ -36,6 +38,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,6 +60,7 @@ import { getClassification, getBadgeClass } from '@/lib/types';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ResponseRateChart } from '@/components/response-rate-chart';
 import { ClientTimelineDialog } from '@/components/client-timeline-dialog';
+import { getUSHolidays } from '@/lib/holidays';
 
 const groupStyleKeys = {
     destructive: {
@@ -111,6 +115,34 @@ export default function FollowUpsPage() {
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [timelineLeadId, setTimelineLeadId] = useState<string | null>(null);
 
+  const holidayAlert = useMemo(() => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const usHolidays = [
+        ...getUSHolidays(currentYear),
+        ...getUSHolidays(currentYear + 1) // Include next year for early-year holidays
+    ];
+
+    // Check if today is a holiday
+    const todayHoliday = usHolidays.find(h => isSameDay(h.date, today));
+    if (todayHoliday) {
+      return `¡Atención! Hoy es ${todayHoliday.name}, día festivo en EUA. Es poco probable que los clientes respondan.`;
+    }
+
+    // Find the next upcoming holiday
+    const upcomingHoliday = usHolidays
+      .filter(h => h.date >= today)
+      .sort((a, b) => a.date.getTime() - b.date.getTime())[0];
+
+    if (upcomingHoliday) {
+      const daysUntil = differenceInDays(upcomingHoliday.date, today);
+      if (daysUntil <= 7) {
+        return `Próximo día festivo en EUA: ${upcomingHoliday.name} (${format(upcomingHoliday.date, 'eeee, dd MMMM', { locale: es })}). La respuesta de los clientes puede ser limitada.`;
+      }
+    }
+
+    return null;
+  }, []);
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -606,6 +638,16 @@ export default function FollowUpsPage() {
           </div>
         </div>
 
+        {holidayAlert && (
+          <Alert variant="default" className="bg-yellow-100 border-yellow-200 text-yellow-800 dark:bg-yellow-950 dark:border-yellow-800 dark:text-yellow-200 [&>svg]:text-yellow-600">
+            <AlertOctagon className="h-4 w-4" />
+            <AlertTitle className="font-bold">Aviso de Día Festivo</AlertTitle>
+            <AlertDescription>
+              {holidayAlert}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {isLoading ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
                 {Array.from({length: 4}).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
@@ -704,28 +746,38 @@ export default function FollowUpsPage() {
                 <div className="space-y-3">
                   {group.activities.map((activity) => {
                       const dueDate = activity.dueDate ? new Date(activity.dueDate) : null;
+                      const clientResponded = activity.clientResponded;
+                      
+                      let cardBackgroundClass = 'bg-card hover:bg-muted/60';
+                      let cardBorderClass = 'border';
+                      if (activity.completed) {
+                          if (clientResponded === true) {
+                            cardBackgroundClass = 'bg-green-50 dark:bg-green-950/40';
+                            cardBorderClass = 'border-green-200 dark:border-green-800';
+                          } else if (clientResponded === false) {
+                            cardBackgroundClass = 'bg-red-50 dark:bg-red-950/40';
+                            cardBorderClass = 'border-red-200 dark:border-red-800';
+                          } else {
+                            cardBackgroundClass = 'bg-muted/50';
+                          }
+                      }
 
                       return (
                         <div
                           key={activity.id}
                           className={cn(
-                            'flex items-start gap-4 rounded-lg border p-4 transition-all',
-                            activity.completed
-                              ? activity.clientResponded == true
-                                ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/40'
-                                : activity.clientResponded == false
-                                ? 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/40'
-                                : 'bg-muted/50'
-                              : 'bg-card hover:bg-muted/60'
+                            'flex items-start gap-4 rounded-lg p-4 transition-all',
+                            cardBorderClass,
+                            cardBackgroundClass
                           )}
                         >
                             <span className={cn("flex h-10 w-10 items-center justify-center rounded-full mt-1 shrink-0", groupStyleKeys[group.styleKey].icon)}>
                                 {activityIcons[activity.type] || <Calendar className="h-5 w-5" />}
                             </span>
 
-                            <div className={cn("flex-grow grid gap-1", activity.completed && "line-through text-muted-foreground")}>
+                            <div className={cn("flex-grow grid gap-1", activity.completed && "text-muted-foreground")}>
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <p className="font-semibold text-foreground">
+                                    <p className={cn("font-semibold", activity.completed ? 'line-through' : 'text-foreground')}>
                                         {activity.type}
                                         <span className="font-normal text-muted-foreground"> con </span> 
                                         <span className="font-medium">{activity.clientName}</span>
@@ -739,7 +791,7 @@ export default function FollowUpsPage() {
                                         </Badge>
                                     )}
                                 </div>
-                                <p className="text-sm text-muted-foreground">{activity.description || 'Sin descripción.'}</p>
+                                <p className={cn("text-sm", activity.completed ? 'line-through' : 'text-muted-foreground')}>{activity.description || 'Sin descripción.'}</p>
                                 {dueDate && (
                                     <div className={cn("flex items-center gap-2 text-sm", activity.completed ? 'text-muted-foreground' : groupStyleKeys[group.styleKey].date)}>
                                         <Calendar className="h-4 w-4" />
