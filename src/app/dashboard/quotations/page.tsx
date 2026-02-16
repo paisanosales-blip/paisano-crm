@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import {
   useUser,
   useFirestore,
@@ -175,7 +177,7 @@ export default function QuotationsPage() {
             return acc;
         }, {} as Record<string, any[]>);
 
-        Object.values(groups).forEach(quotes => quotes.sort((a, b) => Number(b.version) - Number(a.version)));
+        Object.values(groups).forEach(quotes => quotes.sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()));
         return groups;
     }, [enrichedQuotations, searchTerm]);
 
@@ -335,7 +337,11 @@ export default function QuotationsPage() {
                     ) : Object.keys(groupedQuotations).length > 0 ? (
                         <Accordion type="multiple" className="w-full">
                             {Object.entries(groupedQuotations)
-                            .sort((a, b) => a[0].localeCompare(b[0]))
+                            .sort(([, quotesA], [, quotesB]) => {
+                                const dateA = quotesA[0] ? new Date(quotesA[0].createdDate).getTime() : 0;
+                                const dateB = quotesB[0] ? new Date(quotesB[0].createdDate).getTime() : 0;
+                                return dateB - dateA;
+                            })
                             .map(([clientName, quotes]) => {
                                 const opportunityStage = quotes[0]?.opportunityStage;
                                 const classification = opportunityStage ? getClassification(opportunityStage) : null;
@@ -383,7 +389,7 @@ export default function QuotationsPage() {
                                                             <TableCell>{new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency }).format(quote.value)}</TableCell>
                                                             <TableCell><Badge variant={statusVariant}>{quote.status}</Badge></TableCell>
                                                             <TableCell className="text-center">v{quote.version}</TableCell>
-                                                            <TableCell>{new Date(quote.createdDate).toLocaleDateString()}</TableCell>
+                                                            <TableCell>{format(new Date(quote.createdDate), "dd MMM yyyy", { locale: es })}</TableCell>
                                                             <TableCell>
                                                                 <Button asChild variant="outline" size="sm" disabled={!quote.pdfUrl}>
                                                                     <a href={quote.pdfUrl} target="_blank" rel="noopener noreferrer"><FileDown className="mr-2 h-3 w-3"/>Descargar</a>
