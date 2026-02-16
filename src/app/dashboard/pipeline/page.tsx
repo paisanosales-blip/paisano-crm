@@ -66,6 +66,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 import { NewProspectDialog } from '@/components/new-prospect-dialog';
 import { InformationSentDialog, type InfoSentConfirmPayload } from '@/components/information-sent-dialog';
 import { QuotationChoiceDialog } from '@/components/quotation-choice-dialog';
@@ -745,15 +746,32 @@ export default function PipelinePage() {
     }
   };
 
+  const handleUndoEnrichment = (leadId: string, originalValues: Record<string, any>) => {
+    if (!firestore) return;
+    const leadRef = doc(firestore, 'leads', leadId);
+    updateDocumentNonBlocking(leadRef, originalValues);
+    toast({
+        title: 'Cambios deshechos',
+        description: 'Se restauró la información original del prospecto.'
+    });
+  };
+
   const handleEnrichProspect = async (prospect: any) => {
     if (!prospect || !firestore) return;
     setEnrichingProspectId(prospect.id);
     try {
       const result = await enrichProspectData({ companyName: prospect.clientName });
 
-      const updates = Object.fromEntries(
-        Object.entries(result).filter(([, value]) => value !== '' && value !== undefined && value !== null)
-      );
+      const updates: { [key: string]: any } = {};
+      const originalValues: { [key: string]: any } = {};
+
+      // Only update fields that are currently empty/falsy
+      (Object.keys(result) as Array<keyof typeof result>).forEach(key => {
+        if (!prospect[key] && result[key]) {
+          updates[key] = result[key];
+          originalValues[key] = prospect[key] || ''; // Store original (empty) value
+        }
+      });
 
       if (Object.keys(updates).length > 0) {
         const leadRef = doc(firestore, 'leads', prospect.id);
@@ -761,11 +779,12 @@ export default function PipelinePage() {
         toast({
           title: 'Prospecto Enriquecido',
           description: `Se encontró y actualizó nueva información para ${prospect.clientName}.`,
+          action: <ToastAction altText="Deshacer" onClick={() => handleUndoEnrichment(prospect.id, originalValues)}>Deshacer</ToastAction>,
         });
       } else {
         toast({
-          title: 'No se encontró información adicional',
-          description: `La IA no pudo encontrar nuevos datos para ${prospect.clientName}.`,
+          title: 'No se encontró información para agregar',
+          description: `La IA no encontró nuevos datos o los campos ya estaban completos.`,
         });
       }
     } catch (error) {
