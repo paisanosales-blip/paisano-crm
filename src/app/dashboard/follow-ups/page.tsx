@@ -750,7 +750,12 @@ export default function FollowUpsPage() {
                       
                       let cardBackgroundClass = 'bg-card hover:bg-muted/60';
                       let cardBorderClass = 'border';
-                      if (activity.completed) {
+                      const isPendingInfo = activity.description === 'PENDIENTE ENVIAR INFORMACIÓN' && !activity.completed;
+
+                      if (isPendingInfo) {
+                        cardBackgroundClass = 'bg-yellow-100 dark:bg-yellow-950/40';
+                        cardBorderClass = 'border-yellow-200 dark:border-yellow-800';
+                      } else if (activity.completed) {
                           if (clientResponded === true) {
                             cardBackgroundClass = 'bg-green-50 dark:bg-green-950/40';
                             cardBorderClass = 'border-green-200 dark:border-green-800';
