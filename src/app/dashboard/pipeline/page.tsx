@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -135,6 +135,7 @@ export default function PipelinePage() {
   const [isFirstContactDialogOpen, setIsFirstContactDialogOpen] = useState(false);
   const [prospectForFirstContact, setProspectForFirstContact] = useState<any | null>(null);
   const [enrichingProspectId, setEnrichingProspectId] = useState<string | null>(null);
+  const [enrichmentHistory, setEnrichmentHistory] = useState<Record<string, any>>({});
 
   const { toast } = useToast();
 
@@ -746,10 +747,18 @@ export default function PipelinePage() {
     }
   };
 
-  const handleUndoEnrichment = (leadId: string, originalValues: Record<string, any>) => {
-    if (!firestore) return;
+  const handleUndoEnrichmentClick = (leadId: string) => {
+    if (!firestore || !enrichmentHistory[leadId]) return;
+    const originalValues = enrichmentHistory[leadId];
     const leadRef = doc(firestore, 'leads', leadId);
     updateDocumentNonBlocking(leadRef, originalValues);
+
+    setEnrichmentHistory(prev => {
+        const newHistory = { ...prev };
+        delete newHistory[leadId];
+        return newHistory;
+    });
+
     toast({
         title: 'Cambios deshechos',
         description: 'Se restauró la información original del prospecto.'
@@ -776,10 +785,10 @@ export default function PipelinePage() {
       if (Object.keys(updates).length > 0) {
         const leadRef = doc(firestore, 'leads', prospect.id);
         updateDocumentNonBlocking(leadRef, updates);
+        setEnrichmentHistory(prev => ({...prev, [prospect.id]: originalValues }));
         toast({
           title: 'Prospecto Enriquecido',
           description: `Se encontró y actualizó nueva información para ${prospect.clientName}.`,
-          action: <ToastAction altText="Deshacer" onClick={() => handleUndoEnrichment(prospect.id, originalValues)}>Deshacer</ToastAction>,
         });
       } else {
         toast({
@@ -1272,6 +1281,17 @@ export default function PipelinePage() {
                                     )}
                                     Enriquecer
                                 </Button>
+                                {enrichmentHistory[prospect.id] && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 flex-1 min-w-[150px]"
+                                        onClick={() => handleUndoEnrichmentClick(prospect.id)}
+                                    >
+                                        <Undo2 className="mr-2 h-4 w-4" />
+                                        Deshacer Enriquecimiento
+                                    </Button>
+                                )}
                             </div>
                             {prospect.activities.length > 0 ? (
                                 <div className="space-y-1 pt-2">
