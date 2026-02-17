@@ -904,6 +904,7 @@ export default function PipelinePage() {
 
   const filteredProspects = React.useMemo(() => {
     const lowercasedQuery = searchQuery.toLowerCase();
+    const numericQuery = searchQuery.replace(/\D/g, '');
     
     let prospects = clientProspects.filter(prospect => {
       // Stage filter
@@ -920,7 +921,8 @@ export default function PipelinePage() {
       if (searchQuery) {
         const clientNameMatch = prospect.clientName?.toLowerCase().includes(lowercasedQuery);
         const contactPersonMatch = prospect.contactPerson?.toLowerCase().includes(lowercasedQuery);
-        return clientNameMatch || contactPersonMatch;
+        const phoneMatch = prospect.phone && numericQuery && prospect.phone.replace(/\D/g, '').includes(numericQuery);
+        return clientNameMatch || contactPersonMatch || phoneMatch;
       }
       
       return true;
@@ -1094,7 +1096,7 @@ export default function PipelinePage() {
         <div className="relative flex-1 min-w-[250px]">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nombre de cliente o contacto..."
+            placeholder="Buscar por cliente, contacto o teléfono..."
             className="pl-8"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -1802,5 +1804,3 @@ export default function PipelinePage() {
     </>
   );
 }
-
-    
