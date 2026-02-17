@@ -1,9 +1,10 @@
+
 'use client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2 } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, MessageCircle, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -789,6 +790,11 @@ export default function PipelinePage() {
         toast({
           title: 'Prospecto Enriquecido',
           description: `Se encontró y actualizó nueva información para ${prospect.clientName}.`,
+          action: (
+            <ToastAction altText="Deshacer" onClick={() => handleUndoEnrichmentClick(prospect.id)}>
+              Deshacer
+            </ToastAction>
+          ),
         });
       } else {
         toast({
@@ -1203,6 +1209,19 @@ export default function PipelinePage() {
                         >
                             <MessageSquare className="h-5 w-5" />
                         </a>
+                        <a
+                          href={prospect.phone ? `sms:${prospect.phone.replace(/\D/g, '')}` : '#'}
+                          onClick={(e) => !prospect.phone && e.preventDefault()}
+                          className={cn(
+                              "transition-colors",
+                              prospect.phone 
+                                  ? "text-foreground/80 hover:text-foreground" 
+                                  : "text-muted-foreground/40 cursor-not-allowed"
+                          )}
+                          title={prospect.phone ? `Mensaje de Texto: ${prospect.phone}` : 'No hay teléfono'}
+                        >
+                          <MessageCircle className="h-5 w-5" />
+                        </a>
                         <a 
                             href={prospect.email ? `https://mail.google.com/mail/?view=cm&fs=1&to=${prospect.email}` : '#'}
                             target="_blank"
@@ -1485,7 +1504,7 @@ export default function PipelinePage() {
                                             </Button>
                                           </div>
                                         ) : (
-                                          <Button variant="secondary" size="sm" className="h-7" onClick={() => handleScheduleNewQuotationFollowUp(prospect)}>
+                                          <Button variant="secondary" size="sm" className="h-7" onClick={() => handleNewFollowUpClick(prospect, prospect.quotation.id)}>
                                             <PlusCircle className="w-3 h-3 mr-1.5" />
                                             Agendar Seguimiento
                                           </Button>
@@ -1783,3 +1802,5 @@ export default function PipelinePage() {
     </>
   );
 }
+
+    
