@@ -131,6 +131,7 @@ export default function QuotationsPage() {
                 opportunityStage: opportunity ? opportunity.stage : null,
                 clientEmail: lead ? lead.email : null,
                 contactPerson: lead ? lead.contactPerson : 'Contacto',
+                clientPhone: lead ? lead.phone : null,
             };
         }).sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
 
@@ -162,11 +163,13 @@ export default function QuotationsPage() {
         if (!enrichedQuotations) return {};
 
         const lowercasedQuery = searchTerm.toLowerCase();
+        const numericQuery = searchTerm.replace(/\D/g, '');
 
         const filtered = searchTerm
         ? enrichedQuotations.filter(q => 
             q.clientName?.toLowerCase().includes(lowercasedQuery) ||
-            q.contactPerson?.toLowerCase().includes(lowercasedQuery)
+            q.contactPerson?.toLowerCase().includes(lowercasedQuery) ||
+            (q.clientPhone && numericQuery && q.clientPhone.replace(/\D/g, '').includes(numericQuery))
           )
         : enrichedQuotations;
 
@@ -325,7 +328,7 @@ export default function QuotationsPage() {
                         <div className="relative w-full max-w-sm">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Buscar por cliente o contacto..."
+                                placeholder="Buscar por cliente, contacto o teléfono..."
                                 className="pl-8"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}

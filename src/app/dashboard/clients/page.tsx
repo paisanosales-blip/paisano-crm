@@ -148,10 +148,12 @@ export default function ProspectsPage() {
     }
 
     const lowercasedQuery = searchQuery.toLowerCase();
+    const numericQuery = searchQuery.replace(/\D/g, '');
     return tabFilteredData.filter(lead => 
       lead.clientName?.toLowerCase().includes(lowercasedQuery) ||
       lead.contactPerson?.toLowerCase().includes(lowercasedQuery) ||
-      lead.email?.toLowerCase().includes(lowercasedQuery)
+      lead.email?.toLowerCase().includes(lowercasedQuery) ||
+      (lead.phone && numericQuery && lead.phone.replace(/\D/g, '').includes(numericQuery))
     );
   }, [leads, opportunities, activeTab, searchQuery]);
 
@@ -280,7 +282,7 @@ export default function ProspectsPage() {
               <div className="relative w-full sm:w-auto sm:max-w-xs">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por cliente, contacto..."
+                  placeholder="Buscar por cliente, contacto, email o teléfono..."
                   className="pl-8"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
