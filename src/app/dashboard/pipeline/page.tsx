@@ -86,6 +86,7 @@ import { suggestNextAction } from '@/ai/flows/suggest-next-action';
 import { enrichProspectData } from '@/ai/flows/enrich-prospect-data';
 import { DiscardProspectDialog, type DiscardConfirmPayload } from '@/components/discard-prospect-dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { FirstContactDialog } from '@/components/first-contact-dialog';
 
 
