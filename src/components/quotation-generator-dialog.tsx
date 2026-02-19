@@ -73,9 +73,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     notes: 'THANK YOU FOR YOUR PREFERENCE.',
   });
   const [currency, setCurrency] = useState('USD');
-  const [taxes, setTaxes] = useState(0);
-  const [otherCharges, setOtherCharges] = useState(0);
-  const [otherChargesDescription, setOtherChargesDescription] = useState('OTROS CARGOS');
+  const [otherCharges, setOtherCharges] = useState<{ description: string; amount: number }[]>([]);
 
   useEffect(() => {
     const lastNumberStr = localStorage.getItem('lastQuotationNumber');
@@ -115,6 +113,25 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       };
       setItems(newItems);
   };
+  
+  const handleOtherChargeChange = (index: number, field: 'description' | 'amount', value: string) => {
+    const newCharges = [...otherCharges];
+    if (field === 'amount') {
+        newCharges[index][field] = Number(value) < 0 ? 0 : Number(value);
+    } else {
+        newCharges[index][field] = value;
+    }
+    setOtherCharges(newCharges);
+  };
+  
+  const addOtherCharge = () => {
+      setOtherCharges([...otherCharges, { description: 'Otro Cargo', amount: 0 }]);
+  };
+
+  const removeOtherCharge = (index: number) => {
+      setOtherCharges(otherCharges.filter((_, i) => i !== index));
+  };
+
 
   const addItem = () => {
     setItems([...items, { productId: '', description: '', quantity: 1, price: 0, individualFreight: 0 }]);
@@ -137,10 +154,9 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     } else {
       finalTotal += freight;
     }
-    finalTotal += taxes;
-    finalTotal += otherCharges;
+    finalTotal += otherCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
     return finalTotal;
-  }, [subtotal, freight, items, isIndividualFreight, taxes, otherCharges]);
+  }, [subtotal, freight, items, isIndividualFreight, otherCharges]);
   
   const generateAndConfirm = async () => {
     if (!prospect) {
@@ -377,21 +393,15 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       lineY += 7;
     }
 
-    if (taxes > 0) {
-      doc.setFont('helvetica', 'bold');
-      doc.text('IMPUESTOS:', docWidth - 70, lineY, { align: 'right' });
-      doc.setFont('helvetica', 'normal');
-      doc.text(`$${taxes.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
-      lineY += 7;
-    }
-
-    if (otherCharges > 0) {
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${otherChargesDescription.toUpperCase()}:`, docWidth - 70, lineY, { align: 'right' });
-      doc.setFont('helvetica', 'normal');
-      doc.text(`$${otherCharges.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
-      lineY += 7;
-    }
+    otherCharges.forEach(charge => {
+        if (charge.amount > 0) {
+            doc.setFont('helvetica', 'bold');
+            doc.text(`${charge.description.toUpperCase()}:`, docWidth - 70, lineY, { align: 'right' });
+            doc.setFont('helvetica', 'normal');
+            doc.text(`$${charge.amount.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+            lineY += 7;
+        }
+    });
 
     const totalY = lineY + 2;
     doc.setDrawColor(BLACK);
@@ -724,12 +734,20 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
                             <p>${items.reduce((acc, item) => acc + (item.individualFreight * item.quantity), 0).toFixed(2)}</p>
                         </div>
                       )}
-                      <div className="flex justify-between items-center"><Label htmlFor="taxes-amount-dialog">IMPUESTOS</Label><Input id="taxes-amount-dialog" type="number" value={taxes} onChange={(e) => setTaxes(Number(e.target.value))} className="w-32" /></div>
-                        <div className="flex justify-between items-center gap-2">
-                            <Input id="other-charges-description-dialog" placeholder="Otros Cargos" value={otherChargesDescription} onChange={(e) => setOtherChargesDescription(e.target.value)} className="w-48" />
-                            <Input id="other-charges-amount-dialog" type="number" value={otherCharges} onChange={(e) => setOtherCharges(Number(e.target.value))} className="w-32" />
-                        </div>
-                      <div className="flex justify-between items-center text-lg font-bold">
+                      <div className="mt-4 space-y-2">
+                        {otherCharges.map((charge, index) => (
+                            <div key={index} className="flex justify-between items-center gap-2">
+                                <Input placeholder="Descripción del cargo" value={charge.description} onChange={(e) => handleOtherChargeChange(index, 'description', e.target.value)} className="flex-1" />
+                                <Input type="number" value={charge.amount} onChange={(e) => handleOtherChargeChange(index, 'amount', e.target.value)} className="w-32" />
+                                <Button variant="ghost" size="icon" onClick={() => removeOtherCharge(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
+                        ))}
+                        <Button variant="outline" size="sm" onClick={addOtherCharge}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Añadir Otro Cargo
+                        </Button>
+                      </div>
+                      <div className="flex justify-between items-center text-lg font-bold pt-4 border-t">
                           <p>TOTAL:</p>
                           <p>${total.toFixed(2)}</p>
                       </div>

@@ -62,6 +62,9 @@ const customClientSchema = z
   .object({
     contactPerson: z.string().min(1, 'El nombre del cliente es requerido.'),
     clientName: z.string().min(1, 'El nombre de la empresa es requerido.'),
+    secondContact: z.boolean().default(false),
+    secondContactName: z.string().optional(),
+    secondContactPhone: z.string().optional(),
     country: z.string().min(1, 'El país es requerido.'),
     state: z.string().optional(),
     city: z.string().optional(),
@@ -86,6 +89,13 @@ const customClientSchema = z
         path: ['email'],
         message: 'Se requiere al menos un método de contacto (email, teléfono o sitio web).',
       });
+    }
+     if (data.secondContact && !data.secondContactName) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['secondContactName'],
+            message: 'El nombre del segundo contacto es requerido si la opción está activada.',
+        });
     }
   });
 
@@ -135,9 +145,7 @@ export default function NewQuotationPage() {
   const [currency, setCurrency] = useState('USD');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignToCompany, setAssignToCompany] = useState(false);
-  const [taxes, setTaxes] = useState(0);
-  const [otherCharges, setOtherCharges] = useState(0);
-  const [otherChargesDescription, setOtherChargesDescription] = useState('OTROS CARGOS');
+  const [otherCharges, setOtherCharges] = useState<{ description: string; amount: number }[]>([]);
 
   const customClientForm = useForm<CustomClientFormValues>({
     resolver: zodResolver(customClientSchema),
@@ -166,6 +174,25 @@ export default function NewQuotationPage() {
     if (!leads || !selectedClientId) return null;
     return (leads as Client[]).find(lead => lead.id === selectedClientId) || null;
   }, [leads, selectedClientId]);
+  
+  const handleOtherChargeChange = (index: number, field: 'description' | 'amount', value: string) => {
+    const newCharges = [...otherCharges];
+    if (field === 'amount') {
+        newCharges[index][field] = Number(value) < 0 ? 0 : Number(value);
+    } else {
+        newCharges[index][field] = value;
+    }
+    setOtherCharges(newCharges);
+  };
+  
+  const addOtherCharge = () => {
+      setOtherCharges([...otherCharges, { description: 'Otro Cargo', amount: 0 }]);
+  };
+
+  const removeOtherCharge = (index: number) => {
+      setOtherCharges(otherCharges.filter((_, i) => i !== index));
+  };
+
 
   const handleItemChange = (index: number, field: keyof QuotationItem, value: string | number) => {
     const newItems = [...items];
@@ -217,10 +244,9 @@ export default function NewQuotationPage() {
     } else {
       finalTotal += freight;
     }
-    finalTotal += taxes;
-    finalTotal += otherCharges;
+    finalTotal += otherCharges.reduce((acc, charge) => acc + (charge.amount || 0), 0);
     return finalTotal;
-  }, [subtotal, freight, items, isIndividualFreight, taxes, otherCharges]);
+  }, [subtotal, freight, items, isIndividualFreight, otherCharges]);
   
   const handleGenerateAndSave = async () => {
     if (!firestore || !user || !userProfile || !storage) {
@@ -454,20 +480,15 @@ export default function NewQuotationPage() {
         lineY += 7;
       }
       
-      if (taxes > 0) {
-        docPdf.setFont('helvetica', 'bold');
-        docPdf.text('IMPUESTOS:', docWidth - 70, lineY, { align: 'right' });
-        docPdf.setFont('helvetica', 'normal');
-        docPdf.text(`$${taxes.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
-        lineY += 7;
-      }
-      if (otherCharges > 0) {
-        docPdf.setFont('helvetica', 'bold');
-        docPdf.text(`${otherChargesDescription.toUpperCase()}:`, docWidth - 70, lineY, { align: 'right' });
-        docPdf.setFont('helvetica', 'normal');
-        docPdf.text(`$${otherCharges.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
-        lineY += 7;
-      }
+      otherCharges.forEach(charge => {
+        if (charge.amount > 0) {
+            docPdf.setFont('helvetica', 'bold');
+            docPdf.text(`${charge.description.toUpperCase()}:`, docWidth - 70, lineY, { align: 'right' });
+            docPdf.setFont('helvetica', 'normal');
+            docPdf.text(`$${charge.amount.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+            lineY += 7;
+        }
+      });
 
       const totalY = lineY + 2;
       docPdf.setDrawColor(BLACK);
@@ -778,12 +799,20 @@ export default function NewQuotationPage() {
                       <div className="flex justify-between items-center"><Label htmlFor="freight-to">FLETE A:</Label><Input id="freight-to" placeholder="Destino" value={freightTo} onChange={(e) => setFreightTo(e.target.value)} className="w-48" /></div>
                       {!isIndividualFreight && ( <div className="flex justify-between items-center"><Label htmlFor="freight-amount">MONTO DE FLETE</Label><Input id="freight-amount" type="number" value={freight} onChange={(e) => setFreight(Number(e.target.value))} className="w-32" /></div> )}
                       {isIndividualFreight && ( <div className="flex justify-between items-center font-medium"><p>TOTAL DE FLETES:</p><p>${items.reduce((acc, item) => acc + (item.individualFreight * item.quantity), 0).toFixed(2)}</p></div> )}
-                      <div className="flex justify-between items-center"><Label htmlFor="taxes-amount">IMPUESTOS</Label><Input id="taxes-amount" type="number" value={taxes} onChange={(e) => setTaxes(Number(e.target.value))} className="w-32" /></div>
-                        <div className="flex justify-between items-center gap-2">
-                            <Input id="other-charges-description" placeholder="Otros Cargos" value={otherChargesDescription} onChange={(e) => setOtherChargesDescription(e.target.value)} className="w-48" />
-                            <Input id="other-charges-amount" type="number" value={otherCharges} onChange={(e) => setOtherCharges(Number(e.target.value))} className="w-32" />
-                        </div>
-                      <div className="flex justify-between items-center text-lg font-bold"><p>TOTAL:</p><p>${total.toFixed(2)}</p></div>
+                      <div className="mt-4 space-y-2">
+                        {otherCharges.map((charge, index) => (
+                            <div key={index} className="flex justify-between items-center gap-2">
+                                <Input placeholder="Descripción del cargo" value={charge.description} onChange={(e) => handleOtherChargeChange(index, 'description', e.target.value)} className="flex-1" />
+                                <Input type="number" value={charge.amount} onChange={(e) => handleOtherChargeChange(index, 'amount', e.target.value)} className="w-32" />
+                                <Button variant="ghost" size="icon" onClick={() => removeOtherCharge(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
+                        ))}
+                        <Button variant="outline" size="sm" onClick={addOtherCharge}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Añadir Otro Cargo
+                        </Button>
+                      </div>
+                      <div className="flex justify-between items-center text-lg font-bold pt-4 border-t"><p>TOTAL:</p><p>${total.toFixed(2)}</p></div>
                   </div>
               </div>
           </CardContent>
