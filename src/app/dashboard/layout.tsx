@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Home, GanttChartSquare, Users, FileText, CalendarCheck, Package, ClipboardSignature, Target, Megaphone, Files } from 'lucide-react';
+import { Home, GanttChartSquare, Users, FileText, CalendarCheck, Package, ClipboardSignature, Target, Megaphone, Files, Clapperboard } from 'lucide-react';
 import { collection, query, where, doc, getDocs } from 'firebase/firestore';
 import { isToday, isPast } from 'date-fns';
 
@@ -323,6 +323,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/marketing">
                   <Megaphone />
                   <span>Marketing</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Presentaciones">
+                <Link href="/dashboard/presentations">
+                  <Clapperboard />
+                  <span>Presentaciones</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

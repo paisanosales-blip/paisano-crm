@@ -8,6 +8,15 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  serverActions: {
+    bodySizeLimit: '2mb',
+    // Increase timeout for slow AI operations
+    // @see https://github.com/vercel/next.js/discussions/52877
+    // The default timeout is 60s
+    experimental: {
+      serverActionsTimeout: 120,
+    },
+  },
   images: {
     remotePatterns: [
       {
