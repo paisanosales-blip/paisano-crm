@@ -88,12 +88,12 @@ const prompt = ai.definePrompt({
   prompt: `Eres un analista de ventas experto y diseñador de presentaciones para "Paisano Trailer". Tu tarea es generar el contenido para múltiples diapositivas, basándote en un tipo de reporte y los datos proporcionados.
 
   **Instrucciones MUY IMPORTANTES:**
-  1.  **SÉ EXTREMADAMENTE CONCISO.** El texto para títulos y puntos debe ser muy breve.
-  2.  **USA MÚLTIPLES DIAPOSITIVAS.** No intentes meter toda la información en una sola. Si un tema necesita más explicación, crea diapositivas adicionales.
-  3.  **Variedad de Diapositivas:** Utiliza una mezcla de los tipos de diapositiva disponibles.
-  4.  **Usa Gráficos:** Para datos numéricos, usa 'bar_chart_slide'. No pongas más de 5-7 barras por gráfico.
-  5.  **Análisis de IA:** Finaliza con una diapositiva de 'bullet_points_slide' con un análisis y recomendaciones basadas en TODOS los datos.
-
+  1.  **CRÍTICO: Debes basar TODA tu respuesta ÚNICAMENTE en los datos JSON proporcionados en \`reportData\`. No inventes, alucines ni extrapoles ninguna información o cifra. Si un dato no está presente, no lo menciones.**
+  2.  **SÉ EXTREMADAMENTE CONCISO.** El texto para títulos y puntos debe ser muy breve para que quepa en la diapositiva.
+  3.  **USA MÚLTIPLES DIAPOSITIVAS.** No intentes meter toda la información en una sola. Si un tema necesita más explicación, crea diapositivas adicionales.
+  4.  **Variedad de Diapositivas:** Utiliza una mezcla de los tipos de diapositiva disponibles.
+  5.  **Usa Gráficos:** Para datos numéricos, usa 'bar_chart_slide'. No pongas más de 5-7 barras por gráfico.
+  
   **Contexto del Reporte:**
   - Tipo de Reporte: {{{reportType}}}
   - Datos (en formato JSON): {{{reportData}}}
@@ -107,7 +107,7 @@ const prompt = ai.definePrompt({
     - **Diapositiva 4 (bar_chart_slide):** Título: "Top 5 Estados con Prospectos (USA)". Usa los datos de \`reportData.charts.prospectsByState\`.
     - **Diapositiva 5 (bar_chart_slide):** Título: "Origen de los Prospectos". Usa los datos de \`reportData.charts.prospectSources\`.
     - **Diapositiva 6 (bar_chart_slide):** Título: "Resumen del Flujo de Ventas (Total)". Usa los datos de \`reportData.charts.pipelineSummary\`.
-    - **Diapositiva 7 (bullet_points_slide):** Título: "Análisis y Recomendaciones". Basado en todos los datos anteriores, especialmente los KPIs y las razones de descarte (\`reportData.discardedReasons\`), escribe 3-4 puntos clave. Por ejemplo: "El 40% de los descartes son por precio, se recomienda revisar la estrategia.", "La mayoría de prospectos vienen de Google, invertir más en SEO."
+    - **Diapositiva 7 (bullet_points_slide):** Título: "Análisis y Recomendaciones". Usando SÓLO los datos proporcionados, especialmente los KPIs y las razones de descarte (\`reportData.discardedReasons\`), escribe 3-4 puntos clave. Por ejemplo: "El 40% de los descartes son por precio, se recomienda revisar la estrategia.", "La mayoría de prospectos vienen de Google, invertir más en SEO."
 
   - **Si reportType es 'lost_opportunities_analysis':**
     - **Diapositiva 1 (title_slide):** Título: "Análisis de Oportunidades Perdidas".

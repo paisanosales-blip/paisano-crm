@@ -112,12 +112,14 @@ export function PresentationSlide({ slide }: PresentationSlideProps) {
                 )}
             </div>
 
-            <div className="absolute inset-0 pt-16 px-8 pb-12 flex flex-col justify-center">
+            <div className="absolute top-16 left-8 right-8 h-1 bg-red-700" />
+
+            <div className="absolute inset-0 pt-20 px-8 pb-16 flex flex-col justify-center">
                  {renderContent(slide)}
             </div>
             
-            <div className="absolute bottom-4 inset-x-0 text-center z-20">
-                 <p className="text-xs font-semibold text-gray-500">PAISANO TRAILER</p>
+            <div className="absolute bottom-0 left-0 right-0 h-10 bg-black flex items-center justify-center z-20">
+                <p className="text-xs font-semibold text-white">PAISANO TRAILER</p>
             </div>
         </CardContent>
     </Card>
