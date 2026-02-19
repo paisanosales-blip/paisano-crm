@@ -100,12 +100,12 @@ const prompt = ai.definePrompt({
 
 ---
 
-### 📊 LÓGICA PARA "RESUMEN DE PROSPECCIÓN MENSUAL" o "weekly_performance"
+### 📊 LÓGICA PARA "RESUMEN DE PROSPECCIÓN MENSUAL"
 
 **🔹 Diapositiva 1: Título**
 - **slideType:** \`title_slide\`
 - **Contenido:**
-  - \`title\`: "RESUMEN DE PROSPECCIÓN MENSUAL" o "RESUMEN DE PROSPECCIÓN SEMANAL".
+  - \`title\`: "RESUMEN DE PROSPECCIÓN MENSUAL".
   - \`subtitle\`: Usar el \`reportData.period\` si existe.
 
 **🔹 Diapositiva 2: Indicadores Clave (KPIs Principales)**
@@ -122,35 +122,98 @@ const prompt = ai.definePrompt({
 
 **🔹 Diapositiva 4: Top 5 Ciudades con Clientes Potenciales**
 - **slideType:** \`bar_chart_slide\`
-- **Condición:** Solo si \`reportData.charts.potentialByCity\` tiene datos.
+- **Condición:** Solo si \`reportData.charts.potentialByCity\` tiene datos y contiene al menos un elemento.
 - **Contenido:** Gráfico de barras con las 5 ciudades con más clientes potenciales.
-- **Análisis:** Después de esta, crea una diapositiva \`bullet_points_slide\` con 1-2 insights breves sobre la concentración del mercado y oportunidades.
 
-**🔹 Diapositiva 5: Top 5 Estados (USA)**
+**🔹 Diapositiva 5: Análisis Geográfico**
+- **slideType:** \`bullet_points_slide\`
+- **Condición:** Solo si se generó la diapositiva anterior.
+- **Contenido:** 1-2 insights breves sobre la concentración del mercado y oportunidades de expansión.
+
+**🔹 Diapositiva 6: Top 5 Estados (USA)**
 - **slideType:** \`bar_chart_slide\`
-- **Condición:** Solo si \`reportData.charts.prospectsByState\` tiene datos.
+- **Condición:** Solo si \`reportData.charts.prospectsByState\` tiene datos y contiene al menos un elemento.
 - **Contenido:** Gráfico de barras con los 5 estados de USA con más prospectos.
-- **Análisis:** Después de esta, crea una diapositiva \`bullet_points_slide\` con 1-2 interpretaciones claras sobre la presencia en USA.
 
-**🔹 Diapositiva 6: Origen de Prospectos**
+**🔹 Diapositiva 7: Análisis de Presencia en USA**
+- **slideType:** \`bullet_points_slide\`
+- **Condición:** Solo si se generó la diapositiva anterior.
+- **Contenido:** 1-2 interpretaciones claras sobre la presencia en USA.
+
+**🔹 Diapositiva 8: Origen de Prospectos**
 - **slideType:** \`bar_chart_slide\`
-- **Condición:** Solo si \`reportData.charts.prospectSources\` tiene datos.
+- **Condición:** Solo si \`reportData.charts.prospectSources\` tiene datos y contiene al menos un elemento.
 - **Contenido:** Gráfico de barras mostrando los canales de origen que existan.
-- **Análisis:** Después de esta, crea una diapositiva \`bullet_points_slide\` con 1-3 insights sobre el canal con mayor volumen y oportunidades de mejora.
 
-**🔹 Diapositiva 7: Flujo de Ventas**
+**🔹 Diapositiva 9: Análisis de Canales**
+- **slideType:** \`bullet_points_slide\`
+- **Condición:** Solo si se generó la diapositiva anterior.
+- **Contenido:** 1-3 insights sobre el canal con mayor volumen, calidad vs volumen, y oportunidades de mejora.
+
+**🔹 Diapositiva 10: Flujo de Ventas**
 - **slideType:** \`bar_chart_slide\`
-- **Condición:** Solo si \`reportData.charts.pipelineSummary\` tiene datos.
+- **Condición:** Solo si \`reportData.charts.pipelineSummary\` tiene datos y contiene al menos un elemento.
 - **Contenido:** Gráfico de barras mostrando la distribución de prospectos por etapa.
-- **Análisis:** Después de esta, crea una diapositiva \`bullet_points_slide\` con 1-3 interpretaciones sobre cuellos de botella o fugas en el proceso.
 
-**🔹 Diapositiva 8: Diagnóstico Comercial del Periodo**
+**🔹 Diapositiva 11: Análisis del Flujo de Ventas**
+- **slideType:** \`bullet_points_slide\`
+- **Condición:** Solo si se generó la diapositiva anterior.
+- **Contenido:** 1-3 interpretaciones sobre cuellos de botella o fugas en el proceso.
+
+**🔹 Diapositiva 12: Diagnóstico Comercial del Periodo**
 - **slideType:** \`bullet_points_slide\`
 - **Contenido:** Un resumen ejecutivo con máximo 3 hallazgos clave enfocados en: generación vs conversión, eficiencia del proceso y la principal oportunidad de mejora.
 
-**🔹 Diapositiva 9: Plan de Acción**
+**🔹 Diapositiva 13: Plan de Acción**
 - **slideType:** \`bullet_points_slide\`
 - **Contenido:** Generar máximo 3 acciones concretas, específicas y ejecutables, directamente relacionadas con los datos y análisis anteriores.
+
+---
+### 📊 LÓGICA PARA "weekly_performance"
+
+El enfoque del reporte semanal es **operativo y táctico** para detectar desviaciones rápidas e identificar acciones inmediatas.
+
+**🔹 Diapositiva 1: Título**
+- **slideType:** \`title_slide\`
+- **Contenido:**
+  - \`title\`: "REPORTE SEMANAL DE RENDIMIENTO".
+  - \`subtitle\`: Usar el \`reportData.period\` si existe.
+
+**🔹 Diapositiva 2: KPIs de la Semana**
+- **slideType:** \`kpi_slide\`
+- **Contenido:** Mostrar solo si existen: "Nuevos Prospectos", "Clientes Potenciales", "Clientes Ganados", "Financiamiento".
+- **Objetivo:** Entender rápidamente si la semana fue positiva, estable o baja.
+
+**🔹 Diapositiva 3: Actividad Comercial de la Semana**
+- **slideType:** \`kpi_slide\`
+- **Contenido:** Mostrar solo si existen: "Cotizaciones Realizadas", "Prospectos Descartados".
+- **Análisis:** Después, crea una diapositiva \`bullet_points_slide\` con máximo 2 conclusiones operativas (ej: "Alta actividad con baja conversión", "Incremento de descartes").
+
+**🔹 Diapositiva 4: Flujo de Ventas Semanal**
+- **slideType:** \`bar_chart_slide\`
+- **Condición:** Solo si \`reportData.charts.pipelineSummary\` tiene datos y contiene al menos un elemento.
+- **Contenido:** Gráfico de barras con las etapas del flujo.
+- **Análisis:** Después, crea una diapositiva \`bullet_points_slide\` con máximo 3 interpretaciones claras sobre cuellos de botella, acumulación y fases críticas.
+
+**🔹 Diapositiva 5: Origen de Prospectos (Semana)**
+- **slideType:** \`bar_chart_slide\`
+- **Condición:** Solo si \`reportData.charts.prospectSources\` tiene datos y contiene al menos un elemento.
+- **Contenido:** Gráfico de barras con los canales de origen.
+- **Análisis:** Después, crea una diapositiva \`bullet_points_slide\` con máximo 2 insights (canal con mayor volumen, canal con mayor calidad si hay datos).
+
+**🔹 Diapositiva 6: Enfoque Geográfico (Opcional)**
+- **slideType:** \`bar_chart_slide\`
+- **Condición:** Solo si \`reportData.charts.potentialByCity\` o \`reportData.charts.prospectsByState\` tienen datos.
+- **Contenido:** Gráfico con las top 5 ciudades o estados con más actividad.
+- **Análisis:** Después, crea una diapositiva \`bullet_points_slide\` con máximo 2 conclusiones (concentración geográfica, oportunidad inmediata). Si no hay datos, omite ambas diapositivas.
+
+**🔹 Diapositiva 7: Diagnóstico Rápido de la Semana**
+- **slideType:** \`bullet_points_slide\`
+- **Contenido:** Resumen ejecutivo con máximo 3 hallazgos directos (¿problema de generación o cierre?, ¿aumento de descartes?, ¿financiamiento frenado?).
+
+**🔹 Diapositiva 8: Acciones Inmediatas**
+- **slideType:** \`bullet_points_slide\`
+- **Contenido:** Generar máximo 3 acciones concretas para la siguiente semana, basadas únicamente en los datos mostrados.
 
 ---
 
