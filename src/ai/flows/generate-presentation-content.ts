@@ -62,7 +62,7 @@ export type PresentationContent = z.infer<typeof PresentationContentSchema>;
 
 const GeneratePresentationContentInputSchema = z.object({
   reportType: z.enum(['monthly_sales_summary', 'lost_opportunities_analysis', 'weekly_performance']),
-  reportData: z.string().describe('A JSON string of the data to be analyzed for the presentation.'),
+  reportData: z.any(),
   logoUrl: z.string().optional().describe('URL of the company logo to be included in the design.'),
 });
 export type GeneratePresentationContentInput = z.infer<typeof GeneratePresentationContentInputSchema>;
@@ -85,38 +85,36 @@ const prompt = ai.definePrompt({
   name: 'generatePresentationContentPrompt',
   input: { schema: GeneratePresentationContentInputSchema },
   output: { schema: GeneratePresentationContentOutputSchema },
-  prompt: `Eres un analista de ventas experto y diseñador de presentaciones para "Paisano Trailer", una empresa que vende remolques de alta resistencia. Tu tarea es generar el contenido para 3-5 diapositivas de una presentación, basándote en un tipo de reporte y los datos proporcionados.
+  prompt: `Eres un analista de ventas experto y diseñador de presentaciones para "Paisano Trailer". Tu tarea es generar el contenido para múltiples diapositivas, basándote en un tipo de reporte y los datos proporcionados.
 
   **Instrucciones MUY IMPORTANTES:**
-  1.  **SÉ EXTREMADAMENTE CONCISO.** El texto para títulos y puntos debe ser muy breve para que quepa en el diseño de la diapositiva. Usa frases cortas y directas. Si un tema necesita más explicación, divídelo en varias diapositivas.
-  2.  **Genera 3 a 5 diapositivas:** Crea una secuencia lógica de diapositivas que cuenten una historia clara.
-  3.  **Variedad de Diapositivas:** Utiliza una mezcla de los tipos de diapositiva disponibles ('title_slide', 'kpi_slide', 'bullet_points_slide', 'quote_slide', 'bar_chart_slide').
-  4.  **Usa Gráficos:** Cuando los datos contengan valores numéricos comparables (ej. ventas por producto, oportunidades por etapa), usa 'bar_chart_slide' para visualizarlos. No pongas demasiados datos en un solo gráfico.
+  1.  **SÉ EXTREMADAMENTE CONCISO.** El texto para títulos y puntos debe ser muy breve.
+  2.  **USA MÚLTIPLES DIAPOSITIVAS.** No intentes meter toda la información en una sola. Si un tema necesita más explicación, crea diapositivas adicionales.
+  3.  **Variedad de Diapositivas:** Utiliza una mezcla de los tipos de diapositiva disponibles.
+  4.  **Usa Gráficos:** Para datos numéricos, usa 'bar_chart_slide'. No pongas más de 5-7 barras por gráfico.
+  5.  **Análisis de IA:** Finaliza con una diapositiva de 'bullet_points_slide' con un análisis y recomendaciones basadas en TODOS los datos.
 
   **Contexto del Reporte:**
   - Tipo de Reporte: {{{reportType}}}
   - Datos (en formato JSON): {{{reportData}}}
 
-  **Ejemplos de cómo pensar para cada tipo de reporte:**
+  **Lógica de Generación de Contenido:**
 
-  - **Si reportType es 'monthly_sales_summary':**
-    - **Diapositiva 1 (title_slide):** Título: "Resumen de Ventas", Subtítulo: (Mes y Año).
-    - **Diapositiva 2 (kpi_slide):** KPIs clave: "Ingresos Totales", "Nuevos Clientes", "Tasa de Conversión".
-    - **Diapositiva 3 (bar_chart_slide):** Título: "Ingresos por Producto". Data: Un array con objetos \`{name: 'Nombre Producto', value: 50000}\`.
-    - **Diapositiva 4 (bullet_points_slide):** Título: "Claves y Acciones". Puntos: "Aumento del 20% en 'Sand Hopper'", "Acción: Enfocar en construcción".
+  - **Si reportType es 'monthly_sales_summary' o 'weekly_performance':**
+    - **Diapositiva 1 (title_slide):** Título: "Resumen de Ventas {reportData.period}", Subtítulo: (Fecha actual).
+    - **Diapositiva 2 (kpi_slide):** Título: "Indicadores Clave del Periodo". KPIs: "Nuevos Prospectos", "Clientes Potenciales", "Clientes Ganados", "Cotizaciones Realizadas". Usa los datos de \`reportData.kpis\`.
+    - **Diapositiva 3 (bar_chart_slide):** Título: "Top 5 Ciudades con Clientes Potenciales". Usa los datos de \`reportData.charts.potentialByCity\`.
+    - **Diapositiva 4 (bar_chart_slide):** Título: "Top 5 Estados con Prospectos (USA)". Usa los datos de \`reportData.charts.prospectsByState\`.
+    - **Diapositiva 5 (bar_chart_slide):** Título: "Origen de los Prospectos". Usa los datos de \`reportData.charts.prospectSources\`.
+    - **Diapositiva 6 (bar_chart_slide):** Título: "Resumen del Flujo de Ventas (Total)". Usa los datos de \`reportData.charts.pipelineSummary\`.
+    - **Diapositiva 7 (bullet_points_slide):** Título: "Análisis y Recomendaciones". Basado en todos los datos anteriores, especialmente los KPIs y las razones de descarte (\`reportData.discardedReasons\`), escribe 3-4 puntos clave. Por ejemplo: "El 40% de los descartes son por precio, se recomienda revisar la estrategia.", "La mayoría de prospectos vienen de Google, invertir más en SEO."
 
   - **Si reportType es 'lost_opportunities_analysis':**
     - **Diapositiva 1 (title_slide):** Título: "Análisis de Oportunidades Perdidas".
-    - **Diapositiva 2 (bar_chart_slide):** Título: "Principales Motivos de Descarte". Data: Array con \`{name: 'Precio', value: 15}\`, \`{name: 'Competencia', value: 8}\`.
-    - **Diapositiva 3 (bullet_points_slide):** Título: "Plan de Acción". Puntos: "Mejorar calificación inicial", "Crear guion para objeciones de precio".
-  
-  - **Si reportType es 'weekly_performance':**
-    - **Diapositiva 1 (title_slide):** Título: "Rendimiento Semanal".
-    - **Diapositiva 2 (kpi_slide):** KPIs: "Prospectos Creados", "Seguimientos Completados".
-    - **Diapositiva 3 (bullet_points_slide):** Título: "Logros y Desafíos". Puntos: "Logro: 100% de contacto a nuevos prospectos.", "Desafío: 5 seguimientos atrasados."
-    - **Diapositiva 4 (quote_slide):** Cita motivacional: "La disciplina de hoy define las ventas de mañana.", Autor: "Coach de Ventas".
+    - **Diapositiva 2 (bar_chart_slide):** Título: "Principales Motivos de Descarte". Analiza los datos de \`reportData\` (que será un array de strings con razones) para agrupar y contar los motivos, y crea un gráfico de barras.
+    - **Diapositiva 3 (bullet_points_slide):** Título: "Plan de Acción". Basado en el gráfico anterior, sugiere 3 acciones concretas. Ej: "Crear guion para objeciones de precio", "Mejorar calificación inicial para evitar prospectos sin presupuesto".
 
-  Ahora, genera el contenido para la presentación basándote en los datos y el tipo de reporte proporcionados. Sé breve y directo.
+  Ahora, genera el contenido para la presentación.
   `,
 });
 

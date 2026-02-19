@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, createRef } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { startOfMonth, endOfMonth, subDays } from 'date-fns';
@@ -15,6 +15,8 @@ import { PresentationSlide } from '@/components/presentation-slide';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Lightbulb } from 'lucide-react';
 import { toPng } from 'html-to-image';
+import { getClassification } from '@/lib/types';
+import { states } from '@/lib/geography';
 
 
 type ReportType = 'monthly_sales_summary' | 'lost_opportunities_analysis' | 'weekly_performance';
@@ -44,31 +46,124 @@ export default function PresentationsPage() {
   }, [firestore, user]);
   const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
 
+  const leadsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, 'leads'), where('sellerId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
+
+  const quotationsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, 'quotations'), where('sellerId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: quotations, isLoading: areQuotsLoading } = useCollection(quotationsQuery);
+  
+  const isDataLoading = areOppsLoading || areActivitiesLoading || areLeadsLoading || areQuotsLoading;
+
   const reportData = useMemo(() => {
-    if (!opportunities || !activities) return null;
+    if (!opportunities || !activities || !leads || !quotations) return null;
     
     const now = new Date();
+    const isWeekly = reportType === 'weekly_performance';
+    const periodStart = isWeekly ? subDays(now, 7) : startOfMonth(now);
+    const periodEnd = isWeekly ? now : endOfMonth(now);
+
+    const opportunitiesInPeriod = opportunities.filter(opp => {
+        if (!opp.createdDate) return false;
+        const oppDate = new Date(opp.createdDate);
+        return oppDate >= periodStart && oppDate <= periodEnd;
+    });
     
+    const wonOpportunitiesInPeriod = opportunities.filter(opp => {
+        if (!opp.closingDate) return false;
+        const closingDate = new Date(opp.closingDate);
+        return closingDate >= periodStart && closingDate <= periodEnd && opp.stage === 'Cierre de venta';
+    });
+
+    const potentialOpportunitiesInPeriod = opportunitiesInPeriod.filter(
+        opp => getClassification(opp.stage) === 'CLIENTE POTENCIAL'
+    );
+
+    const financingOpportunitiesInPeriod = opportunities.filter(opp => {
+        if (!opp.financiamientoExternoDate) return false;
+        const financingDate = new Date(opp.financiamientoExternoDate);
+        return financingDate >= periodStart && financingDate <= periodEnd;
+    });
+
+    const discardedOpportunitiesInPeriod = opportunities.filter(opp => {
+        if (!opp.discardedDate) return false;
+        const discardedDate = new Date(opp.discardedDate);
+        return discardedDate >= periodStart && discardedDate <= periodEnd;
+    });
+
+    const quotationsInPeriod = quotations.filter(q => {
+        if (!q.createdDate) return false;
+        const qDate = new Date(q.createdDate);
+        return qDate >= periodStart && qDate <= periodEnd;
+    });
+
+    // Chart data calculations
+    const leadsMap = new Map(leads.map(lead => [lead.id, lead]));
+
+    const clientsByCity = potentialOpportunitiesInPeriod
+        .reduce((acc, opp) => {
+            const lead = leadsMap.get(opp.leadId);
+            const city = lead?.city || 'Otro';
+            acc[city] = (acc[city] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+    const topCities = Object.entries(clientsByCity).sort(([, a], [, b]) => b - a).slice(0, 5).map(([name, value]) => ({ name, value }));
+
+    const usStates = new Set(states['US'].map(s => s.code));
+    const prospectsInUS = (leads as any[]).filter(lead => lead.country === 'US' && lead.state && usStates.has(lead.state));
+    const prospectsByState = prospectsInUS.reduce((acc, lead) => {
+        const stateName = states['US'].find(s => s.code === lead.state)?.name || lead.state;
+        acc[stateName] = (acc[stateName] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+    const topStates = Object.entries(prospectsByState).sort(([, a], [, b]) => b - a).slice(0, 5).map(([name, value]) => ({ name, value }));
+
+    const sourceCounts = (leads as any[]).reduce((acc, lead) => {
+        const source = lead.contactMethod || 'Desconocido';
+        acc[source] = (acc[source] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+    const prospectSources = Object.entries(sourceCounts).map(([name, value]) => ({ name, value }));
+
+    const stageCounts = opportunities.reduce((acc, opp) => {
+        const stage = opp.stage || 'Desconocido';
+        acc[stage] = (acc[stage] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+    const pipelineSummary = Object.entries(stageCounts).map(([name, value]) => ({ name, value }));
+
     switch (reportType) {
       case 'monthly_sales_summary':
-        const monthStart = startOfMonth(now);
-        const monthEnd = endOfMonth(now);
-        return opportunities.filter(opp => {
-          if (!opp.createdDate) return false;
-          const oppDate = new Date(opp.createdDate);
-          return oppDate >= monthStart && oppDate <= monthEnd;
-        });
+      case 'weekly_performance':
+        return {
+            period: isWeekly ? "Semanal" : "Mensual",
+            kpis: {
+                newProspects: opportunitiesInPeriod.length,
+                potentialClients: potentialOpportunitiesInPeriod.length,
+                wonClients: wonOpportunitiesInPeriod.length,
+                newQuotations: quotationsInPeriod.length,
+                financingClients: financingOpportunitiesInPeriod.length,
+                discardedClients: discardedOpportunitiesInPeriod.length
+            },
+            charts: {
+                potentialByCity: topCities,
+                prospectsByState: topStates,
+                prospectSources: prospectSources,
+                pipelineSummary: pipelineSummary,
+            },
+            discardedReasons: discardedOpportunitiesInPeriod.map(o => o.discardReason).filter(Boolean)
+        };
       case 'lost_opportunities_analysis':
         return opportunities.filter(opp => opp.stage === 'Descartado');
-      case 'weekly_performance':
-        const weekStart = subDays(now, 7);
-        const weeklyOpps = opportunities.filter(opp => new Date(opp.createdDate) >= weekStart);
-        const weeklyActivities = activities.filter(act => new Date(act.createdDate) >= weekStart);
-        return { opportunities: weeklyOpps, activities: weeklyActivities };
       default:
         return null;
     }
-  }, [reportType, opportunities, activities]);
+  }, [reportType, opportunities, activities, leads, quotations]);
 
   const handleGenerate = async () => {
     if (!reportType) {
@@ -84,11 +179,11 @@ export default function PresentationsPage() {
     setSlides([]);
     
     try {
-      const logoUrl = localStorage.getItem('sidebarLogo') || '';
+      const logoUrl = typeof window !== 'undefined' ? localStorage.getItem('sidebarLogo') : '';
       
       const result = await generatePresentationContent({
         reportType: reportType,
-        reportData: JSON.stringify(reportData),
+        reportData: reportData,
         logoUrl: logoUrl
       });
       
@@ -164,11 +259,11 @@ export default function PresentationsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="monthly_sales_summary">Resumen de Ventas Mensual</SelectItem>
-                <SelectItem value="lost_opportunities_analysis">Análisis de Oportunidades Perdidas</SelectItem>
                 <SelectItem value="weekly_performance">Rendimiento Semanal</SelectItem>
+                <SelectItem value="lost_opportunities_analysis">Análisis de Oportunidades Perdidas</SelectItem>
               </SelectContent>
             </Select>
-            <Button onClick={handleGenerate} disabled={isLoading || areOppsLoading || areActivitiesLoading || !reportType} className="sm:w-auto">
+            <Button onClick={handleGenerate} disabled={isLoading || isDataLoading || !reportType} className="sm:w-auto">
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -196,7 +291,7 @@ export default function PresentationsPage() {
                     <Lightbulb className="h-4 w-4" />
                     <AlertTitle>¡Listo!</AlertTitle>
                     <AlertDescription>
-                        Haz clic en una diapositiva para verla en grande y descargarla. También puedes hacer clic derecho y "Copiar Imagen".
+                        Haz clic en una diapositiva para verla en grande y descargarla como imagen PNG.
                     </AlertDescription>
                 </Alert>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
