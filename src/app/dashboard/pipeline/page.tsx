@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, MessageCircle, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2 } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, MessageCircle, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2, LayoutGrid, List } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -137,6 +137,8 @@ export default function PipelinePage() {
   const [prospectForFirstContact, setProspectForFirstContact] = useState<any | null>(null);
   const [enrichingProspectId, setEnrichingProspectId] = useState<string | null>(null);
   const [enrichmentHistory, setEnrichmentHistory] = useState<Record<string, any>>({});
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+
 
   const { toast } = useToast();
 
@@ -1092,8 +1094,8 @@ export default function PipelinePage() {
         <p className="text-sm text-muted-foreground">Administra el ciclo de vida de tus clientes, desde el primer contacto hasta el cierre.</p>
       </div>
       
-      <div className="flex flex-wrap gap-4 my-4">
-        <div className="relative flex-1 min-w-[250px]">
+      <div className="flex flex-col md:flex-row items-center gap-2 my-4">
+        <div className="relative w-full flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por cliente, contacto o teléfono..."
@@ -1102,493 +1104,589 @@ export default function PipelinePage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <Select value={filterStage} onValueChange={(value) => setFilterStage(value as OpportunityStage | 'Todos')}>
-          <SelectTrigger className="w-full sm:w-[220px]">
-            <SelectValue placeholder="Filtrar por etapa" />
-          </SelectTrigger>
-          <SelectContent>
-            {allStagesForFilter.map((stage) => (
-              <SelectItem key={stage} value={stage}>
-                {filterButtonLabels[stage]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full sm:w-[220px]">
-                <SelectValue placeholder="Ordenar por..." />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="createdDate_desc">Más Recientes</SelectItem>
-                <SelectItem value="createdDate_asc">Más Antiguos</SelectItem>
-                <SelectItem value="value_desc">Mayor Valor</SelectItem>
-                <SelectItem value="value_asc">Menor Valor</SelectItem>
-                <SelectItem value="expectedCloseDate_asc">Cierre Próximo</SelectItem>
-                <SelectItem value="clientName_asc">Nombre Cliente (A-Z)</SelectItem>
-            </SelectContent>
-        </Select>
+        <div className="flex w-full md:w-auto items-center gap-2">
+            <Select value={filterStage} onValueChange={(value) => setFilterStage(value as OpportunityStage | 'Todos')}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filtrar por etapa" />
+              </SelectTrigger>
+              <SelectContent>
+                {allStagesForFilter.map((stage) => (
+                  <SelectItem key={stage} value={stage}>
+                    {filterButtonLabels[stage]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                    <SelectValue placeholder="Ordenar por..." />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="createdDate_desc">Más Recientes</SelectItem>
+                    <SelectItem value="createdDate_asc">Más Antiguos</SelectItem>
+                    <SelectItem value="value_desc">Mayor Valor</SelectItem>
+                    <SelectItem value="value_asc">Menor Valor</SelectItem>
+                    <SelectItem value="expectedCloseDate_asc">Cierre Próximo</SelectItem>
+                    <SelectItem value="clientName_asc">Nombre Cliente (A-Z)</SelectItem>
+                </SelectContent>
+            </Select>
+            <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+                <Button variant={viewMode === 'card' ? 'default' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('card')}>
+                    <LayoutGrid className="h-4 w-4" />
+                    <span className="sr-only">Tarjetas</span>
+                </Button>
+                <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('list')}>
+                    <List className="h-4 w-4" />
+                    <span className="sr-only">Lista</span>
+                </Button>
+            </div>
+        </div>
       </div>
 
 
-      <div className="space-y-1.5">
         {isLoading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-2">
-                <Skeleton className="h-32 w-full" />
-              </CardContent>
-            </Card>
-          ))
-        ) : filteredProspects.length > 0 ? (
-          filteredProspects.map(prospect => {
-            if (!prospect.opportunity) return null;
-            const classification = getClassification(prospect.opportunity.stage);
-            const isFinancingStage = prospect.opportunity.stage === 'Financiamiento Externo';
-            const isDiscarded = prospect.opportunity.stage === 'Descartado';
-            const currentIndex = isFinancingStage ? -1 : stages.indexOf(prospect.opportunity.stage);
-            
-            const summaryTabsConfig = [
-              { key: 'info', name: 'Info. Enviada', stageIndex: 1 },
-              { key: 'quot', name: 'Cotización', stageIndex: 2 },
-              { key: 'neg', name: 'Negociación', stageIndex: 3 },
-              { key: 'close', name: 'Cierre', stageIndex: 4 },
-            ];
+            <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 w-full" />)}
+            </div>
+        ) : viewMode === 'card' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredProspects.length > 0 ? (
+                    filteredProspects.map(prospect => {
+                         if (!prospect.opportunity) return null;
+                        const classification = getClassification(prospect.opportunity.stage);
+                        const latestActivity = prospect.activities && prospect.activities.length > 0 ? prospect.activities[0] : null;
 
-            const availableSummaries = summaryTabsConfig.filter(tab => currentIndex >= tab.stageIndex);
-            
-            const defaultTab = availableSummaries.length > 0 ? availableSummaries[availableSummaries.length - 1].key : undefined;
-
-            const quotationFollowUp = prospect.activities.find((act: any) => act.quotationId && prospect.quotation && act.quotationId === prospect.quotation.id);
-
-            return (
-              <Card key={prospect.id} className="border-2 border-black bg-muted/50">
-                <CardHeader className="flex flex-row items-start justify-between p-2 pb-0">
-                  <div>
-                    <Link href={`/dashboard/clients/${prospect.id}`}>
-                        <CardTitle className="text-base hover:underline cursor-pointer">{prospect.clientName}</CardTitle>
-                    </Link>
-                    <CardDescription className="text-xs">{prospect.contactPerson}</CardDescription>
-                  </div>
-                   <DropdownMenu>
-                      <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-7 w-7"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem onSelect={() => handleEditClick(prospect)}>Editar</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={() => requestStageChange(prospect, 'Financiamiento Externo')}>
-                            <Landmark className="mr-2 h-4 w-4" />
-                            <span>Financiamiento Externo</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                         <DropdownMenuItem className="text-destructive" onSelect={() => handleDiscardClick(prospect)}>
-                            <ArchiveX className="mr-2 h-4 w-4" />
-                            <span>Descartar Prospecto</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                </CardHeader>
-                <CardContent className="grid md:grid-cols-2 gap-2 p-2">
-                  <div className="space-y-1">
-                    <div className="space-y-0.5 text-xs">
-                      {prospect.clientType && <Badge variant="secondary" className="text-xs mb-1">{prospect.clientType}</Badge>}
-                      <div className="text-muted-foreground">{prospect.email || 'N/A'}</div>
-                      <div className="text-muted-foreground">{prospect.phone || 'N/A'}</div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4 pt-1 border-t">
-                        <a 
-                            href={prospect.phone ? `https://wa.me/${(prospect.country === 'US' ? '1' : '52')}${prospect.phone.replace(/\D/g, '')}` : '#'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => !prospect.phone && e.preventDefault()}
-                            className={cn(
-                                "transition-colors",
-                                prospect.phone 
-                                    ? "text-green-500 hover:text-green-600" 
-                                    : "text-muted-foreground/40 cursor-not-allowed"
-                            )}
-                            title={prospect.phone ? `WhatsApp: ${prospect.phone}` : 'No hay teléfono para WhatsApp'}
-                        >
-                            <MessageSquare className="h-5 w-5" />
-                        </a>
-                        <a
-                          href={prospect.phone ? `sms:${prospect.phone.replace(/\D/g, '')}` : '#'}
-                          onClick={(e) => !prospect.phone && e.preventDefault()}
-                          className={cn(
-                              "transition-colors",
-                              prospect.phone 
-                                  ? "text-foreground/80 hover:text-foreground" 
-                                  : "text-muted-foreground/40 cursor-not-allowed"
-                          )}
-                          title={prospect.phone ? `Mensaje de Texto: ${prospect.phone}` : 'No hay teléfono'}
-                        >
-                          <MessageCircle className="h-5 w-5" />
-                        </a>
-                        <a 
-                            href={prospect.email ? `https://mail.google.com/mail/?view=cm&fs=1&to=${prospect.email}` : '#'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => !prospect.email && e.preventDefault()}
-                            className={cn(
-                                "transition-colors",
-                                prospect.email 
-                                    ? "text-blue-500 hover:text-blue-600" 
-                                    : "text-muted-foreground/40 cursor-not-allowed"
-                            )}
-                            title={prospect.email ? `Email: ${prospect.email}`: 'No hay email'}
-                        >
-                            <Mail className="h-5 w-5" />
-                        </a>
-                        <a 
-                            href={prospect.phone ? `tel:${prospect.phone}` : '#'}
-                            onClick={(e) => !prospect.phone && e.preventDefault()}
-                            className={cn(
-                                "transition-colors",
-                                prospect.phone 
-                                    ? "text-foreground/80 hover:text-foreground" 
-                                    : "text-muted-foreground/40 cursor-not-allowed"
-                            )}
-                             title={prospect.phone ? `Llamar: ${prospect.phone}`: 'No hay teléfono'}
-                        >
-                            <Phone className="h-5 w-5" />
-                        </a>
-                        <div className={cn(
-                            "flex items-center gap-1.5 text-xs ml-auto pr-2",
-                             prospect.language ? "text-muted-foreground" : "text-muted-foreground/40"
-                        )}>
-                            <Globe className="h-4 w-4" />
-                            <span>{prospect.language || 'N/A'}</span>
+                        return (
+                            <Card key={prospect.id} className="flex flex-col">
+                                <CardHeader>
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div className="flex-1">
+                                            <Link href={`/dashboard/clients/${prospect.id}`} className="hover:underline">
+                                                <CardTitle className="text-base">{prospect.clientName}</CardTitle>
+                                            </Link>
+                                            <CardDescription className="text-xs">{prospect.contactPerson}</CardDescription>
+                                        </div>
+                                         <DropdownMenu>
+                                            <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-7 w-7 flex-shrink-0"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                                            <DropdownMenuContent>
+                                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                <DropdownMenuItem onSelect={() => handleEditClick(prospect)}>Editar Prospecto</DropdownMenuItem>
+                                                <DropdownMenuItem onSelect={() => handleNewFollowUpClick(prospect)}>Nuevo Seguimiento</DropdownMenuItem>
+                                                <DropdownMenuItem onSelect={() => handleGetSuggestion(prospect)} disabled={isSuggestionLoading}>
+                                                    <Sparkles className="mr-2 h-4 w-4" />
+                                                    Sugerir Acción (IA)
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuSub>
+                                                    <DropdownMenuSubTrigger>Mover Etapa</DropdownMenuSubTrigger>
+                                                    <DropdownMenuPortal>
+                                                        <DropdownMenuSubContent>
+                                                            {stages.map(stage => (
+                                                                <DropdownMenuItem key={stage} onSelect={() => requestStageChange(prospect, stage)} disabled={prospect.opportunity?.stage === stage}>
+                                                                    {stage}
+                                                                </DropdownMenuItem>
+                                                            ))}
+                                                        </DropdownMenuSubContent>
+                                                    </DropdownMenuPortal>
+                                                </DropdownMenuSub>
+                                                <DropdownMenuItem onSelect={() => requestStageChange(prospect, 'Financiamiento Externo')}>
+                                                    <Landmark className="mr-2 h-4 w-4" />
+                                                    <span>Financiamiento</span>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onSelect={() => handleDiscardClick(prospect)} className="text-destructive">
+                                                    <ArchiveX className="mr-2 h-4 w-4" />
+                                                    <span>Descartar</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                     {classification && (
+                                        <Badge variant="outline" className={cn('font-bold mt-2 text-xs', getBadgeClass(classification))}>
+                                            {prospect.opportunity.stage}
+                                        </Badge>
+                                    )}
+                                </CardHeader>
+                                <CardContent className="flex-grow flex flex-col justify-between space-y-4">
+                                     <div className="space-y-2 text-sm">
+                                        <div className="flex items-center gap-2 text-muted-foreground"><Mail className="h-4 w-4 shrink-0" /> <span className="truncate">{prospect.email || 'N/A'}</span></div>
+                                        <div className="flex items-center gap-2 text-muted-foreground"><Phone className="h-4 w-4 shrink-0" /> <span>{prospect.phone || 'N/A'}</span></div>
+                                    </div>
+                                    <div className="p-3 rounded-md bg-background border space-y-1">
+                                        <Label className="text-xs text-muted-foreground">ÚLTIMO SEGUIMIENTO</Label>
+                                        <p className="text-sm italic text-foreground truncate">
+                                            {latestActivity ? `"${latestActivity.description}"` : "Sin seguimientos registrados."}
+                                        </p>
+                                         {latestActivity && (
+                                            <p className="text-xs text-muted-foreground pt-1">
+                                                {format(new Date(latestActivity.createdDate), "dd MMM, yyyy", { locale: es })}
+                                            </p>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )
+                    })
+                ) : (
+                     <Card className="col-span-full">
+                        <CardContent className="h-48 flex items-center justify-center">
+                            <p className="text-muted-foreground">No se encontraron prospectos para el filtro actual.</p>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+        ) : (
+          <div className="space-y-1.5">
+            {filteredProspects.length > 0 ? (
+              filteredProspects.map(prospect => {
+                if (!prospect.opportunity) return null;
+                const classification = getClassification(prospect.opportunity.stage);
+                const isFinancingStage = prospect.opportunity.stage === 'Financiamiento Externo';
+                const isDiscarded = prospect.opportunity.stage === 'Descartado';
+                const currentIndex = isFinancingStage ? -1 : stages.indexOf(prospect.opportunity.stage);
+                
+                const summaryTabsConfig = [
+                  { key: 'info', name: 'Info. Enviada', stageIndex: 1 },
+                  { key: 'quot', name: 'Cotización', stageIndex: 2 },
+                  { key: 'neg', name: 'Negociación', stageIndex: 3 },
+                  { key: 'close', name: 'Cierre', stageIndex: 4 },
+                ];
+    
+                const availableSummaries = summaryTabsConfig.filter(tab => currentIndex >= tab.stageIndex);
+                
+                const defaultTab = availableSummaries.length > 0 ? availableSummaries[availableSummaries.length - 1].key : undefined;
+    
+                const quotationFollowUp = prospect.activities.find((act: any) => act.quotationId && prospect.quotation && act.quotationId === prospect.quotation.id);
+    
+                return (
+                  <Card key={prospect.id} className="border-2 border-black bg-muted/50">
+                    <CardHeader className="flex flex-row items-start justify-between p-2 pb-0">
+                      <div>
+                        <Link href={`/dashboard/clients/${prospect.id}`}>
+                            <CardTitle className="text-base hover:underline cursor-pointer">{prospect.clientName}</CardTitle>
+                        </Link>
+                        <CardDescription className="text-xs">{prospect.contactPerson}</CardDescription>
+                      </div>
+                       <DropdownMenu>
+                          <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-7 w-7"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                            <DropdownMenuItem onSelect={() => handleEditClick(prospect)}>Editar</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onSelect={() => requestStageChange(prospect, 'Financiamiento Externo')}>
+                                <Landmark className="mr-2 h-4 w-4" />
+                                <span>Financiamiento Externo</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                             <DropdownMenuItem className="text-destructive" onSelect={() => handleDiscardClick(prospect)}>
+                                <ArchiveX className="mr-2 h-4 w-4" />
+                                <span>Descartar Prospecto</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                    </CardHeader>
+                    <CardContent className="grid md:grid-cols-2 gap-2 p-2">
+                      <div className="space-y-1">
+                        <div className="space-y-0.5 text-xs">
+                          {prospect.clientType && <Badge variant="secondary" className="text-xs mb-1">{prospect.clientType}</Badge>}
+                          <div className="text-muted-foreground">{prospect.email || 'N/A'}</div>
+                          <div className="text-muted-foreground">{prospect.phone || 'N/A'}</div>
                         </div>
-                    </div>
-
-                     <Collapsible className="pt-1" defaultOpen>
-                        <CollapsibleTrigger asChild>
-                            <Button variant="ghost" className="w-full justify-start text-xs h-8 -ml-2">
-                                <History className="h-4 w-4 mr-2" />
-                                Historial de Seguimiento ({prospect.activities.length})
-                            </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="px-1 py-1 space-y-1 border-t">
-                            <div className="flex flex-wrap gap-2">
-                                <Button size="sm" className="h-8 flex-1 min-w-[150px]" onClick={() => handleNewFollowUpClick(prospect)}>
-                                  <PlusCircle className="mr-2 h-4 w-4" />
-                                  Seguimiento
+                        
+                        <div className="flex items-center gap-4 pt-1 border-t">
+                            <a 
+                                href={prospect.phone ? `https://wa.me/${(prospect.country === 'US' ? '1' : '52')}${prospect.phone.replace(/\D/g, '')}` : '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => !prospect.phone && e.preventDefault()}
+                                className={cn(
+                                    "transition-colors",
+                                    prospect.phone 
+                                        ? "text-green-500 hover:text-green-600" 
+                                        : "text-muted-foreground/40 cursor-not-allowed"
+                                )}
+                                title={prospect.phone ? `WhatsApp: ${prospect.phone}` : 'No hay teléfono para WhatsApp'}
+                            >
+                                <MessageSquare className="h-5 w-5" />
+                            </a>
+                            <a
+                              href={prospect.phone ? `sms:${prospect.phone.replace(/\D/g, '')}` : '#'}
+                              onClick={(e) => !prospect.phone && e.preventDefault()}
+                              className={cn(
+                                  "transition-colors",
+                                  prospect.phone 
+                                      ? "text-foreground/80 hover:text-foreground" 
+                                      : "text-muted-foreground/40 cursor-not-allowed"
+                              )}
+                              title={prospect.phone ? `Mensaje de Texto: ${prospect.phone}` : 'No hay teléfono'}
+                            >
+                              <MessageCircle className="h-5 w-5" />
+                            </a>
+                            <a 
+                                href={prospect.email ? `https://mail.google.com/mail/?view=cm&fs=1&to=${prospect.email}` : '#'}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => !prospect.email && e.preventDefault()}
+                                className={cn(
+                                    "transition-colors",
+                                    prospect.email 
+                                        ? "text-blue-500 hover:text-blue-600" 
+                                        : "text-muted-foreground/40 cursor-not-allowed"
+                                )}
+                                title={prospect.email ? `Email: ${prospect.email}`: 'No hay email'}
+                            >
+                                <Mail className="h-5 w-5" />
+                            </a>
+                            <a 
+                                href={prospect.phone ? `tel:${prospect.phone}` : '#'}
+                                onClick={(e) => !prospect.phone && e.preventDefault()}
+                                className={cn(
+                                    "transition-colors",
+                                    prospect.phone 
+                                        ? "text-foreground/80 hover:text-foreground" 
+                                        : "text-muted-foreground/40 cursor-not-allowed"
+                                )}
+                                 title={prospect.phone ? `Llamar: ${prospect.phone}`: 'No hay teléfono'}
+                            >
+                                <Phone className="h-5 w-5" />
+                            </a>
+                            <div className={cn(
+                                "flex items-center gap-1.5 text-xs ml-auto pr-2",
+                                 prospect.language ? "text-muted-foreground" : "text-muted-foreground/40"
+                            )}>
+                                <Globe className="h-4 w-4" />
+                                <span>{prospect.language || 'N/A'}</span>
+                            </div>
+                        </div>
+    
+                         <Collapsible className="pt-1" defaultOpen>
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" className="w-full justify-start text-xs h-8 -ml-2">
+                                    <History className="h-4 w-4 mr-2" />
+                                    Historial de Seguimiento ({prospect.activities.length})
                                 </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 flex-1 min-w-[150px]"
-                                    onClick={() => handleGetSuggestion(prospect)}
-                                    disabled={isSuggestionLoading || enrichingProspectId === prospect.id}
-                                >
-                                    {isSuggestionLoading && prospectForSuggestion?.id === prospect.id ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <Sparkles className="mr-2 h-4 w-4" />
-                                    )}
-                                    Sugerir Acción
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 flex-1 min-w-[150px]"
-                                    onClick={() => handleEnrichProspect(prospect)}
-                                    disabled={enrichingProspectId === prospect.id || isSuggestionLoading}
-                                >
-                                    {enrichingProspectId === prospect.id ? (
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <Sparkles className="mr-2 h-4 w-4 text-purple-500" />
-                                    )}
-                                    Enriquecer
-                                </Button>
-                                {enrichmentHistory[prospect.id] && (
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="px-1 py-1 space-y-1 border-t">
+                                <div className="flex flex-wrap gap-2">
+                                    <Button size="sm" className="h-8 flex-1 min-w-[150px]" onClick={() => handleNewFollowUpClick(prospect)}>
+                                      <PlusCircle className="mr-2 h-4 w-4" />
+                                      Seguimiento
+                                    </Button>
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         className="h-8 flex-1 min-w-[150px]"
-                                        onClick={() => handleUndoEnrichmentClick(prospect.id)}
+                                        onClick={() => handleGetSuggestion(prospect)}
+                                        disabled={isSuggestionLoading || enrichingProspectId === prospect.id}
                                     >
-                                        <Undo2 className="mr-2 h-4 w-4" />
-                                        Deshacer Enriquecimiento
-                                    </Button>
-                                )}
-                            </div>
-                            {prospect.activities.length > 0 ? (
-                                <div className="space-y-1 pt-2">
-                                    <p className="px-2 text-xs font-semibold text-muted-foreground">HISTORIAL DE SEGUIMIENTO:</p>
-                                    <Accordion type="single" collapsible className="w-full" defaultValue={prospect.activities[0]?.id}>
-                                    {prospect.activities.map((act: any, index: number) => (
-                                        <AccordionItem value={act.id} key={act.id} className={cn(
-                                            "border-b-0",
-                                            index === 0 && "rounded-md border bg-yellow-50 dark:bg-yellow-950/40"
-                                        )}>
-                                        <div className="flex w-full items-center p-1.5 text-xs rounded-md hover:bg-muted/50 data-[state=open]:bg-muted/50">
-                                            <Checkbox
-                                                id={`activity-check-${act.id}`}
-                                                checked={act.completed}
-                                                onCheckedChange={(checked) => handleToggleActivityComplete(act.id, !!checked)}
-                                                className="mr-3"
-                                            />
-                                            <AccordionTrigger className="p-0 flex-1 justify-between">
-                                                <div className={cn("grid gap-0.5 text-left", act.completed && "line-through text-muted-foreground")}>
-                                                    <span className="font-bold text-foreground text-xs">{act.type} {act.dueDate ? `- ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
-                                                    <span className="text-xs text-muted-foreground">Creado: {format(new Date(act.createdDate), "dd/MM/yy")}</span>
-                                                </div>
-                                            </AccordionTrigger>
-                                        </div>
-                                        <AccordionContent className="pb-1 pt-0 pl-4 pr-2">
-                                            <div className="pl-8 border-l-2 ml-4 py-1">
-                                            {act.description && <p className="italic mb-2 text-muted-foreground">"{act.description}"</p>}
-                                            {act.contactChannels && act.contactChannels.length > 0 && (
-                                                <div className="flex flex-wrap gap-1 mt-1">
-                                                {act.contactChannels.map((channel: string) => (
-                                                    <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
-                                                ))}
-                                                </div>
-                                            )}
-                                            <div className="flex justify-end gap-1 mt-2">
-                                                <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleEditActivityClick(act, prospect)}>
-                                                <Pencil className="h-3 w-3 mr-1" />
-                                                Editar
-                                                </Button>
-                                                <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => handleDeleteActivityClick(act)}>
-                                                <X className="h-3 w-3 mr-1" />
-                                                Eliminar
-                                                </Button>
-                                            </div>
-                                            </div>
-                                        </AccordionContent>
-                                        </AccordionItem>
-                                    ))}
-                                    </Accordion>
-                                </div>
-                            ) : (
-                                <div className="py-2 text-xs text-center text-muted-foreground">No hay seguimientos registrados.</div>
-                            )}
-                        </CollapsibleContent>
-                    </Collapsible>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold text-xs text-muted-foreground">PROGRESO DEL PROSPECTO</h4>
-                      <Badge variant="outline" className={`font-bold ${getBadgeClass(classification)}`}>{classification}</Badge>
-                    </div>
-                    <div className="flex items-center pt-2">
-                        {stages.map((stage, index) => {
-                            const isCompleted = currentIndex > index;
-                            const isCurrent = currentIndex === index;
-                            const isNext = index === currentIndex + 1;
-                            const canMoveTo = isNext || isCompleted || index < currentIndex || isFinancingStage;
-
-                            return (
-                                <React.Fragment key={stage}>
-                                    <div
-                                        onClick={() => canMoveTo && requestStageChange(prospect, stage)}
-                                        className={cn(
-                                            'flex flex-col items-center gap-1.5 text-center transition-all w-24',
-                                            (canMoveTo) ? 'cursor-pointer' : 'cursor-not-allowed',
-                                            !isFinancingStage && !isCompleted && !isCurrent && !isNext && 'opacity-50'
-                                        )}
-                                        title={canMoveTo ? `Mover a: ${stage}` : stage}
-                                    >
-                                        <div className={cn(
-                                            'flex h-8 w-8 items-center justify-center rounded-full border-2 text-primary-foreground transition-all',
-                                            (isCompleted || isCurrent) ? 'border-primary bg-primary' : 'border-border bg-card',
-                                            isCurrent && 'scale-110 shadow-lg',
-                                            !isFinancingStage && canMoveTo && 'hover:border-primary/50'
-                                        )}>
-                                            {(isCompleted || isCurrent) ? <Check className="h-5 w-5" /> : <span className={cn('text-sm font-bold', 'text-muted-foreground')}>{index + 1}</span>}
-                                        </div>
-                                        <span className={cn(
-                                            'text-[11px] font-medium leading-tight max-w-full px-1',
-                                            isCurrent ? 'text-primary' : 'text-muted-foreground'
-                                        )}>
-                                            {stage}
-                                        </span>
-                                    </div>
-                                    {index < stages.length - 1 && (
-                                      <div className={cn(
-                                          "h-1 w-full flex-1 transition-colors",
-                                          isCompleted ? 'bg-primary' : 'bg-border'
-                                      )} />
-                                    )}
-                                </React.Fragment>
-                            )
-                        })}
-                    </div>
-                     {isDiscarded && prospect.opportunity.discardReason && (
-                        <div className="p-2 mt-2 border rounded-md bg-red-50 dark:bg-red-950/40 text-xs">
-                            <p className="font-bold text-destructive">Motivo del Descarte:</p>
-                            <p className="italic text-destructive/90">"{prospect.opportunity.discardReason}"</p>
-                        </div>
-                    )}
-                     <div className="mt-1 pt-1 border-t border-dashed">
-                      {availableSummaries.length > 0 && (
-                        <Tabs defaultValue={defaultTab} className="w-full">
-                          <TabsList className="grid w-full" style={{gridTemplateColumns: `repeat(${availableSummaries.length}, minmax(0, 1fr))`}}>
-                              {availableSummaries.map((tab) => (
-                                  <TabsTrigger key={tab.key} value={tab.key} className="text-xs h-8">{tab.name}</TabsTrigger>
-                              ))}
-                          </TabsList>
-                          <TabsContent value="info">
-                              {currentIndex >= 1 && prospect.opportunity.sentPrices !== undefined && (
-                                  <div className="p-2 mt-1 border rounded-md bg-background/50 text-xs text-muted-foreground">
-                                      <div className="flex items-center justify-between mb-1">
-                                          <div>
-                                              <p className="font-bold text-foreground">RESUMEN: ENVIÓ DE INFORMACIÓN</p>
-                                              {prospect.opportunity.infoSentDate && (
-                                              <p className="text-xs text-muted-foreground">
-                                                  Registrado el: {format(new Date(prospect.opportunity.infoSentDate), "dd 'de' MMMM, yyyy", { locale: es })}
-                                              </p>
-                                              )}
-                                          </div>
-                                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditInfoSent(prospect)}>
-                                              <Pencil className="h-3 w-3 text-muted-foreground" />
-                                              <span className="sr-only">Editar información enviada</span>
-                                          </Button>
-                                      </div>
-                                      <ul className="mt-1 space-y-1">
-                                          <li>Precios Enviados: <span className="font-semibold">{prospect.opportunity.sentPrices ? '✓ Sí' : '✗ No'}</span></li>
-                                          <li>Info. Técnica: <span className="font-semibold">{prospect.opportunity.sentTechnicalInfo ? '✓ Sí' : '✗ No'}</span></li>
-                                          <li>Info. Empresa: <span className="font-semibold">{prospect.opportunity.sentCompanyInfo ? '✓ Sí' : '✗ No'}</span></li>
-                                          <li>Fotos/Videos: <span className="font-semibold">{prospect.opportunity.sentMedia ? '✓ Sí' : '✗ No'}</span></li>
-                                      </ul>
-                                      {(prospect.opportunity.infoSentContactChannels?.length > 0 || prospect.opportunity.infoSentNotes) && (
-                                          <div className="mt-2 pt-2 border-t border-dashed">
-                                              <p className="font-semibold text-foreground/80">REGISTRO DE INTERACCIÓN</p>
-                                              {prospect.opportunity.infoSentContactChannels?.length > 0 && (
-                                                  <div className="flex flex-wrap gap-1 mt-1">
-                                                      {prospect.opportunity.infoSentContactChannels.map((channel: string) => (
-                                                          <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
-                                                      ))}
-                                                  </div>
-                                              )}
-                                              {prospect.opportunity.infoSentNotes && (
-                                                  <p className="italic mt-1">"{prospect.opportunity.infoSentNotes}"</p>
-                                              )}
-                                          </div>
-                                      )}
-                                  </div>
-                              )}
-                          </TabsContent>
-                           <TabsContent value="quot">
-                              {currentIndex >= 2 && prospect.quotation && (
-                                  <div className="p-2 mt-1 border rounded-md bg-background/50 text-xs text-muted-foreground">
-                                      <div className="flex items-center justify-between">
-                                          <div>
-                                              <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
-                                              <p className="text-xs text-muted-foreground">
-                                                  Registrado el: {format(new Date(prospect.quotation.createdDate), "dd 'de' MMMM, yyyy", { locale: es })}
-                                              </p>
-                                          </div>
-                                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditQuotation(prospect)}>
-                                              <Pencil className="h-3 w-3 text-muted-foreground" />
-                                              <span className="sr-only">Editar cotización</span>
-                                          </Button>
-                                      </div>
-                                      <div className="flex items-center justify-between mt-1">
-                                          <span className="font-semibold">Valor: {new Intl.NumberFormat('en-US', { style: 'currency', currency: prospect.quotation.currency }).format(prospect.quotation.value)}</span>
-                                          <Button asChild variant="outline" size="sm" className="h-7">
-                                              <a href={prospect.quotation.pdfUrl} target="_blank" rel="noopener noreferrer">
-                                                  <FileDown className="w-3 h-3 mr-1.5" /> Ver PDF
-                                              </a>
-                                          </Button>
-                                      </div>
-                                      <div className="mt-2 pt-2 border-t border-dashed">
-                                        {quotationFollowUp ? (
-                                          <div className="text-xs space-y-1">
-                                            <p className="font-semibold text-foreground/80">SEGUIMIENTO AGENDADO:</p>
-                                            <p>{quotationFollowUp.type} - {quotationFollowUp.dueDate ? format(new Date(quotationFollowUp.dueDate), "PP", { locale: es }) : 'Sin fecha'}</p>
-                                            {quotationFollowUp.description && <p className="italic">"{quotationFollowUp.description}"</p>}
-                                            <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => handleEditActivityClick(quotationFollowUp, prospect)}>
-                                              Editar Seguimiento
-                                            </Button>
-                                          </div>
+                                        {isSuggestionLoading && prospectForSuggestion?.id === prospect.id ? (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                         ) : (
-                                          <Button variant="secondary" size="sm" className="h-7" onClick={() => handleNewFollowUpClick(prospect, prospect.quotation.id)}>
-                                            <PlusCircle className="w-3 h-3 mr-1.5" />
-                                            Agendar Seguimiento
-                                          </Button>
+                                            <Sparkles className="mr-2 h-4 w-4" />
                                         )}
-                                      </div>
-                                  </div>
-                              )}
-                          </TabsContent>
-                           <TabsContent value="neg">
-                              {currentIndex >= 3 && prospect.opportunity.acceptedPrice !== undefined && (
-                                  <div className="p-2 mt-1 border rounded-md bg-background/50 text-xs text-muted-foreground">
-                                      <div className="flex items-center justify-between mb-1">
-                                          <div>
-                                              <p className="font-bold text-foreground">RESUMEN: NEGOCIACIÓN</p>
-                                              {prospect.opportunity.negotiationDate && (
-                                              <p className="text-xs text-muted-foreground">
-                                                  Registrado el: {format(new Date(prospect.opportunity.negotiationDate), "dd 'de' MMMM, yyyy", { locale: es })}
-                                              </p>
-                                              )}
-                                          </div>
-                                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditNegotiation(prospect)}>
-                                              <Pencil className="h-3 w-3 text-muted-foreground" />
-                                              <span className="sr-only">Editar negociación</span>
-                                          </Button>
-                                      </div>
-                                      <ul className="mt-1 space-y-1">
-                                          <li>Precio Aceptado: <span className="font-semibold">{prospect.opportunity.acceptedPrice ? '✓ Sí' : '✗ No'}</span></li>
-                                          <li>Flete Cotizado: <span className="font-semibold">{prospect.opportunity.quotedFreight ? '✓ Sí' : '✗ No'}</span></li>
-                                          <li>Solicita Descuento: <span className="font-semibold">{prospect.opportunity.requestsDiscount ? '✓ Sí' : '✗ No'}</span></li>
-                                          {prospect.opportunity.agreedDeliveryTime && (
-                                              <li>Tiempo Entrega: <span className="font-semibold">{prospect.opportunity.agreedDeliveryTime} {prospect.opportunity.agreedDeliveryTime === 1 ? 'semana' : 'semanas'}</span></li>
-                                          )}
-                                          {prospect.opportunity.negotiationNotes && (
-                                              <li>Notas: <span className="font-semibold italic">{prospect.opportunity.negotiationNotes}</span></li>
-                                          )}
-                                      </ul>
-                                  </div>
-                              )}
-                          </TabsContent>
-                          <TabsContent value="close">
-                              {currentIndex >= 4 && prospect.opportunity.clientMadeDownPayment !== undefined && (
-                                  <div className="p-2 mt-1 border rounded-md bg-background/50 text-xs text-muted-foreground">
-                                      <div className="flex items-center justify-between mb-1">
-                                          <div>
-                                              <p className="font-bold text-foreground">RESUMEN: CIERRE DE VENTA</p>
-                                              {prospect.opportunity.closingDate && (
-                                              <p className="text-xs text-muted-foreground">
-                                                  Registrado el: {format(new Date(prospect.opportunity.closingDate), "dd 'de' MMMM, yyyy", { locale: es })}
-                                              </p>
-                                              )}
-                                          </div>
-                                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditClosing(prospect)}>
-                                              <Pencil className="h-3 w-3 text-muted-foreground" />
-                                              <span className="sr-only">Editar cierre de venta</span>
-                                          </Button>
-                                      </div>
-                                      <ul className="mt-1 space-y-1">
-                                          <li>Anticipo Realizado: <span className="font-semibold">{prospect.opportunity.clientMadeDownPayment ? '✓ Sí' : '✗ No'}</span></li>
-                                          <li>Tiempo Entrega Confirmado: <span className="font-semibold">{prospect.opportunity.deliveryTimeConfirmed ? '✓ Sí' : '✗ No'}</span></li>
-                                          {prospect.opportunity.closingNotes && (
-                                              <li>Notas: <span className="font-semibold italic">{prospect.opportunity.closingNotes}</span></li>
-                                          )}
-                                      </ul>
-                                  </div>
-                              )}
-                          </TabsContent>
-                        </Tabs>
-                      )}
+                                        Sugerir Acción
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-8 flex-1 min-w-[150px]"
+                                        onClick={() => handleEnrichProspect(prospect)}
+                                        disabled={enrichingProspectId === prospect.id || isSuggestionLoading}
+                                    >
+                                        {enrichingProspectId === prospect.id ? (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Sparkles className="mr-2 h-4 w-4 text-purple-500" />
+                                        )}
+                                        Enriquecer
+                                    </Button>
+                                    {enrichmentHistory[prospect.id] && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 flex-1 min-w-[150px]"
+                                            onClick={() => handleUndoEnrichmentClick(prospect.id)}
+                                        >
+                                            <Undo2 className="mr-2 h-4 w-4" />
+                                            Deshacer Enriquecimiento
+                                        </Button>
+                                    )}
+                                </div>
+                                {prospect.activities.length > 0 ? (
+                                    <div className="space-y-1 pt-2">
+                                        <p className="px-2 text-xs font-semibold text-muted-foreground">HISTORIAL DE SEGUIMIENTO:</p>
+                                        <Accordion type="single" collapsible className="w-full" defaultValue={prospect.activities[0]?.id}>
+                                        {prospect.activities.map((act: any, index: number) => (
+                                            <AccordionItem value={act.id} key={act.id} className={cn(
+                                                "border-b-0",
+                                                index === 0 && "rounded-md border bg-yellow-50 dark:bg-yellow-950/40"
+                                            )}>
+                                            <div className="flex w-full items-center p-1.5 text-xs rounded-md hover:bg-muted/50 data-[state=open]:bg-muted/50">
+                                                <Checkbox
+                                                    id={`activity-check-${act.id}`}
+                                                    checked={act.completed}
+                                                    onCheckedChange={(checked) => handleToggleActivityComplete(act.id, !!checked)}
+                                                    className="mr-3"
+                                                />
+                                                <AccordionTrigger className="p-0 flex-1 justify-between">
+                                                    <div className={cn("grid gap-0.5 text-left", act.completed && "line-through text-muted-foreground")}>
+                                                        <span className="font-bold text-foreground text-xs">{act.type} {act.dueDate ? `- ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
+                                                        <span className="text-xs text-muted-foreground">Creado: {format(new Date(act.createdDate), "dd/MM/yy")}</span>
+                                                    </div>
+                                                </AccordionTrigger>
+                                            </div>
+                                            <AccordionContent className="pb-1 pt-0 pl-4 pr-2">
+                                                <div className="pl-8 border-l-2 ml-4 py-1">
+                                                {act.description && <p className="italic mb-2 text-muted-foreground">"{act.description}"</p>}
+                                                {act.contactChannels && act.contactChannels.length > 0 && (
+                                                    <div className="flex flex-wrap gap-1 mt-1">
+                                                    {act.contactChannels.map((channel: string) => (
+                                                        <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
+                                                    ))}
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-end gap-1 mt-2">
+                                                    <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => handleEditActivityClick(act, prospect)}>
+                                                    <Pencil className="h-3 w-3 mr-1" />
+                                                    Editar
+                                                    </Button>
+                                                    <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive hover:text-destructive" onClick={() => handleDeleteActivityClick(act)}>
+                                                    <X className="h-3 w-3 mr-1" />
+                                                    Eliminar
+                                                    </Button>
+                                                </div>
+                                                </div>
+                                            </AccordionContent>
+                                            </AccordionItem>
+                                        ))}
+                                        </Accordion>
+                                    </div>
+                                ) : (
+                                    <div className="py-2 text-xs text-center text-muted-foreground">No hay seguimientos registrados.</div>
+                                )}
+                            </CollapsibleContent>
+                        </Collapsible>
                       </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })
-        ) : (
-            <Card>
-              <CardContent className="h-48 flex items-center justify-center">
-                  <p className="text-muted-foreground">No se encontraron prospectos para el filtro actual.</p>
-              </CardContent>
-            </Card>
-        )}
-      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-semibold text-xs text-muted-foreground">PROGRESO DEL PROSPECTO</h4>
+                          <Badge variant="outline" className={`font-bold ${getBadgeClass(classification)}`}>{classification}</Badge>
+                        </div>
+                        <div className="flex items-center pt-2">
+                            {stages.map((stage, index) => {
+                                const isCompleted = currentIndex > index;
+                                const isCurrent = currentIndex === index;
+                                const isNext = index === currentIndex + 1;
+                                const canMoveTo = isNext || isCompleted || index < currentIndex || isFinancingStage;
+    
+                                return (
+                                    <React.Fragment key={stage}>
+                                        <div
+                                            onClick={() => canMoveTo && requestStageChange(prospect, stage)}
+                                            className={cn(
+                                                'flex flex-col items-center gap-1.5 text-center transition-all w-24',
+                                                (canMoveTo) ? 'cursor-pointer' : 'cursor-not-allowed',
+                                                !isFinancingStage && !isCompleted && !isCurrent && !isNext && 'opacity-50'
+                                            )}
+                                            title={canMoveTo ? `Mover a: ${stage}` : stage}
+                                        >
+                                            <div className={cn(
+                                                'flex h-8 w-8 items-center justify-center rounded-full border-2 text-primary-foreground transition-all',
+                                                (isCompleted || isCurrent) ? 'border-primary bg-primary' : 'border-border bg-card',
+                                                isCurrent && 'scale-110 shadow-lg',
+                                                !isFinancingStage && canMoveTo && 'hover:border-primary/50'
+                                            )}>
+                                                {(isCompleted || isCurrent) ? <Check className="h-5 w-5" /> : <span className={cn('text-sm font-bold', 'text-muted-foreground')}>{index + 1}</span>}
+                                            </div>
+                                            <span className={cn(
+                                                'text-[11px] font-medium leading-tight max-w-full px-1',
+                                                isCurrent ? 'text-primary' : 'text-muted-foreground'
+                                            )}>
+                                                {stage}
+                                            </span>
+                                        </div>
+                                        {index < stages.length - 1 && (
+                                          <div className={cn(
+                                              "h-1 w-full flex-1 transition-colors",
+                                              isCompleted ? 'bg-primary' : 'bg-border'
+                                          )} />
+                                        )}
+                                    </React.Fragment>
+                                )
+                            })}
+                        </div>
+                         {isDiscarded && prospect.opportunity.discardReason && (
+                            <div className="p-2 mt-2 border rounded-md bg-red-50 dark:bg-red-950/40 text-xs">
+                                <p className="font-bold text-destructive">Motivo del Descarte:</p>
+                                <p className="italic text-destructive/90">"{prospect.opportunity.discardReason}"</p>
+                            </div>
+                        )}
+                         <div className="mt-1 pt-1 border-t border-dashed">
+                          {availableSummaries.length > 0 && (
+                            <Tabs defaultValue={defaultTab} className="w-full">
+                              <TabsList className="grid w-full" style={{gridTemplateColumns: `repeat(${availableSummaries.length}, minmax(0, 1fr))`}}>
+                                  {availableSummaries.map((tab) => (
+                                      <TabsTrigger key={tab.key} value={tab.key} className="text-xs h-8">{tab.name}</TabsTrigger>
+                                  ))}
+                              </TabsList>
+                              <TabsContent value="info">
+                                  {currentIndex >= 1 && prospect.opportunity.sentPrices !== undefined && (
+                                      <div className="p-2 mt-1 border rounded-md bg-background/50 text-xs text-muted-foreground">
+                                          <div className="flex items-center justify-between mb-1">
+                                              <div>
+                                                  <p className="font-bold text-foreground">RESUMEN: ENVIÓ DE INFORMACIÓN</p>
+                                                  {prospect.opportunity.infoSentDate && (
+                                                  <p className="text-xs text-muted-foreground">
+                                                      Registrado el: {format(new Date(prospect.opportunity.infoSentDate), "dd 'de' MMMM, yyyy", { locale: es })}
+                                                  </p>
+                                                  )}
+                                              </div>
+                                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditInfoSent(prospect)}>
+                                                  <Pencil className="h-3 w-3 text-muted-foreground" />
+                                                  <span className="sr-only">Editar información enviada</span>
+                                              </Button>
+                                          </div>
+                                          <ul className="mt-1 space-y-1">
+                                              <li>Precios Enviados: <span className="font-semibold">{prospect.opportunity.sentPrices ? '✓ Sí' : '✗ No'}</span></li>
+                                              <li>Info. Técnica: <span className="font-semibold">{prospect.opportunity.sentTechnicalInfo ? '✓ Sí' : '✗ No'}</span></li>
+                                              <li>Info. Empresa: <span className="font-semibold">{prospect.opportunity.sentCompanyInfo ? '✓ Sí' : '✗ No'}</span></li>
+                                              <li>Fotos/Videos: <span className="font-semibold">{prospect.opportunity.sentMedia ? '✓ Sí' : '✗ No'}</span></li>
+                                          </ul>
+                                          {(prospect.opportunity.infoSentContactChannels?.length > 0 || prospect.opportunity.infoSentNotes) && (
+                                              <div className="mt-2 pt-2 border-t border-dashed">
+                                                  <p className="font-semibold text-foreground/80">REGISTRO DE INTERACCIÓN</p>
+                                                  {prospect.opportunity.infoSentContactChannels?.length > 0 && (
+                                                      <div className="flex flex-wrap gap-1 mt-1">
+                                                          {prospect.opportunity.infoSentContactChannels.map((channel: string) => (
+                                                              <Badge key={channel} variant="secondary" className="font-normal">{channel}</Badge>
+                                                          ))}
+                                                      </div>
+                                                  )}
+                                                  {prospect.opportunity.infoSentNotes && (
+                                                      <p className="italic mt-1">"{prospect.opportunity.infoSentNotes}"</p>
+                                                  )}
+                                              </div>
+                                          )}
+                                      </div>
+                                  )}
+                              </TabsContent>
+                               <TabsContent value="quot">
+                                  {currentIndex >= 2 && prospect.quotation && (
+                                      <div className="p-2 mt-1 border rounded-md bg-background/50 text-xs text-muted-foreground">
+                                          <div className="flex items-center justify-between">
+                                              <div>
+                                                  <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
+                                                  <p className="text-xs text-muted-foreground">
+                                                      Registrado el: {format(new Date(prospect.quotation.createdDate), "dd 'de' MMMM, yyyy", { locale: es })}
+                                                  </p>
+                                              </div>
+                                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditQuotation(prospect)}>
+                                                  <Pencil className="h-3 w-3 text-muted-foreground" />
+                                                  <span className="sr-only">Editar cotización</span>
+                                              </Button>
+                                          </div>
+                                          <div className="flex items-center justify-between mt-1">
+                                              <span className="font-semibold">Valor: {new Intl.NumberFormat('en-US', { style: 'currency', currency: prospect.quotation.currency }).format(prospect.quotation.value)}</span>
+                                              <Button asChild variant="outline" size="sm" className="h-7">
+                                                  <a href={prospect.quotation.pdfUrl} target="_blank" rel="noopener noreferrer">
+                                                      <FileDown className="w-3 h-3 mr-1.5" /> Ver PDF
+                                                  </a>
+                                              </Button>
+                                          </div>
+                                          <div className="mt-2 pt-2 border-t border-dashed">
+                                            {quotationFollowUp ? (
+                                              <div className="text-xs space-y-1">
+                                                <p className="font-semibold text-foreground/80">SEGUIMIENTO AGENDADO:</p>
+                                                <p>{quotationFollowUp.type} - {quotationFollowUp.dueDate ? format(new Date(quotationFollowUp.dueDate), "PP", { locale: es }) : 'Sin fecha'}</p>
+                                                {quotationFollowUp.description && <p className="italic">"{quotationFollowUp.description}"</p>}
+                                                <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => handleEditActivityClick(quotationFollowUp, prospect)}>
+                                                  Editar Seguimiento
+                                                </Button>
+                                              </div>
+                                            ) : (
+                                              <Button variant="secondary" size="sm" className="h-7" onClick={() => handleNewFollowUpClick(prospect, prospect.quotation.id)}>
+                                                <PlusCircle className="w-3 h-3 mr-1.5" />
+                                                Agendar Seguimiento
+                                              </Button>
+                                            )}
+                                          </div>
+                                      </div>
+                                  )}
+                              </TabsContent>
+                               <TabsContent value="neg">
+                                  {currentIndex >= 3 && prospect.opportunity.acceptedPrice !== undefined && (
+                                      <div className="p-2 mt-1 border rounded-md bg-background/50 text-xs text-muted-foreground">
+                                          <div className="flex items-center justify-between mb-1">
+                                              <div>
+                                                  <p className="font-bold text-foreground">RESUMEN: NEGOCIACIÓN</p>
+                                                  {prospect.opportunity.negotiationDate && (
+                                                  <p className="text-xs text-muted-foreground">
+                                                      Registrado el: {format(new Date(prospect.opportunity.negotiationDate), "dd 'de' MMMM, yyyy", { locale: es })}
+                                                  </p>
+                                                  )}
+                                              </div>
+                                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditNegotiation(prospect)}>
+                                                  <Pencil className="h-3 w-3 text-muted-foreground" />
+                                                  <span className="sr-only">Editar negociación</span>
+                                              </Button>
+                                          </div>
+                                          <ul className="mt-1 space-y-1">
+                                              <li>Precio Aceptado: <span className="font-semibold">{prospect.opportunity.acceptedPrice ? '✓ Sí' : '✗ No'}</span></li>
+                                              <li>Flete Cotizado: <span className="font-semibold">{prospect.opportunity.quotedFreight ? '✓ Sí' : '✗ No'}</span></li>
+                                              <li>Solicita Descuento: <span className="font-semibold">{prospect.opportunity.requestsDiscount ? '✓ Sí' : '✗ No'}</span></li>
+                                              {prospect.opportunity.agreedDeliveryTime && (
+                                                  <li>Tiempo Entrega: <span className="font-semibold">{prospect.opportunity.agreedDeliveryTime} {prospect.opportunity.agreedDeliveryTime === 1 ? 'semana' : 'semanas'}</span></li>
+                                              )}
+                                              {prospect.opportunity.negotiationNotes && (
+                                                  <li>Notas: <span className="font-semibold italic">{prospect.opportunity.negotiationNotes}</span></li>
+                                              )}
+                                          </ul>
+                                      </div>
+                                  )}
+                              </TabsContent>
+                              <TabsContent value="close">
+                                  {currentIndex >= 4 && prospect.opportunity.clientMadeDownPayment !== undefined && (
+                                      <div className="p-2 mt-1 border rounded-md bg-background/50 text-xs text-muted-foreground">
+                                          <div className="flex items-center justify-between mb-1">
+                                              <div>
+                                                  <p className="font-bold text-foreground">RESUMEN: CIERRE DE VENTA</p>
+                                                  {prospect.opportunity.closingDate && (
+                                                  <p className="text-xs text-muted-foreground">
+                                                      Registrado el: {format(new Date(prospect.opportunity.closingDate), "dd 'de' MMMM, yyyy", { locale: es })}
+                                                  </p>
+                                                  )}
+                                              </div>
+                                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditClosing(prospect)}>
+                                                  <Pencil className="h-3 w-3 text-muted-foreground" />
+                                                  <span className="sr-only">Editar cierre de venta</span>
+                                              </Button>
+                                          </div>
+                                          <ul className="mt-1 space-y-1">
+                                              <li>Anticipo Realizado: <span className="font-semibold">{prospect.opportunity.clientMadeDownPayment ? '✓ Sí' : '✗ No'}</span></li>
+                                              <li>Tiempo Entrega Confirmado: <span className="font-semibold">{prospect.opportunity.deliveryTimeConfirmed ? '✓ Sí' : '✗ No'}</span></li>
+                                              {prospect.opportunity.closingNotes && (
+                                                  <li>Notas: <span className="font-semibold italic">{prospect.opportunity.closingNotes}</span></li>
+                                              )}
+                                          </ul>
+                                      </div>
+                                  )}
+                              </TabsContent>
+                            </Tabs>
+                          )}
+                          </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })
+            ) : (
+                <Card>
+                  <CardContent className="h-48 flex items-center justify-center">
+                      <p className="text-muted-foreground">No se encontraron prospectos para el filtro actual.</p>
+                  </CardContent>
+                </Card>
+            )}
+        </div>
+      )}
     </div>
     {prospectForFirstContact && (
         <FirstContactDialog
