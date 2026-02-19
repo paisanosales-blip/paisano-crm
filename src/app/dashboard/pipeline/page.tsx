@@ -1215,7 +1215,7 @@ export default function PipelinePage() {
                                           </div>
                                       )}
                                   </div>
-                                  <div className="p-3 rounded-md bg-background/50 border space-y-1 text-center flex-grow flex flex-col justify-center">
+                                  <div className="p-3 rounded-md bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800/60 space-y-1 text-center flex-grow flex flex-col justify-center">
                                       <Label className="text-xs text-muted-foreground">ÚLTIMO SEGUIMIENTO</Label>
                                       <p className="text-sm italic text-foreground truncate" title={latestActivity ? latestActivity.description : "Sin seguimientos"}>
                                           {latestActivity ? `"${latestActivity.description}"` : "Sin seguimientos registrados."}
