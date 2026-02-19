@@ -135,6 +135,9 @@ export default function NewQuotationPage() {
   const [currency, setCurrency] = useState('USD');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignToCompany, setAssignToCompany] = useState(false);
+  const [taxes, setTaxes] = useState(0);
+  const [otherCharges, setOtherCharges] = useState(0);
+  const [otherChargesDescription, setOtherChargesDescription] = useState('OTROS CARGOS');
 
   const customClientForm = useForm<CustomClientFormValues>({
     resolver: zodResolver(customClientSchema),
@@ -207,13 +210,17 @@ export default function NewQuotationPage() {
   }, [items]);
 
   const total = useMemo(() => {
-    const productsTotal = subtotal;
+    let finalTotal = subtotal;
     if (isIndividualFreight) {
       const individualFreightsTotal = items.reduce((acc, item) => acc + (item.individualFreight || 0) * item.quantity, 0);
-      return productsTotal + individualFreightsTotal;
+      finalTotal += individualFreightsTotal;
+    } else {
+      finalTotal += freight;
     }
-    return productsTotal + freight;
-  }, [subtotal, freight, items, isIndividualFreight]);
+    finalTotal += taxes;
+    finalTotal += otherCharges;
+    return finalTotal;
+  }, [subtotal, freight, items, isIndividualFreight, taxes, otherCharges]);
   
   const handleGenerateAndSave = async () => {
     if (!firestore || !user || !userProfile || !storage) {
@@ -446,6 +453,22 @@ export default function NewQuotationPage() {
         docPdf.text(`$${freight.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
         lineY += 7;
       }
+      
+      if (taxes > 0) {
+        docPdf.setFont('helvetica', 'bold');
+        docPdf.text('IMPUESTOS:', docWidth - 70, lineY, { align: 'right' });
+        docPdf.setFont('helvetica', 'normal');
+        docPdf.text(`$${taxes.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+        lineY += 7;
+      }
+      if (otherCharges > 0) {
+        docPdf.setFont('helvetica', 'bold');
+        docPdf.text(`${otherChargesDescription.toUpperCase()}:`, docWidth - 70, lineY, { align: 'right' });
+        docPdf.setFont('helvetica', 'normal');
+        docPdf.text(`$${otherCharges.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+        lineY += 7;
+      }
+
       const totalY = lineY + 2;
       docPdf.setDrawColor(BLACK);
       docPdf.setLineWidth(0.2);
@@ -755,6 +778,11 @@ export default function NewQuotationPage() {
                       <div className="flex justify-between items-center"><Label htmlFor="freight-to">FLETE A:</Label><Input id="freight-to" placeholder="Destino" value={freightTo} onChange={(e) => setFreightTo(e.target.value)} className="w-48" /></div>
                       {!isIndividualFreight && ( <div className="flex justify-between items-center"><Label htmlFor="freight-amount">MONTO DE FLETE</Label><Input id="freight-amount" type="number" value={freight} onChange={(e) => setFreight(Number(e.target.value))} className="w-32" /></div> )}
                       {isIndividualFreight && ( <div className="flex justify-between items-center font-medium"><p>TOTAL DE FLETES:</p><p>${items.reduce((acc, item) => acc + (item.individualFreight * item.quantity), 0).toFixed(2)}</p></div> )}
+                      <div className="flex justify-between items-center"><Label htmlFor="taxes-amount">IMPUESTOS</Label><Input id="taxes-amount" type="number" value={taxes} onChange={(e) => setTaxes(Number(e.target.value))} className="w-32" /></div>
+                        <div className="flex justify-between items-center gap-2">
+                            <Input id="other-charges-description" placeholder="Otros Cargos" value={otherChargesDescription} onChange={(e) => setOtherChargesDescription(e.target.value)} className="w-48" />
+                            <Input id="other-charges-amount" type="number" value={otherCharges} onChange={(e) => setOtherCharges(Number(e.target.value))} className="w-32" />
+                        </div>
                       <div className="flex justify-between items-center text-lg font-bold"><p>TOTAL:</p><p>${total.toFixed(2)}</p></div>
                   </div>
               </div>

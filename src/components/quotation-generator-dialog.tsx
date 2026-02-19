@@ -73,6 +73,9 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     notes: 'THANK YOU FOR YOUR PREFERENCE.',
   });
   const [currency, setCurrency] = useState('USD');
+  const [taxes, setTaxes] = useState(0);
+  const [otherCharges, setOtherCharges] = useState(0);
+  const [otherChargesDescription, setOtherChargesDescription] = useState('OTROS CARGOS');
 
   useEffect(() => {
     const lastNumberStr = localStorage.getItem('lastQuotationNumber');
@@ -127,13 +130,17 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
   }, [items]);
 
   const total = useMemo(() => {
-    const productsTotal = subtotal;
+    let finalTotal = subtotal;
     if (isIndividualFreight) {
       const individualFreightsTotal = items.reduce((acc, item) => acc + (item.individualFreight || 0) * item.quantity, 0);
-      return productsTotal + individualFreightsTotal;
+      finalTotal += individualFreightsTotal;
+    } else {
+      finalTotal += freight;
     }
-    return productsTotal + freight;
-  }, [subtotal, freight, items, isIndividualFreight]);
+    finalTotal += taxes;
+    finalTotal += otherCharges;
+    return finalTotal;
+  }, [subtotal, freight, items, isIndividualFreight, taxes, otherCharges]);
   
   const generateAndConfirm = async () => {
     if (!prospect) {
@@ -367,6 +374,22 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       doc.text(freightText, docWidth - 70, lineY, { align: 'right' });
       doc.setFont('helvetica', 'normal');
       doc.text(`$${freight.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+      lineY += 7;
+    }
+
+    if (taxes > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.text('IMPUESTOS:', docWidth - 70, lineY, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.text(`$${taxes.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
+      lineY += 7;
+    }
+
+    if (otherCharges > 0) {
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${otherChargesDescription.toUpperCase()}:`, docWidth - 70, lineY, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.text(`$${otherCharges.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
       lineY += 7;
     }
 
@@ -701,6 +724,11 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
                             <p>${items.reduce((acc, item) => acc + (item.individualFreight * item.quantity), 0).toFixed(2)}</p>
                         </div>
                       )}
+                      <div className="flex justify-between items-center"><Label htmlFor="taxes-amount-dialog">IMPUESTOS</Label><Input id="taxes-amount-dialog" type="number" value={taxes} onChange={(e) => setTaxes(Number(e.target.value))} className="w-32" /></div>
+                        <div className="flex justify-between items-center gap-2">
+                            <Input id="other-charges-description-dialog" placeholder="Otros Cargos" value={otherChargesDescription} onChange={(e) => setOtherChargesDescription(e.target.value)} className="w-48" />
+                            <Input id="other-charges-amount-dialog" type="number" value={otherCharges} onChange={(e) => setOtherCharges(Number(e.target.value))} className="w-32" />
+                        </div>
                       <div className="flex justify-between items-center text-lg font-bold">
                           <p>TOTAL:</p>
                           <p>${total.toFixed(2)}</p>
@@ -731,5 +759,3 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     </Dialog>
   );
 }
-
-    
