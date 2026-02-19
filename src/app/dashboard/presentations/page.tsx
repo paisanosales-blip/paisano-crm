@@ -7,7 +7,7 @@ import { startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Loader2, Sparkles, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generatePresentationContent, type PresentationContent } from '@/ai/flows/generate-presentation-content';
