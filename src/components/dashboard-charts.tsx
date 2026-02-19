@@ -95,13 +95,12 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
         const config: ChartConfig = { clients: { label: 'Clientes Potenciales' } };
         
         const data = sortedCities.map(([city, clients], index) => {
-            const key = city.replace(/\s+/g, ''); // create a key safe for CSS
-            config[key] = { label: city, color: CHART_COLORS[index % CHART_COLORS.length] };
+            const key = city.replace(/\s+/g, '');
+            config[key] = { label: city };
             return {
-                city: key, // use the key here
-                label: city, // keep original label for display
+                city: key,
+                label: city,
                 clients,
-                fill: `var(--color-${key})`,
             }
         });
 
@@ -128,18 +127,17 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
     
         const sortedStates = Object.entries(prospectsByState)
             .sort(([, a], [, b]) => b - a)
-            .slice(0, 10); // Top 10 states
+            .slice(0, 10);
     
         const config: ChartConfig = { prospects: { label: 'Prospectos' } };
         
         const data = sortedStates.map(([stateName, count], index) => {
-            const key = stateName.replace(/\s+/g, ''); // create a key safe for CSS
-            config[key] = { label: stateName, color: CHART_COLORS[index % CHART_COLORS.length] };
+            const key = stateName.replace(/\s+/g, '');
+            config[key] = { label: stateName };
             return {
                 state: key, 
                 label: stateName,
                 prospects: count,
-                fill: `var(--color-${key})`,
             }
         });
     
@@ -174,11 +172,9 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
         return Object.entries(sourceCounts)
             .sort(([, a], [, b]) => b - a)
             .map(([source, count]) => {
-                const configKey = source.replace(/\s+/g, '').toUpperCase();
                 return {
                     source,
                     count,
-                    fill: prospectSourceConfig[configKey as keyof typeof prospectSourceConfig]?.color || 'hsl(var(--muted))',
                 };
             });
     }, [leads]);
@@ -226,6 +222,9 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                             />
                             <Bar dataKey="clients" radius={4}>
                                 <LabelList dataKey="clients" position="right" offset={8} className="fill-foreground" fontSize={12} />
+                                {potentialClientsByCityData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                ))}
                             </Bar>
                         </BarChart>
                     </ChartContainer>
@@ -267,6 +266,9 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                             />
                             <Bar dataKey="prospects" radius={4}>
                                 <LabelList dataKey="prospects" position="right" offset={8} className="fill-foreground" fontSize={12} />
+                                {prospectsByStateData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                ))}
                             </Bar>
                         </BarChart>
                     </ChartContainer>
@@ -310,6 +312,9 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                             />
                             <Bar dataKey="count" radius={4}>
                                 <LabelList dataKey="count" position="right" offset={8} className="fill-foreground" fontSize={12} />
+                                {prospectSourceData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                ))}
                             </Bar>
                         </BarChart>
                     </ChartContainer>

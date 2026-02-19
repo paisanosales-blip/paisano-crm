@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from './ui/skeleton';
@@ -18,7 +18,6 @@ interface ResponseRateChartProps {
 const chartConfig = {
     'Tasa de Respuesta': {
         label: 'Tasa de Respuesta (%)',
-        color: 'hsl(var(--chart-2))',
     },
 } satisfies ChartConfig;
 
@@ -62,11 +61,7 @@ export function ResponseRateChart({ data, isLoading }: ResponseRateChartProps) {
                                     indicator="dot" 
                                 />}
                             />
-                            <Bar
-                                dataKey="Tasa de Respuesta"
-                                fill="var(--color-Tasa de Respuesta)"
-                                radius={4}
-                            >
+                            <Bar dataKey="Tasa de Respuesta" radius={4}>
                                 <LabelList
                                     position="top"
                                     offset={10}
@@ -74,6 +69,9 @@ export function ResponseRateChart({ data, isLoading }: ResponseRateChartProps) {
                                     fontSize={12}
                                     formatter={(value: number) => `${value}%`}
                                 />
+                                {sortedData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={`hsl(var(--chart-${(index % 5) + 1}))`} />
+                                ))}
                             </Bar>
                         </BarChart>
                     </ChartContainer>

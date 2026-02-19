@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList, Cell } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from './ui/skeleton';
@@ -16,7 +16,6 @@ interface WeeklyProspectsChartProps {
 const chartConfig = {
     prospects: {
         label: 'Prospectos',
-        color: 'hsl(var(--chart-1))',
     },
 } satisfies ChartConfig;
 
@@ -83,12 +82,11 @@ export function WeeklyProspectsChart({ opportunities, currentMonth, isLoading }:
                                 cursor={false}
                                 content={<ChartTooltipContent indicator="dot" />}
                             />
-                            <Bar
-                                dataKey="prospects"
-                                fill="var(--color-prospects)"
-                                radius={4}
-                            >
+                            <Bar dataKey="prospects" radius={4}>
                                 <LabelList dataKey="prospects" position="top" offset={4} className="fill-foreground" fontSize={12} />
+                                {weeklyData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={`hsl(var(--chart-${(index % 5) + 1}))`} />
+                                ))}
                             </Bar>
                         </BarChart>
                     </ChartContainer>
