@@ -7,7 +7,7 @@ import { startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Loader2, Sparkles, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generatePresentationContent, type PresentationContent } from '@/ai/flows/generate-presentation-content';
@@ -17,7 +17,6 @@ import { Lightbulb } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { getClassification } from '@/lib/types';
 import { states } from '@/lib/geography';
-
 
 type ReportType = 'monthly_sales_summary' | 'lost_opportunities_analysis' | 'weekly_performance';
 
@@ -32,7 +31,8 @@ export default function PresentationsPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewSlide, setPreviewSlide] = useState<PresentationContent | null>(null);
   const slidePreviewRef = useRef<HTMLDivElement | null>(null);
-  
+  const slideRefs = useRef<Array<React.RefObject<HTMLDivElement>>>([]);
+
   // Data fetching
   const opportunitiesQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -159,12 +159,16 @@ export default function PresentationsPage() {
             discardedReasons: discardedOpportunitiesInPeriod.map(o => o.discardReason).filter(Boolean)
         };
       case 'lost_opportunities_analysis':
-        return opportunities.filter(opp => opp.stage === 'Descartado');
+        return opportunities.filter(opp => opp.stage === 'Descartado').map(o => o.discardReason).filter(Boolean);
       default:
         return null;
     }
   }, [reportType, opportunities, activities, leads, quotations]);
 
+  useEffect(() => {
+    slideRefs.current = slides.map((_, i) => slideRefs.current[i] ?? createRef<HTMLDivElement>());
+  }, [slides]);
+  
   const handleGenerate = async () => {
     if (!reportType) {
       toast({ variant: 'destructive', title: 'Seleccione un reporte', description: 'Debe elegir un tipo de reporte para generar.' });
@@ -184,7 +188,7 @@ export default function PresentationsPage() {
       const result = await generatePresentationContent({
         reportType: reportType,
         reportData: reportData,
-        logoUrl: logoUrl
+        logoUrl: logoUrl || ''
       });
       
       setSlides(result.slides);
@@ -297,7 +301,7 @@ export default function PresentationsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {slides.map((slide, index) => (
                          <div key={index} className="cursor-pointer group" onClick={() => handlePreviewClick(slide)}>
-                            <div className="border-2 border-transparent group-hover:border-primary rounded-lg transition-all">
+                            <div className="border-2 border-transparent group-hover:border-primary rounded-lg transition-all" ref={slideRefs.current[index]}>
                                <PresentationSlide slide={slide} />
                             </div>
                         </div>
@@ -311,6 +315,12 @@ export default function PresentationsPage() {
     </div>
     <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-4xl p-0 border-0">
+             <DialogHeader className="p-4 pb-0">
+                <DialogTitle className="sr-only">Vista Previa de Diapositiva</DialogTitle>
+                <DialogDescription className="sr-only">
+                    Vista previa de la diapositiva generada.
+                </DialogDescription>
+            </DialogHeader>
             <div className="aspect-video relative" ref={slidePreviewRef}>
                 {previewSlide && <PresentationSlide slide={previewSlide} />}
             </div>
