@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, createRef, useEffect, useRef } from 'react';
+import { useState, useMemo, createRef, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { startOfMonth, endOfMonth, subDays, format } from 'date-fns';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Sparkles, Download } from 'lucide-react';
+import { Loader2, Sparkles, Download, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generatePresentationContent, type PresentationContent } from '@/ai/flows/generate-presentation-content';
 import { PresentationSlide } from '@/components/presentation-slide';
@@ -30,11 +30,10 @@ export default function PresentationsPage() {
   const [slides, setSlides] = useState<PresentationContent[]>([]);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewSlide, setPreviewSlide] = useState<PresentationContent | null>(null);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState<number | null>(null);
   
   const slidePreviewRef = createRef<HTMLDivElement>();
-  const slideRefs = useRef<React.RefObject<HTMLDivElement>[]>([]);
-
-
+  
   // Data fetching
   const opportunitiesQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -185,10 +184,28 @@ export default function PresentationsPage() {
         return null;
     }
   }, [reportType, opportunities, activities, leads, quotations]);
-  
+
   useEffect(() => {
-    slideRefs.current = slides.map((_, i) => slideRefs.current[i] ?? createRef<HTMLDivElement>());
-  }, [slides]);
+    const handleKeyDown = (event: KeyboardEvent) => {
+        if (!isPreviewOpen || slides.length === 0 || currentSlideIndex === null) return;
+
+        if (event.key === 'ArrowRight') {
+            const nextIndex = (currentSlideIndex + 1) % slides.length;
+            setCurrentSlideIndex(nextIndex);
+            setPreviewSlide(slides[nextIndex]);
+        } else if (event.key === 'ArrowLeft') {
+            const prevIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
+            setCurrentSlideIndex(prevIndex);
+            setPreviewSlide(slides[prevIndex]);
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+        window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isPreviewOpen, currentSlideIndex, slides]);
   
   const handleGenerate = async () => {
     if (!reportType) {
@@ -258,9 +275,17 @@ export default function PresentationsPage() {
   };
 
 
-  const handlePreviewClick = (slide: PresentationContent) => {
+  const handlePreviewClick = (slide: PresentationContent, index: number) => {
     setPreviewSlide(slide);
+    setCurrentSlideIndex(index);
     setIsPreviewOpen(true);
+  };
+  
+  const handleDialogClose = (isOpen: boolean) => {
+      setIsPreviewOpen(isOpen);
+      if (!isOpen) {
+          setCurrentSlideIndex(null);
+      }
   };
 
   return (
@@ -316,12 +341,12 @@ export default function PresentationsPage() {
                     <Lightbulb className="h-4 w-4" />
                     <AlertTitle>¡Listo!</AlertTitle>
                     <AlertDescription>
-                        Haz clic en una diapositiva para verla en grande y descargarla como imagen PNG.
+                        Haz clic en una diapositiva para verla en grande. Puedes usar las flechas del teclado para navegar.
                     </AlertDescription>
                 </Alert>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {slides.map((slide, index) => (
-                         <div key={index} className="cursor-pointer group" onClick={() => handlePreviewClick(slide)}>
+                         <div key={index} className="cursor-pointer group" onClick={() => handlePreviewClick(slide, index)}>
                             <div className="border-2 border-transparent group-hover:border-primary rounded-lg transition-all">
                                <PresentationSlide slide={slide} />
                             </div>
@@ -334,24 +359,54 @@ export default function PresentationsPage() {
         )}
       </Card>
     </div>
-    <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl p-0 border-0">
-             <DialogHeader className="sr-only">
-                <DialogTitle>Vista Previa de Diapositiva</DialogTitle>
-                <DialogDescription>
-                    Vista previa de la diapositiva generada.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="aspect-video relative" ref={slidePreviewRef}>
-                {previewSlide && <PresentationSlide slide={previewSlide} />}
-            </div>
-            <DialogFooter className="p-4 border-t">
-                <Button onClick={handleDownload} className="w-full">
-                    <Download className="mr-2 h-4 w-4" />
-                    Descargar Diapositiva
-                </Button>
-            </DialogFooter>
-        </DialogContent>
+    <Dialog open={isPreviewOpen} onOpenChange={handleDialogClose}>
+      <DialogContent className="max-w-4xl p-0 border-0">
+        <div className="absolute inset-y-0 left-4 z-10 flex items-center">
+            <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full h-10 w-10 bg-background/50 hover:bg-background/80"
+                onClick={() => {
+                    if(currentSlideIndex === null) return;
+                    const prevIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
+                    setCurrentSlideIndex(prevIndex);
+                    setPreviewSlide(slides[prevIndex]);
+                }}
+            >
+                <ArrowLeft className="h-5 w-5" />
+            </Button>
+        </div>
+        <div className="aspect-video relative" ref={slidePreviewRef}>
+            {previewSlide && <PresentationSlide slide={previewSlide} />}
+        </div>
+        <div className="absolute inset-y-0 right-4 z-10 flex items-center">
+            <Button
+                variant="outline"
+                size="icon"
+                className="rounded-full h-10 w-10 bg-background/50 hover:bg-background/80"
+                onClick={() => {
+                    if(currentSlideIndex === null) return;
+                    const nextIndex = (currentSlideIndex + 1) % slides.length;
+                    setCurrentSlideIndex(nextIndex);
+                    setPreviewSlide(slides[nextIndex]);
+                }}
+            >
+                <ArrowRight className="h-5 w-5" />
+            </Button>
+        </div>
+        <DialogFooter className="p-4 border-t sm:justify-center">
+            <Button onClick={handleDownload} className="w-full sm:w-auto">
+                <Download className="mr-2 h-4 w-4" />
+                Descargar Diapositiva
+            </Button>
+        </DialogFooter>
+         <DialogHeader className="sr-only">
+            <DialogTitle>Vista Previa de Diapositiva</DialogTitle>
+            <DialogDescription>
+                Vista previa de la diapositiva generada.
+            </DialogDescription>
+        </DialogHeader>
+      </DialogContent>
     </Dialog>
     </>
   );
