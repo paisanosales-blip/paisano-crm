@@ -1,6 +1,6 @@
 'use client';
 
-import { Bar, BarChart, CartesianGrid, Pie, PieChart, XAxis, YAxis, Cell } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Pie, PieChart, XAxis, YAxis, Cell, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
@@ -204,7 +204,7 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                             accessibilityLayer
                             data={potentialClientsByCityData}
                             layout="vertical"
-                            margin={{ left: 10 }}
+                            margin={{ left: 10, right: 30 }}
                         >
                             <CartesianGrid horizontal={false} />
                             <YAxis
@@ -220,7 +220,9 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                                 cursor={false}
                                 content={<ChartTooltipContent indicator="dot" />}
                             />
-                            <Bar dataKey="clients" radius={4} />
+                            <Bar dataKey="clients" radius={4}>
+                                <LabelList dataKey="clients" position="right" offset={8} className="fill-foreground" fontSize={12} />
+                            </Bar>
                         </BarChart>
                     </ChartContainer>
                  ) : (
@@ -242,7 +244,7 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                             accessibilityLayer
                             data={prospectsByStateData}
                             layout="vertical"
-                            margin={{ left: 10 }}
+                            margin={{ left: 10, right: 30 }}
                         >
                             <CartesianGrid horizontal={false} />
                             <YAxis
@@ -259,7 +261,9 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                                 cursor={false}
                                 content={<ChartTooltipContent indicator="dot" />}
                             />
-                            <Bar dataKey="prospects" radius={4} />
+                            <Bar dataKey="prospects" radius={4}>
+                                <LabelList dataKey="prospects" position="right" offset={8} className="fill-foreground" fontSize={12} />
+                            </Bar>
                         </BarChart>
                     </ChartContainer>
                  ) : (
@@ -281,7 +285,7 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                             accessibilityLayer
                             data={prospectSourceData}
                             layout="vertical"
-                            margin={{ left: 10 }}
+                            margin={{ left: 10, right: 30 }}
                         >
                             <CartesianGrid horizontal={false} />
                             <YAxis
@@ -300,7 +304,9 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                                 cursor={false}
                                 content={<ChartTooltipContent indicator="dot" />}
                             />
-                            <Bar dataKey="count" radius={4} />
+                            <Bar dataKey="count" radius={4}>
+                                <LabelList dataKey="count" position="right" offset={8} className="fill-foreground" fontSize={12} />
+                            </Bar>
                         </BarChart>
                     </ChartContainer>
                  ) : (

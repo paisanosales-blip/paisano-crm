@@ -1,6 +1,6 @@
 'use client';
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { PaisanoLogo } from '@/components/icons';
 import { type PresentationContent } from '@/ai/flows/generate-presentation-content';
@@ -88,7 +88,9 @@ const renderContent = (slide: PresentationContent) => {
                                     cursor={false}
                                     content={<ChartTooltipContent indicator="dot" />}
                                 />
-                                <Bar dataKey="value" fill="hsl(var(--primary))" radius={4} />
+                                <Bar dataKey="value" fill="hsl(var(--primary))" radius={4}>
+                                    <LabelList dataKey="value" position="top" offset={4} className="fill-foreground" fontSize={12} />
+                                </Bar>
                             </BarChart>
                         </ChartContainer>
                     </div>

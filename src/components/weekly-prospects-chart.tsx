@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, LabelList } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from './ui/skeleton';
@@ -70,7 +70,7 @@ export function WeeklyProspectsChart({ opportunities, currentMonth, isLoading }:
             <CardContent>
                 {weeklyData.length > 0 ? (
                     <ChartContainer config={chartConfig} className="h-[350px] w-full">
-                        <BarChart accessibilityLayer data={weeklyData}>
+                        <BarChart accessibilityLayer data={weeklyData} margin={{ top: 20 }}>
                             <CartesianGrid vertical={false} />
                             <XAxis
                                 dataKey="week"
@@ -87,7 +87,9 @@ export function WeeklyProspectsChart({ opportunities, currentMonth, isLoading }:
                                 dataKey="prospects"
                                 fill="var(--color-prospects)"
                                 radius={4}
-                            />
+                            >
+                                <LabelList dataKey="prospects" position="top" offset={4} className="fill-foreground" fontSize={12} />
+                            </Bar>
                         </BarChart>
                     </ChartContainer>
                 ) : (
