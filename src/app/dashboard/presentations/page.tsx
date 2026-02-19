@@ -3,7 +3,7 @@
 import { useState, useMemo, createRef, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import { startOfMonth, endOfMonth, subDays } from 'date-fns';
+import { startOfMonth, endOfMonth, subDays, format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,6 +32,8 @@ export default function PresentationsPage() {
   const [previewSlide, setPreviewSlide] = useState<PresentationContent | null>(null);
   
   const slidePreviewRef = createRef<HTMLDivElement>();
+  const slideRefs = React.useRef<React.RefObject<HTMLDivElement>[]>([]);
+
 
   // Data fetching
   const opportunitiesQuery = useMemoFirebase(() => {
@@ -185,7 +187,10 @@ export default function PresentationsPage() {
         return null;
     }
   }, [reportType, opportunities, activities, leads, quotations]);
-
+  
+  useEffect(() => {
+    slideRefs.current = slides.map((_, i) => slideRefs.current[i] ?? createRef<HTMLDivElement>());
+  }, [slides]);
   
   const handleGenerate = async () => {
     if (!reportType) {
@@ -228,14 +233,45 @@ export default function PresentationsPage() {
     }
   };
   
-  const handleDownload = async () => {
-    if (!slidePreviewRef.current) {
+  const handleDownload = async (index: number) => {
+    if (!slideRefs.current[index]?.current) {
       toast({ variant: 'destructive', title: 'Error de Descarga', description: 'No se pudo encontrar la referencia de la diapositiva.' });
       return;
     }
     
     const nodeFilter = (node: HTMLElement) => {
       // The library fails to parse cross-origin CSS, so we skip the google fonts stylesheet.
+      return !(node.tagName === 'LINK' && node.getAttribute('href')?.startsWith('https://fonts.googleapis.com'));
+    };
+
+    try {
+      const dataUrl = await toPng(slideRefs.current[index].current!, { 
+        cacheBust: true, 
+        pixelRatio: 2, // Increase resolution for better quality
+        filter: nodeFilter,
+      });
+      const link = document.createElement('a');
+      link.download = `diapositiva-${index + 1}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Failed to download image:', err);
+      toast({ variant: 'destructive', title: 'Error de Descarga', description: 'No se pudo convertir la diapositiva a imagen.' });
+    }
+  };
+
+  const handlePreviewClick = (slide: PresentationContent) => {
+    setPreviewSlide(slide);
+    setIsPreviewOpen(true);
+  };
+  
+  const handleDownloadPreview = async () => {
+    if (!slidePreviewRef.current) {
+      toast({ variant: 'destructive', title: 'Error de Descarga', description: 'No se pudo encontrar la referencia de la diapositiva.' });
+      return;
+    }
+    
+    const nodeFilter = (node: HTMLElement) => {
       return !(node.tagName === 'LINK' && node.getAttribute('href')?.startsWith('https://fonts.googleapis.com'));
     };
 
@@ -255,10 +291,6 @@ export default function PresentationsPage() {
     }
   };
 
-  const handlePreviewClick = (slide: PresentationContent) => {
-    setPreviewSlide(slide);
-    setIsPreviewOpen(true);
-  };
 
   return (
     <>
@@ -280,7 +312,7 @@ export default function PresentationsPage() {
                 <SelectValue placeholder="Seleccione el tipo de reporte" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="monthly_sales_summary">Resumen de Ventas Mensual</SelectItem>
+                <SelectItem value="monthly_sales_summary">RESUMEN DE PROSPECCION MENSUAL</SelectItem>
                 <SelectItem value="weekly_performance">Rendimiento Semanal</SelectItem>
                 <SelectItem value="lost_opportunities_analysis">Análisis de Oportunidades Perdidas</SelectItem>
               </SelectContent>
@@ -319,7 +351,7 @@ export default function PresentationsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {slides.map((slide, index) => (
                          <div key={index} className="cursor-pointer group" onClick={() => handlePreviewClick(slide)}>
-                            <div className="border-2 border-transparent group-hover:border-primary rounded-lg transition-all">
+                            <div className="border-2 border-transparent group-hover:border-primary rounded-lg transition-all" ref={slideRefs.current[index]}>
                                <PresentationSlide slide={slide} />
                             </div>
                         </div>
@@ -343,7 +375,7 @@ export default function PresentationsPage() {
                 {previewSlide && <PresentationSlide slide={previewSlide} />}
             </div>
             <DialogFooter className="p-4 border-t">
-                <Button onClick={handleDownload} className="w-full">
+                <Button onClick={handleDownloadPreview} className="w-full">
                     <Download className="mr-2 h-4 w-4" />
                     Descargar Diapositiva
                 </Button>
