@@ -106,7 +106,7 @@ export function IndividualSendDialog({ open, onOpenChange, template }: Individua
         window.open(url, '_blank', 'noopener,noreferrer');
         toast({
             title: 'Redireccionando...',
-            description: `Se está abriendo la aplicación para enviar el mensaje a ${lead.clientName}.`,
+            description: `Se está abriendo la aplicación para enviar el mensaje a ${lead.clientName.toUpperCase()}.`,
         });
         onOpenChange(false);
     } else {
@@ -200,8 +200,8 @@ export function IndividualSendDialog({ open, onOpenChange, template }: Individua
                         <div key={lead.id} className="flex items-center p-2 rounded-md hover:bg-muted/50 cursor-pointer" onClick={() => handleSend(lead)}>
                             <User className="h-5 w-5 mr-3 text-muted-foreground" />
                             <div className="flex-grow">
-                                <div className="font-semibold">{lead.clientName}</div>
-                                <div className="text-sm text-muted-foreground">{lead.contactPerson} - {lead[contactField]}</div>
+                                <div className="font-semibold">{lead.clientName.toUpperCase()}</div>
+                                <div className="text-sm text-muted-foreground">{lead.contactPerson.toUpperCase()} - {lead[contactField]}</div>
                             </div>
                         </div>
                     ))

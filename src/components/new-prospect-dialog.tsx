@@ -174,7 +174,7 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
 
       toast({
         title: '¡Prospecto Creado!',
-        description: `${values.clientName} ha sido agregado. Ahora registre el primer contacto.`,
+        description: `${values.clientName.toUpperCase()} ha sido agregado. Ahora registre el primer contacto.`,
       });
       onSuccess({ ...leadData, id: leadRef.id });
       setOpen(false);
@@ -493,5 +493,3 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
     </Dialog>
   );
 }
-
-    

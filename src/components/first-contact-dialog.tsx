@@ -79,7 +79,7 @@ export function FirstContactDialog({
         sellerId: user.uid,
         sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
         stage: 'Primer contacto' as const,
-        name: `Oportunidad para ${lead.clientName}`,
+        name: `Oportunidad para ${lead.clientName.toUpperCase()}`,
         value: 0,
         currency: 'USD',
         probability: 10,
@@ -136,7 +136,7 @@ export function FirstContactDialog({
         <DialogHeader>
           <DialogTitle>Registrar Primer Contacto</DialogTitle>
           <DialogDescription>
-            Agregue una observación sobre su primer contacto con {lead?.clientName}.
+            Agregue una observación sobre su primer contacto con {lead?.clientName.toUpperCase()}.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">

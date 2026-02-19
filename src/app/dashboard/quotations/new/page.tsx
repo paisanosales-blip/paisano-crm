@@ -253,7 +253,7 @@ export default function NewQuotationPage() {
         
         const opportunityData = {
           leadId: newLeadRef.id, sellerId: user.uid, sellerName, stage: 'Envió de Cotización' as const,
-          name: `Oportunidad para ${leadData.clientName}`, value: total, currency, probability: 10,
+          name: `Oportunidad para ${leadData.clientName.toUpperCase()}`, value: total, currency, probability: 10,
           createdDate: new Date().toISOString(),
           expectedCloseDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
         };
@@ -274,7 +274,7 @@ export default function NewQuotationPage() {
         if (oppsSnapshot.empty) {
           const opportunityData = {
             leadId: selectedClient.id, sellerId: user.uid, sellerName, stage: 'Envió de Cotización' as const,
-            name: `Oportunidad para ${selectedClient.clientName}`, value: total, currency, probability: 10,
+            name: `Oportunidad para ${selectedClient.clientName.toUpperCase()}`, value: total, currency, probability: 10,
             createdDate: new Date().toISOString(),
             expectedCloseDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
           };
@@ -643,7 +643,7 @@ export default function NewQuotationPage() {
                                   ) : (
                                       leads?.map((lead: any) => (
                                           <SelectItem key={lead.id} value={lead.id}>
-                                              {lead.clientName}
+                                              {lead.clientName.toUpperCase()}
                                           </SelectItem>
                                       ))
                                   )}
@@ -770,5 +770,3 @@ export default function NewQuotationPage() {
     </>
   );
 }
-
-    

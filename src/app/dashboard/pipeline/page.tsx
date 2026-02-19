@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState } from 'react';
@@ -304,7 +305,7 @@ export default function PipelinePage() {
 
       toast({
         title: 'Prospecto Descartado',
-        description: `${prospectToDiscard.clientName} ha sido movido a descartados.`,
+        description: `${prospectToDiscard.clientName.toUpperCase()} ha sido movido a descartados.`,
       });
       router.refresh();
     } catch (error) {
@@ -488,7 +489,7 @@ export default function PipelinePage() {
         
         toast({
           title: isEditing ? '¡Cotización Actualizada!' : '¡Cotización Enviada!',
-          description: `La cotización para ${currentProspect.clientName} ha sido guardada.`,
+          description: `La cotización para ${currentProspect.clientName.toUpperCase()} ha sido guardada.`,
         });
 
         setFollowUpQuotationId(quotationIdForFollowUp);
@@ -683,7 +684,7 @@ export default function PipelinePage() {
         addDocumentNonBlocking(collection(firestore, 'activities'), activityData);
     }
     
-    toast({ title: payload.id ? 'Seguimiento Actualizado' : 'Actividad Creada', description: payload.id ? 'El seguimiento ha sido modificado.' : `Nuevo seguimiento para ${currentProspect.clientName} agendado.` });
+    toast({ title: payload.id ? 'Seguimiento Actualizado' : 'Actividad Creada', description: payload.id ? 'El seguimiento ha sido modificado.' : `Nuevo seguimiento para ${currentProspect.clientName.toUpperCase()} agendado.` });
     
     setIsFollowUpDialogOpen(false);
     setCurrentProspect(null);
@@ -792,7 +793,7 @@ export default function PipelinePage() {
         setEnrichmentHistory(prev => ({...prev, [prospect.id]: originalValues }));
         toast({
           title: 'Prospecto Enriquecido',
-          description: `Se encontró y actualizó nueva información para ${prospect.clientName}.`,
+          description: `Se encontró y actualizó nueva información para ${prospect.clientName.toUpperCase()}.`,
           action: (
             <ToastAction altText="Deshacer" onClick={() => handleUndoEnrichmentClick(prospect.id)}>
               Deshacer
@@ -1163,9 +1164,9 @@ export default function PipelinePage() {
                                   <div className="flex justify-between items-start gap-2">
                                       <div className="flex-1">
                                           <Link href={`/dashboard/clients/${prospect.id}`} className="hover:underline">
-                                              <CardTitle className="text-lg font-bold">{prospect.clientName}</CardTitle>
+                                              <CardTitle className="text-lg font-bold">{prospect.clientName.toUpperCase()}</CardTitle>
                                           </Link>
-                                          <CardDescription>{prospect.contactPerson}</CardDescription>
+                                          <CardDescription>{prospect.contactPerson.toUpperCase()}</CardDescription>
                                       </div>
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-7 w-7 flex-shrink-0"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
@@ -1280,9 +1281,9 @@ export default function PipelinePage() {
                     <CardHeader className="flex flex-row items-start justify-between p-2 pb-0">
                       <div>
                         <Link href={`/dashboard/clients/${prospect.id}`}>
-                            <CardTitle className="text-base hover:underline cursor-pointer">{prospect.clientName}</CardTitle>
+                            <CardTitle className="text-base hover:underline cursor-pointer">{prospect.clientName.toUpperCase()}</CardTitle>
                         </Link>
-                        <CardDescription className="text-xs">{prospect.contactPerson}</CardDescription>
+                        <CardDescription className="text-xs">{prospect.contactPerson.toUpperCase()}</CardDescription>
                       </div>
                        <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-7 w-7"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
@@ -1748,7 +1749,7 @@ export default function PipelinePage() {
             setQuotationUploadOpen(isOpen);
           }}
           onConfirm={handleQuotationUpload}
-          opportunityName={currentProspect.clientName}
+          opportunityName={currentProspect.clientName.toUpperCase()}
           quotation={currentProspect.quotation}
           isSubmitting={isSubmitting}
           uploadProgress={uploadProgress}
@@ -1913,7 +1914,7 @@ export default function PipelinePage() {
                 setIsDiscardDialogOpen(isOpen);
             }}
             onConfirm={handleDiscardConfirm}
-            prospectName={prospectToDiscard.clientName}
+            prospectName={prospectToDiscard.clientName.toUpperCase()}
             isSubmitting={isSubmitting}
         />
       )}
