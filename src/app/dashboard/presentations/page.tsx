@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, createRef, useEffect } from 'react';
+import { useState, useMemo, createRef, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { startOfMonth, endOfMonth, subDays, format } from 'date-fns';
@@ -32,7 +32,7 @@ export default function PresentationsPage() {
   const [previewSlide, setPreviewSlide] = useState<PresentationContent | null>(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number | null>(null);
   
-  const slidePreviewRef = createRef<HTMLDivElement>();
+  const slidePreviewRef = useRef<HTMLDivElement>(null);
   
   // Data fetching
   const opportunitiesQuery = useMemoFirebase(() => {
@@ -129,14 +129,14 @@ export default function PresentationsPage() {
         acc[source] = (acc[source] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
-    const prospectSources = Object.entries(sourceCounts).map(([name, value]) => ({ name, value }));
+    const prospectSources = Object.entries(sourceCounts).sort(([,a],[,b]) => b - a).map(([name, value]) => ({ name, value }));
 
     const stageCounts = opportunities.reduce((acc, opp) => {
         const stage = opp.stage || 'Desconocido';
         acc[stage] = (acc[stage] || 0) + 1;
         return acc;
     }, {} as Record<string, number>);
-    const pipelineSummary = Object.entries(stageCounts).map(([name, value]) => ({ name, value }));
+    const pipelineSummary = Object.entries(stageCounts).sort(([,a],[,b]) => b - a).map(([name, value]) => ({ name, value }));
 
     switch (reportType) {
       case 'monthly_sales_summary':
@@ -255,7 +255,11 @@ export default function PresentationsPage() {
     }
     
     const nodeFilter = (node: HTMLElement) => {
-      return !(node.tagName === 'LINK' && node.getAttribute('href')?.startsWith('https://fonts.googleapis.com'));
+      // Exclude external Google Fonts stylesheets
+      if (node.tagName === 'LINK' && node.getAttribute('href')?.startsWith('https://fonts.googleapis.com')) {
+          return false;
+      }
+      return true;
     };
 
     try {
@@ -400,11 +404,9 @@ export default function PresentationsPage() {
                 Descargar Diapositiva
             </Button>
         </DialogFooter>
-         <DialogHeader className="sr-only">
-            <DialogTitle>Vista Previa de Diapositiva</DialogTitle>
-            <DialogDescription>
-                Vista previa de la diapositiva generada.
-            </DialogDescription>
+        <DialogHeader className="sr-only">
+          <DialogTitle>Vista Previa de Diapositiva</DialogTitle>
+          <DialogDescription>Vista previa de la diapositiva generada.</DialogDescription>
         </DialogHeader>
       </DialogContent>
     </Dialog>

@@ -22,10 +22,10 @@ const pipelineConfig = {
 
 const prospectSourceConfig = {
     count: { label: 'Prospectos' },
-    'REDESSOCIALES': { label: 'Redes Sociales', color: 'hsl(var(--chart-1))' },
+    'REDES SOCIALES': { label: 'Redes Sociales', color: 'hsl(var(--chart-1))' },
     'PUBLICIDAD': { label: 'Publicidad', color: 'hsl(var(--chart-2))' },
-    'BUSQUEDAENGOOGLE': { label: 'Búsqueda en Google', color: 'hsl(var(--chart-3))' },
-    'BUSQUEDAENMAPS': { label: 'Búsqueda en Maps', color: 'hsl(var(--chart-4))' },
+    'BUSQUEDA EN GOOGLE': { label: 'Búsqueda en Google', color: 'hsl(var(--chart-3))' },
+    'BUSQUEDA EN MAPS': { label: 'Búsqueda en Maps', color: 'hsl(var(--chart-4))' },
     'Desconocido': { label: 'Desconocido', color: 'hsl(var(--chart-5))' },
 } satisfies ChartConfig;
 
@@ -154,11 +154,13 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
             return acc;
         }, {} as Record<string, number>);
         
-        return Object.entries(stageCounts).map(([stage, count]) => ({ 
-            stage, 
-            count,
-            fill: pipelineConfig[stage as keyof typeof pipelineConfig]?.color || 'hsl(var(--muted))'
-        }));
+        return Object.entries(stageCounts)
+            .sort(([, a], [, b]) => b - a)
+            .map(([stage, count]) => ({ 
+                stage, 
+                count,
+                fill: pipelineConfig[stage as keyof typeof pipelineConfig]?.color || 'hsl(var(--muted))'
+            }));
     }, [opportunities]);
 
      const prospectSourceData = React.useMemo(() => {
@@ -169,14 +171,16 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
             return acc;
         }, {} as Record<string, number>);
 
-        return Object.entries(sourceCounts).map(([source, count]) => {
-            const configKey = source.replace(/\s+/g, '').toUpperCase();
-            return {
-                source,
-                count,
-                fill: prospectSourceConfig[configKey as keyof typeof prospectSourceConfig]?.color || 'hsl(var(--muted))',
-            };
-        });
+        return Object.entries(sourceCounts)
+            .sort(([, a], [, b]) => b - a)
+            .map(([source, count]) => {
+                const configKey = source.replace(/\s+/g, '').toUpperCase();
+                return {
+                    source,
+                    count,
+                    fill: prospectSourceConfig[configKey as keyof typeof prospectSourceConfig]?.color || 'hsl(var(--muted))',
+                };
+            });
     }, [leads]);
 
     if (isLoading) {
