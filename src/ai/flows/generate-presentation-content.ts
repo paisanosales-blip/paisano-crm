@@ -40,11 +40,22 @@ const QuoteSlideSchema = z.object({
   author: z.string().optional().describe('The author of the quote, or the source of the takeaway.'),
 });
 
+const BarChartSlideSchema = z.object({
+  slideType: z.enum(['bar_chart_slide']),
+  title: z.string().describe('The title for the bar chart slide, e.g., "Ventas por Categoría".'),
+  data: z.array(z.object({
+    name: z.string().describe('The label for a bar on the x-axis.'),
+    value: z.number().describe('The numerical value for the bar.'),
+  })).describe('An array of data points for the bar chart.'),
+});
+
+
 const PresentationContentSchema = z.union([
   TitleSlideSchema,
   KpiSlideSchema,
   BulletPointsSlideSchema,
   QuoteSlideSchema,
+  BarChartSlideSchema,
 ]);
 export type PresentationContent = z.infer<typeof PresentationContentSchema>;
 
@@ -76,12 +87,13 @@ const prompt = ai.definePrompt({
   output: { schema: GeneratePresentationContentOutputSchema },
   prompt: `Eres un analista de ventas experto y diseñador de presentaciones para "Paisano Trailer", una empresa que vende remolques de alta resistencia. Tu tarea es generar el contenido para 3-5 diapositivas de una presentación de PowerPoint, basándote en un tipo de reporte y los datos proporcionados. El tono debe ser profesional, conciso y visualmente impactante.
 
-  **Instrucciones Generales:**
-  1.  **Analiza los datos:** Revisa el JSON en 'reportData' para entender el rendimiento.
-  2.  **Genera 3 a 5 diapositivas:** Crea una secuencia lógica de diapositivas que cuenten una historia.
-  3.  **Variedad de Diapositivas:** Utiliza una mezcla de los tipos de diapositiva disponibles ('title_slide', 'kpi_slide', 'bullet_points_slide', 'quote_slide') para hacer la presentación dinámica.
-  4.  **Enfócate en Insights:** No te limites a listar datos. Extrae conclusiones, resalta tendencias y ofrece recomendaciones clave en los puntos.
-  5.  **Sé Conciso:** Cada diapositiva debe ser clara y fácil de entender. Menos es más.
+  **Instrucciones MUY IMPORTANTES:**
+  1.  **SÉ EXTREMADAMENTE CONCISO.** El texto para títulos y puntos debe ser muy breve para que quepa en el diseño de la diapositiva. Usa frases cortas y directas.
+  2.  **Analiza los datos:** Revisa el JSON en 'reportData' para entender el rendimiento.
+  3.  **Genera 3 a 5 diapositivas:** Crea una secuencia lógica de diapositivas que cuenten una historia.
+  4.  **Variedad de Diapositivas:** Utiliza una mezcla de los tipos de diapositiva disponibles ('title_slide', 'kpi_slide', 'bullet_points_slide', 'quote_slide', 'bar_chart_slide').
+  5.  **Enfócate en Insights:** No te limites a listar datos. Extrae conclusiones, resalta tendencias y ofrece recomendaciones clave en los puntos.
+  6.  **Usa Gráficos:** Cuando los datos contengan valores numéricos comparables (ej. ventas por producto, oportunidades por etapa), usa 'bar_chart_slide' para visualizarlos.
 
   **Contexto del Reporte:**
   - Tipo de Reporte: {{{reportType}}}
@@ -90,23 +102,23 @@ const prompt = ai.definePrompt({
   **Ejemplos de cómo pensar para cada tipo de reporte:**
 
   - **Si reportType es 'monthly_sales_summary':**
-    - **Diapositiva 1 (title_slide):** Título como "Resumen de Ventas" y el mes/año.
-    - **Diapositiva 2 (kpi_slide):** Métricas clave como "Ingresos Totales", "Nuevos Clientes", "Tasa de Conversión".
-    - **Diapositiva 3 (bullet_points_slide):** Conclusiones principales, como "Aumento del 20% en ventas de 'Sand Hopper'" o "Recomendación: Enfocar esfuerzos en el sector de construcción".
-    - **Diapositiva 4 (quote_slide):** Una frase impactante como "La constancia en el seguimiento fue clave para superar la meta este mes."
+    - **Diapositiva 1 (title_slide):** Título: "Resumen de Ventas", Subtítulo: (Mes y Año).
+    - **Diapositiva 2 (kpi_slide):** KPIs clave: "Ingresos Totales", "Nuevos Clientes", "Tasa de Conversión".
+    - **Diapositiva 3 (bar_chart_slide):** Título: "Ingresos por Producto". Data: Un array con objetos \`{name: 'Nombre Producto', value: 50000}\`.
+    - **Diapositiva 4 (bullet_points_slide):** Título: "Claves y Acciones". Puntos: "Aumento del 20% en 'Sand Hopper'", "Acción: Enfocar en construcción".
 
   - **Si reportType es 'lost_opportunities_analysis':**
-    - **Diapositiva 1 (title_slide):** Título como "Análisis de Oportunidades Perdidas".
-    - **Diapositiva 2 (kpi_slide):** KPIs como "Total Oportunidades Perdidas" y "Principal Motivo de Descarte". Usa los datos para encontrar el motivo más común.
-    - **Diapositiva 3 (bullet_points_slide):** Título "Plan de Acción". Puntos como "Mejorar calificación inicial para reducir pérdidas por 'Sin presupuesto'" o "Crear guion para objeciones de precio".
+    - **Diapositiva 1 (title_slide):** Título: "Análisis de Oportunidades Perdidas".
+    - **Diapositiva 2 (bar_chart_slide):** Título: "Principales Motivos de Descarte". Data: Array con \`{name: 'Precio', value: 15}\`, \`{name: 'Competencia', value: 8}\`.
+    - **Diapositiva 3 (bullet_points_slide):** Título: "Plan de Acción". Puntos: "Mejorar calificación inicial", "Crear guion para objeciones de precio".
   
   - **Si reportType es 'weekly_performance':**
-    - **Diapositiva 1 (title_slide):** Título "Rendimiento Semanal".
-    - **Diapositiva 2 (kpi_slide):** KPIs como "Nuevos Prospectos Creados", "Seguimientos Completados".
-    - **Diapositiva 3 (bullet_points_slide):** Título "Logros y Desafíos". Puntos como "Logro: Se contactaron al 100% de los nuevos prospectos." y "Desafío: 5 seguimientos se encuentran atrasados."
-    - **Diapositiva 4 (quote_slide):** Una frase motivacional como "La disciplina de esta semana definirá las ventas del próximo mes." con autor "Coach de Ventas".
+    - **Diapositiva 1 (title_slide):** Título: "Rendimiento Semanal".
+    - **Diapositiva 2 (kpi_slide):** KPIs: "Prospectos Creados", "Seguimientos Completados".
+    - **Diapositiva 3 (bullet_points_slide):** Título: "Logros y Desafíos". Puntos: "Logro: 100% de contacto a nuevos prospectos.", "Desafío: 5 seguimientos atrasados."
+    - **Diapositiva 4 (quote_slide):** Cita motivacional: "La disciplina de hoy define las ventas de mañana.", Autor: "Coach de Ventas".
 
-  Ahora, genera el contenido para la presentación basándote en los datos y el tipo de reporte proporcionados.
+  Ahora, genera el contenido para la presentación basándote en los datos y el tipo de reporte proporcionados. Sé breve y directo.
   `,
 });
 
