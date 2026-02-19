@@ -22,7 +22,7 @@ const renderContent = (slide: PresentationContent) => {
             );
         case 'kpi_slide':
             const gridCols = slide.kpis.length > 2 ? 'grid-cols-2' : 'grid-cols-1';
-            const kpiTextSize = slide.kpis.length > 2 ? 'text-4xl' : 'text-5xl';
+            const kpiTextSize = slide.kpis.length > 2 ? 'text-3xl' : 'text-4xl';
             return (
                 <div className="p-8 h-full flex flex-col">
                     <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">{slide.title}</h2>
@@ -63,7 +63,7 @@ const renderContent = (slide: PresentationContent) => {
             const chartConfig: ChartConfig = {
                 value: { label: "Valor" },
                 ...slide.data.reduce((acc, item) => {
-                    acc[item.name] = { label: item.name, color: "hsl(var(--chart-1))" };
+                    acc[item.name] = { label: item.name, color: "hsl(var(--primary))" };
                     return acc;
                 }, {} as ChartConfig)
             };
@@ -104,22 +104,19 @@ export function PresentationSlide({ slide }: PresentationSlideProps) {
   return (
     <Card className="aspect-video w-full overflow-hidden shadow-lg border-2 border-black/10 bg-white">
         <CardContent className="relative flex h-full w-full flex-col justify-center p-0">
-            {/* Header with Logo */}
-            {logoUrl ? (
-                <div className="absolute top-6 left-8 h-10 w-28 z-20">
+             <div className="absolute top-4 left-6 h-8 w-24 z-20">
+                {logoUrl ? (
                     <Image src={logoUrl} alt="Logo" fill className="object-contain" />
-                </div>
-            ) : (
-                <PaisanoLogo className="absolute top-6 left-8 w-24 h-auto text-gray-300 z-20" />
-            )}
+                ) : (
+                    <PaisanoLogo className="w-full h-full text-gray-300" />
+                )}
+            </div>
 
-            {/* Main Content */}
-            <div className="pt-20 px-8 pb-12 h-full">
-                {renderContent(slide)}
+            <div className="absolute inset-0 pt-16 px-8 pb-12 flex flex-col justify-center">
+                 {renderContent(slide)}
             </div>
             
-            {/* Footer */}
-            <div className="absolute bottom-4 left-0 w-full text-center z-20">
+            <div className="absolute bottom-4 inset-x-0 text-center z-20">
                  <p className="text-xs font-semibold text-gray-500">PAISANO TRAILER</p>
             </div>
         </CardContent>

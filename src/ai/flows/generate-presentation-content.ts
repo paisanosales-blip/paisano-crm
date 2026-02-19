@@ -85,15 +85,13 @@ const prompt = ai.definePrompt({
   name: 'generatePresentationContentPrompt',
   input: { schema: GeneratePresentationContentInputSchema },
   output: { schema: GeneratePresentationContentOutputSchema },
-  prompt: `Eres un analista de ventas experto y diseñador de presentaciones para "Paisano Trailer", una empresa que vende remolques de alta resistencia. Tu tarea es generar el contenido para 3-5 diapositivas de una presentación de PowerPoint, basándote en un tipo de reporte y los datos proporcionados. El tono debe ser profesional, conciso y visualmente impactante.
+  prompt: `Eres un analista de ventas experto y diseñador de presentaciones para "Paisano Trailer", una empresa que vende remolques de alta resistencia. Tu tarea es generar el contenido para 3-5 diapositivas de una presentación, basándote en un tipo de reporte y los datos proporcionados.
 
   **Instrucciones MUY IMPORTANTES:**
-  1.  **SÉ EXTREMADAMENTE CONCISO.** El texto para títulos y puntos debe ser muy breve para que quepa en el diseño de la diapositiva. Usa frases cortas y directas.
-  2.  **Analiza los datos:** Revisa el JSON en 'reportData' para entender el rendimiento.
-  3.  **Genera 3 a 5 diapositivas:** Crea una secuencia lógica de diapositivas que cuenten una historia.
-  4.  **Variedad de Diapositivas:** Utiliza una mezcla de los tipos de diapositiva disponibles ('title_slide', 'kpi_slide', 'bullet_points_slide', 'quote_slide', 'bar_chart_slide').
-  5.  **Enfócate en Insights:** No te limites a listar datos. Extrae conclusiones, resalta tendencias y ofrece recomendaciones clave en los puntos.
-  6.  **Usa Gráficos:** Cuando los datos contengan valores numéricos comparables (ej. ventas por producto, oportunidades por etapa), usa 'bar_chart_slide' para visualizarlos.
+  1.  **SÉ EXTREMADAMENTE CONCISO.** El texto para títulos y puntos debe ser muy breve para que quepa en el diseño de la diapositiva. Usa frases cortas y directas. Si un tema necesita más explicación, divídelo en varias diapositivas.
+  2.  **Genera 3 a 5 diapositivas:** Crea una secuencia lógica de diapositivas que cuenten una historia clara.
+  3.  **Variedad de Diapositivas:** Utiliza una mezcla de los tipos de diapositiva disponibles ('title_slide', 'kpi_slide', 'bullet_points_slide', 'quote_slide', 'bar_chart_slide').
+  4.  **Usa Gráficos:** Cuando los datos contengan valores numéricos comparables (ej. ventas por producto, oportunidades por etapa), usa 'bar_chart_slide' para visualizarlos. No pongas demasiados datos en un solo gráfico.
 
   **Contexto del Reporte:**
   - Tipo de Reporte: {{{reportType}}}

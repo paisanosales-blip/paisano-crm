@@ -7,11 +7,11 @@ import { startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Sparkles, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generatePresentationContent, type PresentationContent } from '@/ai/flows/generate-presentation-content';
 import { PresentationSlide } from '@/components/presentation-slide';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Lightbulb } from 'lucide-react';
 import { toPng } from 'html-to-image';
@@ -27,7 +27,9 @@ export default function PresentationsPage() {
   const [reportType, setReportType] = useState<ReportType | ''>('');
   const [isLoading, setIsLoading] = useState(false);
   const [slides, setSlides] = useState<PresentationContent[]>([]);
-  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewSlide, setPreviewSlide] = useState<PresentationContent | null>(null);
+  const slidePreviewRef = useRef<HTMLDivElement | null>(null);
   
   // Data fetching
   const opportunitiesQuery = useMemoFirebase(() => {
@@ -80,7 +82,6 @@ export default function PresentationsPage() {
 
     setIsLoading(true);
     setSlides([]);
-    slideRefs.current = [];
     
     try {
       const logoUrl = localStorage.getItem('sidebarLogo') || '';
@@ -110,8 +111,8 @@ export default function PresentationsPage() {
     }
   };
   
-  const handleDownload = async (index: number) => {
-    if (!slideRefs.current[index]) {
+  const handleDownload = async () => {
+    if (!slidePreviewRef.current) {
       toast({ variant: 'destructive', title: 'Error de Descarga', description: 'No se pudo encontrar la referencia de la diapositiva.' });
       return;
     }
@@ -122,13 +123,13 @@ export default function PresentationsPage() {
     };
 
     try {
-      const dataUrl = await toPng(slideRefs.current[index], { 
+      const dataUrl = await toPng(slidePreviewRef.current, { 
         cacheBust: true, 
-        pixelRatio: 2, // Increase resolution for better quality
+        pixelRatio: 2,
         filter: nodeFilter,
       });
       const link = document.createElement('a');
-      link.download = `diapositiva-${index + 1}.png`;
+      link.download = `${previewSlide?.slideType || 'diapositiva'}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -137,7 +138,13 @@ export default function PresentationsPage() {
     }
   };
 
+  const handlePreviewClick = (slide: PresentationContent) => {
+    setPreviewSlide(slide);
+    setIsPreviewOpen(true);
+  };
+
   return (
+    <>
     <div className="grid gap-6">
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-headline font-bold">Generador de Presentaciones</h1>
@@ -189,33 +196,37 @@ export default function PresentationsPage() {
                     <Lightbulb className="h-4 w-4" />
                     <AlertTitle>¡Listo!</AlertTitle>
                     <AlertDescription>
-                        Navega por tus diapositivas. Puedes hacer clic derecho y "Copiar Imagen" o usar el botón de descarga para guardarlas.
+                        Haz clic en una diapositiva para verla en grande y descargarla. También puedes hacer clic derecho y "Copiar Imagen".
                     </AlertDescription>
                 </Alert>
-                <Carousel className="w-full" opts={{ align: "start" }}>
-                    <CarouselContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {slides.map((slide, index) => (
-                        <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
-                            <div className="p-1">
-                                <div ref={(el) => (slideRefs.current[index] = el)}>
-                                  <PresentationSlide slide={slide} />
-                                </div>
-                                <Button onClick={() => handleDownload(index)} className="w-full mt-2">
-                                  <Download className="mr-2 h-4 w-4" />
-                                  Descargar Diapositiva
-                                </Button>
+                         <div key={index} className="cursor-pointer group" onClick={() => handlePreviewClick(slide)}>
+                            <div className="border-2 border-transparent group-hover:border-primary rounded-lg transition-all">
+                               <PresentationSlide slide={slide} />
                             </div>
-                        </CarouselItem>
+                        </div>
                     ))}
-                    </CarouselContent>
-                    <CarouselPrevious />
-                    <CarouselNext />
-                </Carousel>
+                </div>
               </div>
             )}
             </CardFooter>
         )}
       </Card>
     </div>
+    <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl p-0 border-0">
+            <div className="aspect-video relative" ref={slidePreviewRef}>
+                {previewSlide && <PresentationSlide slide={previewSlide} />}
+            </div>
+            <DialogFooter className="p-4 border-t">
+                <Button onClick={handleDownload} className="w-full">
+                    <Download className="mr-2 h-4 w-4" />
+                    Descargar Diapositiva
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }
