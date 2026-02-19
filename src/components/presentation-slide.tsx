@@ -16,21 +16,20 @@ const renderContent = (slide: PresentationContent) => {
         case 'title_slide':
             return (
                 <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                    <h1 className="text-3xl lg:text-4xl font-bold text-gray-800 leading-tight drop-shadow-sm">{slide.title}</h1>
-                    {slide.subtitle && <p className="mt-4 text-xl lg:text-2xl text-gray-500">{slide.subtitle}</p>}
+                    <h1 className="text-4xl lg:text-5xl font-bold text-gray-800 leading-tight drop-shadow-sm">{slide.title}</h1>
+                    {slide.subtitle && <p className="mt-4 text-2xl lg:text-3xl text-gray-500">{slide.subtitle}</p>}
                 </div>
             );
         case 'kpi_slide':
             const gridCols = slide.kpis.length > 2 ? 'grid-cols-2' : 'grid-cols-1';
-            const kpiTextSize = slide.kpis.length > 2 ? 'text-2xl' : 'text-3xl';
             return (
                 <div className="p-4 h-full flex flex-col">
-                    <h2 className="text-xl lg:text-2xl font-bold text-gray-800 mb-4 text-center">{slide.title}</h2>
+                    <h2 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-4 text-center">{slide.title}</h2>
                     <div className={`grid ${gridCols} gap-4 flex-grow`}>
                         {slide.kpis.map((kpi, index) => (
                             <div key={index} className="p-2 rounded-lg bg-gray-50 text-center flex flex-col justify-center border">
-                                <p className={`${kpiTextSize} font-bold text-primary`}>{kpi.value}</p>
-                                <p className="text-sm lg:text-base font-medium text-gray-600 mt-1">{kpi.label}</p>
+                                <p className="text-3xl lg:text-4xl font-bold text-primary">{kpi.value}</p>
+                                <p className="text-base lg:text-lg font-medium text-gray-600 mt-1">{kpi.label}</p>
                             </div>
                         ))}
                     </div>
@@ -39,11 +38,11 @@ const renderContent = (slide: PresentationContent) => {
         case 'bullet_points_slide':
             return (
                 <div className="p-4">
-                    <h2 className="text-xl lg:text-2xl font-bold text-gray-800 mb-4">{slide.title}</h2>
-                    <ul className="space-y-2">
+                    <h2 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-4">{slide.title}</h2>
+                    <ul className="space-y-3">
                         {slide.points.map((point, index) => (
-                            <li key={index} className="flex items-start text-base lg:text-lg text-gray-700">
-                                <span className="text-primary font-bold mr-3 mt-1 text-xl leading-none">▪</span>
+                            <li key={index} className="flex items-start text-lg lg:text-xl text-gray-700">
+                                <span className="text-primary font-bold mr-3 mt-1 text-2xl leading-none">▪</span>
                                 <span className="flex-1">{point}</span>
                             </li>
                         ))}
@@ -53,10 +52,10 @@ const renderContent = (slide: PresentationContent) => {
         case 'quote_slide':
             return (
                 <div className="flex flex-col items-center justify-center h-full text-center p-8">
-                    <blockquote className="text-2xl lg:text-3xl italic font-medium text-gray-700 leading-normal">
+                    <blockquote className="text-3xl lg:text-4xl italic font-medium text-gray-700 leading-normal">
                         "{slide.quote}"
                     </blockquote>
-                    {slide.author && <p className="mt-4 text-base lg:text-lg text-gray-500">- {slide.author}</p>}
+                    {slide.author && <p className="mt-4 text-lg lg:text-xl text-gray-500">- {slide.author}</p>}
                 </div>
             );
          case 'bar_chart_slide':
@@ -69,7 +68,7 @@ const renderContent = (slide: PresentationContent) => {
             };
             return (
                  <div className="p-4 h-full flex flex-col">
-                    <h2 className="text-xl lg:text-2xl font-bold text-gray-800 mb-2 text-center">{slide.title}</h2>
+                    <h2 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-2 text-center">{slide.title}</h2>
                     <div className="flex-grow min-h-0">
                         <ChartContainer config={chartConfig} className="h-full w-full">
                             <BarChart accessibilityLayer data={slide.data} margin={{ top: 20, right: 10, left: 0, bottom: 5 }}>
@@ -107,8 +106,8 @@ export function PresentationSlide({ slide }: PresentationSlideProps) {
     <Card className="aspect-video w-full overflow-hidden shadow-lg border-2 border-black/10 bg-white">
         <CardContent className="relative flex h-full w-full flex-col justify-between p-0">
             {/* Header */}
-            <div className="absolute top-0 left-0 right-0 h-4 bg-red-700 z-10" />
-            <div className="absolute top-6 left-6 h-8 w-24 z-20">
+            <div className="absolute top-0 left-0 right-0 h-2 bg-red-700 z-20" />
+            <div className="absolute top-6 left-6 h-10 w-28 z-20">
                 {logoUrl ? (
                     <Image src={logoUrl} alt="Logo" fill className="object-contain" />
                 ) : (
@@ -122,8 +121,8 @@ export function PresentationSlide({ slide }: PresentationSlideProps) {
             </div>
             
             {/* Footer */}
-            <div className="absolute bottom-0 left-0 right-0 h-8 bg-black flex items-center justify-center z-10">
-                <p className="text-xs font-semibold text-white tracking-wider">PAISANO TRAILER</p>
+            <div className="absolute bottom-0 left-0 right-0 h-6 bg-black flex items-center justify-center z-10">
+                <p className="text-[10px] font-semibold text-white tracking-widest uppercase">PAISANO TRAILER</p>
             </div>
         </CardContent>
     </Card>
