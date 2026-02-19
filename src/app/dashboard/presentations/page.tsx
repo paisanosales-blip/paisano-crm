@@ -13,8 +13,9 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { generatePresentationVideo } from '@/ai/flows/generate-presentation-video';
-import { Loader2, Video } from 'lucide-react';
+import { Loader2, Video, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function PresentationsPage() {
   const [prompt, setPrompt] = useState('');
@@ -69,6 +70,13 @@ export default function PresentationsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Alert variant="default" className="bg-yellow-100 border-yellow-200 text-yellow-800 dark:bg-yellow-950 dark:border-yellow-800 dark:text-yellow-200 [&>svg]:text-yellow-600">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle className="font-bold">Aviso de Facturación</AlertTitle>
+            <AlertDescription>
+              La generación de video con IA es una función avanzada que puede incurrir en costos significativos dependiendo de tu plan y uso de Google AI Platform. Consulta la sección de precios de tu proveedor de nube para más detalles.
+            </AlertDescription>
+          </Alert>
           <div className="grid w-full gap-2">
             <Label htmlFor="prompt">Tema de la Presentación</Label>
             <Textarea
