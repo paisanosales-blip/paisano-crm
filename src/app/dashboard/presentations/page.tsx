@@ -72,9 +72,11 @@ export default function PresentationsPage() {
         <CardContent className="space-y-4">
           <Alert variant="default" className="bg-yellow-100 border-yellow-200 text-yellow-800 dark:bg-yellow-950 dark:border-yellow-800 dark:text-yellow-200 [&>svg]:text-yellow-600">
             <AlertTriangle className="h-4 w-4" />
-            <AlertTitle className="font-bold">Aviso de Facturación</AlertTitle>
+            <AlertTitle className="font-bold">Aviso Importante Sobre Costos y Límites</AlertTitle>
             <AlertDescription>
-              La generación de video con IA es una función avanzada que puede incurrir en costos significativos dependiendo de tu plan y uso de Google AI Platform. Consulta la sección de precios de tu proveedor de nube para más detalles.
+              La generación de video con IA es una función avanzada que consume recursos de Google Cloud y puede incurrir en costos. Aunque suele haber un nivel de uso gratuito, los límites específicos dependen de tu cuenta y pueden cambiar.
+              <br/>
+              <strong className="mt-2 block">Para evitar sorpresas, te recomendamos encarecidamente revisar tus cuotas y precios directamente en tu Consola de Google Cloud.</strong>
             </AlertDescription>
           </Alert>
           <div className="grid w-full gap-2">
