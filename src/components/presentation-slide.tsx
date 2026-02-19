@@ -108,7 +108,7 @@ export function PresentationSlide({ slide }: PresentationSlideProps) {
         <CardContent className="relative flex h-full w-full flex-col justify-between p-0">
             {/* Header */}
             <div className="absolute top-0 left-0 right-0 h-2 bg-red-700 z-20" />
-            <div className="absolute top-4 left-6 h-14 w-32 z-20">
+            <div className="absolute top-4 left-6 h-28 w-64 z-20">
                 {logoUrl ? (
                     <Image src={logoUrl} alt="Logo" fill className="object-contain" />
                 ) : (
@@ -117,7 +117,7 @@ export function PresentationSlide({ slide }: PresentationSlideProps) {
             </div>
 
             {/* Main Content Area */}
-            <div className="w-full h-full pt-24 px-8 pb-12 flex flex-col justify-center">
+            <div className="w-full h-full pt-36 px-8 pb-12 flex flex-col justify-center">
                  {renderContent(slide)}
             </div>
             
