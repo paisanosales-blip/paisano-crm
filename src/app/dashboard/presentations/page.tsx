@@ -310,10 +310,15 @@ export default function PresentationsPage() {
   };
   
   const toggleFullscreen = () => {
-    if (!slidePreviewRef.current) return;
+    const element = document.querySelector('.dialog-content-for-fullscreen');
+
+    if (!element) {
+        console.error("Fullscreen element not found.");
+        return;
+    }
 
     if (!document.fullscreenElement) {
-      slidePreviewRef.current.requestFullscreen().catch((err) => {
+      element.requestFullscreen().catch((err) => {
         toast({
           variant: 'destructive',
           title: 'Error de Pantalla Completa',
@@ -399,7 +404,7 @@ export default function PresentationsPage() {
       </Card>
     </div>
     <Dialog open={isPreviewOpen} onOpenChange={handleDialogClose}>
-        <DialogContent className="max-w-4xl p-0 border-0">
+        <DialogContent className="max-w-4xl p-0 border-0 dialog-content-for-fullscreen">
           <DialogHeader className="sr-only">
             <DialogTitle>Vista Previa de Diapositiva</DialogTitle>
             <DialogDescription>Vista previa de la diapositiva generada.</DialogDescription>
@@ -407,7 +412,7 @@ export default function PresentationsPage() {
           <div
             className={cn(
               "relative",
-              isFullscreen && "flex h-full w-full items-center justify-center bg-black p-4"
+              "fullscreen:flex fullscreen:h-screen fullscreen:w-screen fullscreen:items-center fullscreen:justify-center fullscreen:bg-black fullscreen:p-4"
             )}
             ref={slidePreviewRef}
           >
@@ -426,7 +431,7 @@ export default function PresentationsPage() {
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
             </div>
-            <div className={cn("aspect-video w-full", isFullscreen && "h-full w-auto")}>
+            <div className={cn("aspect-video w-full", isFullscreen && "h-full max-w-[calc(100vw-2rem)]")}>
                 {previewSlide && <PresentationSlide slide={previewSlide} />}
             </div>
             <div className="absolute inset-y-0 right-4 z-10 flex items-center">
