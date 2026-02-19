@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useMemo, useRef, createRef } from 'react';
+import { useState, useMemo, useRef, createRef, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Loader2, Sparkles, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generatePresentationContent, type PresentationContent } from '@/ai/flows/generate-presentation-content';
@@ -30,8 +30,9 @@ export default function PresentationsPage() {
   const [slides, setSlides] = useState<PresentationContent[]>([]);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewSlide, setPreviewSlide] = useState<PresentationContent | null>(null);
-  const slidePreviewRef = useRef<HTMLDivElement | null>(null);
   const slideRefs = useRef<Array<React.RefObject<HTMLDivElement>>>([]);
+  
+  const slidePreviewRef = useRef<HTMLDivElement>(null);
 
   // Data fetching
   const opportunitiesQuery = useMemoFirebase(() => {
@@ -187,7 +188,7 @@ export default function PresentationsPage() {
       
       const result = await generatePresentationContent({
         reportType: reportType,
-        reportData: reportData,
+        reportData: JSON.stringify(reportData), // Stringify the complex object
         logoUrl: logoUrl || ''
       });
       
@@ -215,7 +216,7 @@ export default function PresentationsPage() {
       toast({ variant: 'destructive', title: 'Error de Descarga', description: 'No se pudo encontrar la referencia de la diapositiva.' });
       return;
     }
-
+    
     const nodeFilter = (node: HTMLElement) => {
       // The library fails to parse cross-origin CSS, so we skip the google fonts stylesheet.
       return !(node.tagName === 'LINK' && node.getAttribute('href')?.startsWith('https://fonts.googleapis.com'));
@@ -301,7 +302,7 @@ export default function PresentationsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {slides.map((slide, index) => (
                          <div key={index} className="cursor-pointer group" onClick={() => handlePreviewClick(slide)}>
-                            <div className="border-2 border-transparent group-hover:border-primary rounded-lg transition-all" ref={slideRefs.current[index]}>
+                            <div className="border-2 border-transparent group-hover:border-primary rounded-lg transition-all">
                                <PresentationSlide slide={slide} />
                             </div>
                         </div>
@@ -315,7 +316,7 @@ export default function PresentationsPage() {
     </div>
     <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-4xl p-0 border-0">
-             <DialogHeader className="p-4 pb-0">
+             <DialogHeader>
                 <DialogTitle className="sr-only">Vista Previa de Diapositiva</DialogTitle>
                 <DialogDescription className="sr-only">
                     Vista previa de la diapositiva generada.
