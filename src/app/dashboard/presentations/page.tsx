@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, createRef, useEffect } from 'react';
+import { useState, useMemo, createRef, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { startOfMonth, endOfMonth, subDays, format } from 'date-fns';
@@ -32,7 +32,7 @@ export default function PresentationsPage() {
   const [previewSlide, setPreviewSlide] = useState<PresentationContent | null>(null);
   
   const slidePreviewRef = createRef<HTMLDivElement>();
-  const slideRefs = React.useRef<React.RefObject<HTMLDivElement>[]>([]);
+  const slideRefs = useRef<React.RefObject<HTMLDivElement>[]>([]);
 
 
   // Data fetching
@@ -143,14 +143,14 @@ export default function PresentationsPage() {
       case 'monthly_sales_summary':
       case 'weekly_performance':
         return {
-            period: isWeekly ? "Semanal" : "Mensual",
+            period: reportType === 'weekly_performance' ? `Últimos 7 días` : format(now, 'MMMM yyyy'),
             kpis: {
-                newProspects: opportunitiesInPeriod.length,
-                potentialClients: potentialOpportunitiesInPeriod.length,
-                wonClients: wonOpportunitiesInPeriod.length,
-                newQuotations: quotationsInPeriod.length,
-                financingClients: financingOpportunitiesInPeriod.length,
-                discardedClients: discardedOpportunitiesInPeriod.length
+                "Nuevos Prospectos": opportunitiesInPeriod.length,
+                "Clientes Potenciales": potentialOpportunitiesInPeriod.length,
+                "Clientes Ganados": wonOpportunitiesInPeriod.length,
+                "Cotizaciones": quotationsInPeriod.length,
+                "Financiamiento": financingOpportunitiesInPeriod.length,
+                "Descartados": discardedOpportunitiesInPeriod.length
             },
             charts: {
                 potentialByCity: topCities,
@@ -158,7 +158,6 @@ export default function PresentationsPage() {
                 prospectSources: prospectSources,
                 pipelineSummary: pipelineSummary,
             },
-            discardedReasons: discardedOpportunitiesInPeriod.map(o => o.discardReason).filter(Boolean)
         };
       case 'lost_opportunities_analysis': {
         const discardedOpps = opportunities.filter(opp => {
@@ -168,7 +167,6 @@ export default function PresentationsPage() {
         });
 
         const totalValue = discardedOpps.reduce((sum, opp) => {
-             // For lost opportunities, we should probably check the quotation value
             const opportunityQuotes = quotations.filter(q => q.opportunityId === opp.id);
             if (opportunityQuotes.length > 0) {
                 const latestQuote = opportunityQuotes.sort((a, b) => Number(b.version) - Number(a.version))[0];
@@ -210,7 +208,7 @@ export default function PresentationsPage() {
       
       const result = await generatePresentationContent({
         reportType: reportType,
-        reportData: JSON.stringify(reportData), // Stringify the complex object
+        reportData: JSON.stringify(reportData),
         logoUrl: logoUrl || ''
       });
       
@@ -233,39 +231,7 @@ export default function PresentationsPage() {
     }
   };
   
-  const handleDownload = async (index: number) => {
-    if (!slideRefs.current[index]?.current) {
-      toast({ variant: 'destructive', title: 'Error de Descarga', description: 'No se pudo encontrar la referencia de la diapositiva.' });
-      return;
-    }
-    
-    const nodeFilter = (node: HTMLElement) => {
-      // The library fails to parse cross-origin CSS, so we skip the google fonts stylesheet.
-      return !(node.tagName === 'LINK' && node.getAttribute('href')?.startsWith('https://fonts.googleapis.com'));
-    };
-
-    try {
-      const dataUrl = await toPng(slideRefs.current[index].current!, { 
-        cacheBust: true, 
-        pixelRatio: 2, // Increase resolution for better quality
-        filter: nodeFilter,
-      });
-      const link = document.createElement('a');
-      link.download = `diapositiva-${index + 1}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error('Failed to download image:', err);
-      toast({ variant: 'destructive', title: 'Error de Descarga', description: 'No se pudo convertir la diapositiva a imagen.' });
-    }
-  };
-
-  const handlePreviewClick = (slide: PresentationContent) => {
-    setPreviewSlide(slide);
-    setIsPreviewOpen(true);
-  };
-  
-  const handleDownloadPreview = async () => {
+  const handleDownload = async () => {
     if (!slidePreviewRef.current) {
       toast({ variant: 'destructive', title: 'Error de Descarga', description: 'No se pudo encontrar la referencia de la diapositiva.' });
       return;
@@ -291,6 +257,11 @@ export default function PresentationsPage() {
     }
   };
 
+
+  const handlePreviewClick = (slide: PresentationContent) => {
+    setPreviewSlide(slide);
+    setIsPreviewOpen(true);
+  };
 
   return (
     <>
@@ -351,7 +322,7 @@ export default function PresentationsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {slides.map((slide, index) => (
                          <div key={index} className="cursor-pointer group" onClick={() => handlePreviewClick(slide)}>
-                            <div className="border-2 border-transparent group-hover:border-primary rounded-lg transition-all" ref={slideRefs.current[index]}>
+                            <div className="border-2 border-transparent group-hover:border-primary rounded-lg transition-all">
                                <PresentationSlide slide={slide} />
                             </div>
                         </div>
@@ -375,7 +346,7 @@ export default function PresentationsPage() {
                 {previewSlide && <PresentationSlide slide={previewSlide} />}
             </div>
             <DialogFooter className="p-4 border-t">
-                <Button onClick={handleDownloadPreview} className="w-full">
+                <Button onClick={handleDownload} className="w-full">
                     <Download className="mr-2 h-4 w-4" />
                     Descargar Diapositiva
                 </Button>
