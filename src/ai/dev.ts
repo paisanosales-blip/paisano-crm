@@ -14,4 +14,4 @@ import '@/ai/flows/generate-sales-coaching.ts';
 import '@/ai/flows/generate-marketing-plan.ts';
 import '@/ai/flows/summarize-seller-activity.ts';
 import '@/ai/flows/enrich-prospect-data.ts';
-import '@/ai/flows/generate-presentation-video.ts';
+import '@/ai/flows/generate-presentation-content.ts';
