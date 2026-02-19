@@ -268,19 +268,10 @@ export default function PresentationsPage() {
       return;
     }
     
-    const nodeFilter = (node: HTMLElement) => {
-      // Exclude external Google Fonts stylesheets
-      if (node.tagName === 'LINK' && node.getAttribute('href')?.startsWith('https://fonts.googleapis.com')) {
-          return false;
-      }
-      return true;
-    };
-
     try {
       const dataUrl = await toPng(slidePreviewRef.current, { 
         cacheBust: true, 
         pixelRatio: 2,
-        filter: nodeFilter,
       });
       const link = document.createElement('a');
       link.download = `${previewSlide?.slideType || 'diapositiva'}.png`;
@@ -431,7 +422,7 @@ export default function PresentationsPage() {
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
             </div>
-            <div className={cn("aspect-video w-full", isFullscreen && "h-full max-w-[calc(100vw-2rem)]")}>
+            <div className={cn("aspect-video w-full", isFullscreen && "h-full w-auto max-w-[calc(100vw-2rem)]")}>
                 {previewSlide && <PresentationSlide slide={previewSlide} />}
             </div>
             <div className="absolute inset-y-0 right-4 z-10 flex items-center">
