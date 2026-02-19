@@ -89,6 +89,7 @@ import { DiscardProspectDialog, type DiscardConfirmPayload } from '@/components/
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FirstContactDialog } from '@/components/first-contact-dialog';
+import { ClientTimelineDialog } from '@/components/client-timeline-dialog';
 
 
 const stages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
@@ -140,6 +141,8 @@ export default function PipelinePage() {
   const [enrichingProspectId, setEnrichingProspectId] = useState<string | null>(null);
   const [enrichmentHistory, setEnrichmentHistory] = useState<Record<string, any>>({});
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
+  const [isTimelineOpen, setIsTimelineOpen] = useState(false);
+  const [timelineLeadId, setTimelineLeadId] = useState<string | null>(null);
 
 
   const { toast } = useToast();
@@ -379,6 +382,11 @@ export default function PipelinePage() {
     setIsDeleteDialogOpen(false);
     setActivityToDelete(null);
     setIsSubmitting(false);
+  };
+
+  const handleViewTimeline = (leadId: string) => {
+    setTimelineLeadId(leadId);
+    setIsTimelineOpen(true);
   };
 
 
@@ -1216,13 +1224,16 @@ export default function PipelinePage() {
                                           </div>
                                       )}
                                   </div>
-                                  <div className="p-3 rounded-md bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800/60 space-y-1 text-center flex-grow flex flex-col justify-center">
-                                      <Label className="text-xs text-muted-foreground">ÚLTIMO SEGUIMIENTO</Label>
-                                      <p className="text-sm italic text-foreground truncate" title={latestActivity ? latestActivity.description : "Sin seguimientos"}>
+                                  <div 
+                                      className="p-3 rounded-md bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800/60 space-y-1 text-center flex-grow flex flex-col justify-center cursor-pointer hover:bg-yellow-100"
+                                      onClick={() => handleViewTimeline(prospect.id)}
+                                  >
+                                      <Label className="text-xs text-muted-foreground pointer-events-none">ÚLTIMO SEGUIMIENTO</Label>
+                                      <p className="text-sm italic text-foreground truncate pointer-events-none" title={latestActivity ? latestActivity.description : "Sin seguimientos"}>
                                           {latestActivity ? `"${latestActivity.description}"` : "Sin seguimientos registrados."}
                                       </p>
                                       {latestActivity && (
-                                          <p className="text-xs text-muted-foreground pt-1">
+                                          <p className="text-xs text-muted-foreground pt-1 pointer-events-none">
                                               {format(new Date(latestActivity.createdDate), "dd MMM, yyyy", { locale: es })}
                                           </p>
                                       )}
@@ -1918,6 +1929,11 @@ export default function PipelinePage() {
             isSubmitting={isSubmitting}
         />
       )}
+      <ClientTimelineDialog
+        open={isTimelineOpen}
+        onOpenChange={setIsTimelineOpen}
+        leadId={timelineLeadId}
+      />
     </>
   );
 }
