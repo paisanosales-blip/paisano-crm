@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, createRef, useEffect, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { startOfMonth, endOfMonth, subDays, format } from 'date-fns';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Loader2, Sparkles, Download, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Loader2, Sparkles, Download, ArrowLeft, ArrowRight, Maximize, Minimize } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generatePresentationContent, type PresentationContent } from '@/ai/flows/generate-presentation-content';
 import { PresentationSlide } from '@/components/presentation-slide';
@@ -31,6 +31,7 @@ export default function PresentationsPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewSlide, setPreviewSlide] = useState<PresentationContent | null>(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   const slidePreviewRef = useRef<HTMLDivElement>(null);
   
@@ -207,6 +208,18 @@ export default function PresentationsPage() {
     };
   }, [isPreviewOpen, currentSlideIndex, slides]);
   
+    useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement !== null);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
   const handleGenerate = async () => {
     if (!reportType) {
       toast({ variant: 'destructive', title: 'Seleccione un reporte', description: 'Debe elegir un tipo de reporte para generar.' });
@@ -288,8 +301,29 @@ export default function PresentationsPage() {
   const handleDialogClose = (isOpen: boolean) => {
       setIsPreviewOpen(isOpen);
       if (!isOpen) {
+          if (document.fullscreenElement) {
+              document.exitFullscreen();
+          }
           setCurrentSlideIndex(null);
       }
+  };
+  
+  const toggleFullscreen = () => {
+    if (!slidePreviewRef.current) return;
+
+    if (!document.fullscreenElement) {
+      slidePreviewRef.current.requestFullscreen().catch((err) => {
+        toast({
+          variant: 'destructive',
+          title: 'Error de Pantalla Completa',
+          description: `No se pudo activar el modo de pantalla completa: ${err.message}`,
+        });
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
   };
 
   return (
@@ -365,49 +399,59 @@ export default function PresentationsPage() {
     </div>
     <Dialog open={isPreviewOpen} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-4xl p-0 border-0">
-        <div className="absolute inset-y-0 left-4 z-10 flex items-center">
-            <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full h-10 w-10 bg-background/50 hover:bg-background/80"
-                onClick={() => {
-                    if(currentSlideIndex === null) return;
-                    const prevIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
-                    setCurrentSlideIndex(prevIndex);
-                    setPreviewSlide(slides[prevIndex]);
-                }}
-            >
-                <ArrowLeft className="h-5 w-5" />
-            </Button>
-        </div>
-        <div className="aspect-video relative" ref={slidePreviewRef}>
-            {previewSlide && <PresentationSlide slide={previewSlide} />}
-        </div>
-        <div className="absolute inset-y-0 right-4 z-10 flex items-center">
-            <Button
-                variant="outline"
-                size="icon"
-                className="rounded-full h-10 w-10 bg-background/50 hover:bg-background/80"
-                onClick={() => {
-                    if(currentSlideIndex === null) return;
-                    const nextIndex = (currentSlideIndex + 1) % slides.length;
-                    setCurrentSlideIndex(nextIndex);
-                    setPreviewSlide(slides[nextIndex]);
-                }}
-            >
-                <ArrowRight className="h-5 w-5" />
-            </Button>
-        </div>
-        <DialogFooter className="p-4 border-t sm:justify-center">
-            <Button onClick={handleDownload} className="w-full sm:w-auto">
-                <Download className="mr-2 h-4 w-4" />
-                Descargar Diapositiva
-            </Button>
-        </DialogFooter>
         <DialogHeader className="sr-only">
           <DialogTitle>Vista Previa de Diapositiva</DialogTitle>
           <DialogDescription>Vista previa de la diapositiva generada.</DialogDescription>
         </DialogHeader>
+        <div className="relative" ref={slidePreviewRef}>
+          <div className="absolute inset-y-0 left-4 z-10 flex items-center">
+              <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full h-10 w-10 bg-background/50 hover:bg-background/80"
+                  onClick={() => {
+                      if(currentSlideIndex === null) return;
+                      const prevIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
+                      setCurrentSlideIndex(prevIndex);
+                      setPreviewSlide(slides[prevIndex]);
+                  }}
+              >
+                  <ArrowLeft className="h-5 w-5" />
+              </Button>
+          </div>
+          <div className="aspect-video">
+              {previewSlide && <PresentationSlide slide={previewSlide} />}
+          </div>
+          <div className="absolute inset-y-0 right-4 z-10 flex items-center">
+              <Button
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full h-10 w-10 bg-background/50 hover:bg-background/80"
+                  onClick={() => {
+                      if(currentSlideIndex === null) return;
+                      const nextIndex = (currentSlideIndex + 1) % slides.length;
+                      setCurrentSlideIndex(nextIndex);
+                      setPreviewSlide(slides[nextIndex]);
+                  }}
+              >
+                  <ArrowRight className="h-5 w-5" />
+              </Button>
+          </div>
+        </div>
+        <DialogFooter className="p-4 border-t sm:justify-center flex-wrap gap-2">
+            <Button onClick={handleDownload} className="w-full sm:w-auto">
+                <Download className="mr-2 h-4 w-4" />
+                Descargar Diapositiva
+            </Button>
+             <Button onClick={toggleFullscreen} variant="outline" className="w-full sm:w-auto">
+              {isFullscreen ? (
+                  <Minimize className="mr-2 h-4 w-4" />
+              ) : (
+                  <Maximize className="mr-2 h-4 w-4" />
+              )}
+              {isFullscreen ? 'Salir de Pantalla Completa' : 'Pantalla Completa'}
+            </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
     </>
