@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useRef, createRef, useEffect } from 'react';
+import { useState, useMemo, createRef, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { startOfMonth, endOfMonth, subDays } from 'date-fns';
@@ -30,9 +30,8 @@ export default function PresentationsPage() {
   const [slides, setSlides] = useState<PresentationContent[]>([]);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewSlide, setPreviewSlide] = useState<PresentationContent | null>(null);
-  const slideRefs = useRef<Array<React.RefObject<HTMLDivElement>>>([]);
   
-  const slidePreviewRef = useRef<HTMLDivElement>(null);
+  const slidePreviewRef = createRef<HTMLDivElement>();
 
   // Data fetching
   const opportunitiesQuery = useMemoFirebase(() => {
@@ -159,16 +158,34 @@ export default function PresentationsPage() {
             },
             discardedReasons: discardedOpportunitiesInPeriod.map(o => o.discardReason).filter(Boolean)
         };
-      case 'lost_opportunities_analysis':
-        return opportunities.filter(opp => opp.stage === 'Descartado').map(o => o.discardReason).filter(Boolean);
+      case 'lost_opportunities_analysis': {
+        const discardedOpps = opportunities.filter(opp => {
+            if (opp.stage !== 'Descartado' || !opp.discardedDate) return false;
+            const discardedDate = new Date(opp.discardedDate);
+            return discardedDate >= periodStart && discardedDate <= periodEnd;
+        });
+
+        const totalValue = discardedOpps.reduce((sum, opp) => {
+             // For lost opportunities, we should probably check the quotation value
+            const opportunityQuotes = quotations.filter(q => q.opportunityId === opp.id);
+            if (opportunityQuotes.length > 0) {
+                const latestQuote = opportunityQuotes.sort((a, b) => Number(b.version) - Number(a.version))[0];
+                return sum + (latestQuote.value || 0);
+            }
+            return sum + (opp.value || 0);
+        }, 0);
+
+        return {
+          totalDiscarded: discardedOpps.length,
+          totalValueLost: new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalValue),
+          reasons: discardedOpps.map(o => o.discardReason).filter(Boolean),
+        };
+      }
       default:
         return null;
     }
   }, [reportType, opportunities, activities, leads, quotations]);
 
-  useEffect(() => {
-    slideRefs.current = slides.map((_, i) => slideRefs.current[i] ?? createRef<HTMLDivElement>());
-  }, [slides]);
   
   const handleGenerate = async () => {
     if (!reportType) {
@@ -316,9 +333,9 @@ export default function PresentationsPage() {
     </div>
     <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-4xl p-0 border-0">
-             <DialogHeader>
-                <DialogTitle className="sr-only">Vista Previa de Diapositiva</DialogTitle>
-                <DialogDescription className="sr-only">
+             <DialogHeader className="sr-only">
+                <DialogTitle>Vista Previa de Diapositiva</DialogTitle>
+                <DialogDescription>
                     Vista previa de la diapositiva generada.
                 </DialogDescription>
             </DialogHeader>

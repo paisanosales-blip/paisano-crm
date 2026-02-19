@@ -85,14 +85,14 @@ const prompt = ai.definePrompt({
   name: 'generatePresentationContentPrompt',
   input: { schema: GeneratePresentationContentInputSchema },
   output: { schema: GeneratePresentationContentOutputSchema },
-  prompt: `Eres un analista de ventas experto y diseñador de presentaciones para "Paisano Trailer". Tu tarea es generar el contenido para múltiples diapositivas, basándote en un tipo de reporte y los datos proporcionados.
+  prompt: `Eres un analista de ventas experto y diseñador de presentaciones para "Paisano Trailer". Tu tarea es generar el contenido para múltiples diapositivas, basándote en un tipo de reporte y los datos JSON proporcionados.
 
-  **Instrucciones MUY IMPORTANTES:**
-  1.  **CRÍTICO: Debes basar TODA tu respuesta ÚNICAMENTE en los datos JSON proporcionados en \`reportData\`. No inventes, alucines ni extrapoles ninguna información o cifra. Si un dato no está presente, no lo menciones.**
-  2.  **SÉ EXTREMADAMENTE CONCISO.** El texto para títulos y puntos debe ser muy breve para que quepa en la diapositiva.
-  3.  **USA MÚLTIPLES DIAPOSITIVAS.** No intentes meter toda la información en una sola. Si un tema necesita más explicación, crea diapositivas adicionales.
-  4.  **Variedad de Diapositivas:** Utiliza una mezcla de los tipos de diapositiva disponibles.
-  5.  **Usa Gráficos:** Para datos numéricos, usa 'bar_chart_slide'. No pongas más de 5-7 barras por gráfico.
+  **Instrucciones CRÍTICAS:**
+  1.  **USA SOLO LOS DATOS PROPORCIONADOS:** Basa TODA tu respuesta ÚNICAMENTE en los datos JSON de \`reportData\`. No inventes ninguna cifra. Si un dato no está, no lo menciones.
+  2.  **SÉ EXTREMADAMENTE CONCISO:** El texto para títulos y puntos debe ser muy breve. Usa frases cortas.
+  3.  **MÁS DIAPOSITIVAS, MENOS TEXTO:** Prefiere crear más diapositivas con poca información que pocas diapositivas con mucha. No intentes meter todo en una sola.
+  4.  **VARÍA EL DISEÑO:** Utiliza una mezcla de los tipos de diapositiva disponibles, especialmente 'bar_chart_slide' para datos numéricos.
+  5.  **UNA IDEA POR DIAPOSITIVA DE ANÁLISIS:** Cada diapositiva de análisis ('bullet_points_slide') debe tener 1 o 2 puntos clave como máximo.
   
   **Contexto del Reporte:**
   - Tipo de Reporte: {{{reportType}}}
@@ -102,17 +102,22 @@ const prompt = ai.definePrompt({
 
   - **Si reportType es 'monthly_sales_summary' o 'weekly_performance':**
     - **Diapositiva 1 (title_slide):** Título: "Resumen de Ventas {reportData.period}", Subtítulo: (Fecha actual).
-    - **Diapositiva 2 (kpi_slide):** Título: "Indicadores Clave del Periodo". KPIs: "Nuevos Prospectos", "Clientes Potenciales", "Clientes Ganados", "Cotizaciones Realizadas". Usa los datos de \`reportData.kpis\`.
+    - **Diapositiva 2 (kpi_slide):** Título: "Indicadores Clave". KPIs: "Nuevos Prospectos", "Clientes Potenciales", "Clientes Ganados", "Cotizaciones Realizadas", "Financiamiento", "Descartados". Usa los datos de \`reportData.kpis\`. Sé muy conciso en los labels.
     - **Diapositiva 3 (bar_chart_slide):** Título: "Top 5 Ciudades con Clientes Potenciales". Usa los datos de \`reportData.charts.potentialByCity\`.
-    - **Diapositiva 4 (bar_chart_slide):** Título: "Top 5 Estados con Prospectos (USA)". Usa los datos de \`reportData.charts.prospectsByState\`.
-    - **Diapositiva 5 (bar_chart_slide):** Título: "Origen de los Prospectos". Usa los datos de \`reportData.charts.prospectSources\`.
-    - **Diapositiva 6 (bar_chart_slide):** Título: "Resumen del Flujo de Ventas (Total)". Usa los datos de \`reportData.charts.pipelineSummary\`.
-    - **Diapositiva 7 (bullet_points_slide):** Título: "Análisis y Recomendaciones". Usando SÓLO los datos proporcionados, especialmente los KPIs y las razones de descarte (\`reportData.discardedReasons\`), escribe 3-4 puntos clave. Por ejemplo: "El 40% de los descartes son por precio, se recomienda revisar la estrategia.", "La mayoría de prospectos vienen de Google, invertir más en SEO."
+    - **Diapositiva 4 (bullet_points_slide):** Título: "Análisis: Geografía de Clientes". Escribe 1 o 2 puntos clave sobre las ciudades más importantes. Ej: "La mayoría de clientes potenciales se concentran en [Ciudad 1]."
+    - **Diapositiva 5 (bar_chart_slide):** Título: "Top 5 Estados con Prospectos (USA)". Usa los datos de \`reportData.charts.prospectsByState\`.
+    - **Diapositiva 6 (bullet_points_slide):** Título: "Análisis: Presencia en USA". Escribe 1 o 2 puntos sobre los estados con mayor actividad.
+    - **Diapositiva 7 (bar_chart_slide):** Título: "Origen de los Prospectos". Usa los datos de \`reportData.charts.prospectSources\`.
+    - **Diapositiva 8 (bullet_points_slide):** Título: "Análisis: Canales de Adquisición". Menciona el canal más efectivo y alguna oportunidad. Ej: "Google es el principal generador de prospectos."
+    - **Diapositiva 9 (bar_chart_slide):** Título: "Resumen del Flujo de Ventas". Usa los datos de \`reportData.charts.pipelineSummary\`.
+    - **Diapositiva 10 (bullet_points_slide):** Título: "Análisis: Flujo de Ventas". Destaca dónde se están acumulando o perdiendo más prospectos. Ej: "Hay un alto número de prospectos en la etapa de 'Negociación'."
+    - **Diapositiva 11 (bullet_points_slide):** Título: "Conclusiones y Acciones". Basado en TODO lo anterior, crea 3 puntos finales con acciones recomendadas. Ej: "1. Enfocar esfuerzos de marketing en Texas.", "2. Mejorar guion para objeciones de precio."
 
   - **Si reportType es 'lost_opportunities_analysis':**
     - **Diapositiva 1 (title_slide):** Título: "Análisis de Oportunidades Perdidas".
-    - **Diapositiva 2 (bar_chart_slide):** Título: "Principales Motivos de Descarte". Analiza los datos de \`reportData\` (que será un array de strings con razones) para agrupar y contar los motivos, y crea un gráfico de barras.
-    - **Diapositiva 3 (bullet_points_slide):** Título: "Plan de Acción". Basado en el gráfico anterior, sugiere 3 acciones concretas. Ej: "Crear guion para objeciones de precio", "Mejorar calificación inicial para evitar prospectos sin presupuesto".
+    - **Diapositiva 2 (kpi_slide):** Título: "Impacto de Descarte". KPIs: "Total Descartados" (usa \`reportData.totalDiscarded\`), "Valor Potencial Perdido" (usa \`reportData.totalValueLost\`).
+    - **Diapositiva 3 (bar_chart_slide):** Título: "Principales Motivos de Descarte". Analiza los datos de \`reportData.reasons\` (array de strings) para agrupar y contar motivos, y crea un gráfico de barras.
+    - **Diapositiva 4 (bullet_points_slide):** Título: "Plan de Acción". Basado en el gráfico anterior, sugiere 3-4 acciones concretas y cortas. Ej: "1. Crear guion para objeción de precio.", "2. Ofrecer financiamiento alternativo.", "3. Mejorar calificación inicial."
 
   Ahora, genera el contenido para la presentación.
   `,
