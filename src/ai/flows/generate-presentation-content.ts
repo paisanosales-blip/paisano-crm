@@ -9,10 +9,10 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 
 const TitleSlideSchema = z.object({
-  slideType: z.literal('title_slide'),
+  slideType: z.enum(['title_slide']),
   title: z.string().describe('The main title of the slide.'),
   subtitle: z.string().optional().describe('A subtitle, e.g., the date range of the report.'),
 });
@@ -23,19 +23,19 @@ const KpiSchema = z.object({
 });
 
 const KpiSlideSchema = z.object({
-  slideType: z.literal('kpi_slide'),
+  slideType: z.enum(['kpi_slide']),
   title: z.string().describe('The title for the KPI slide, e.g., "Métricas Clave del Mes".'),
   kpis: z.array(KpiSchema).min(1).max(4).describe('An array of 1 to 4 key performance indicators.'),
 });
 
 const BulletPointsSlideSchema = z.object({
-  slideType: z.literal('bullet_points_slide'),
+  slideType: z.enum(['bullet_points_slide']),
   title: z.string().describe('The title for the bullet points slide.'),
   points: z.array(z.string()).min(1).max(5).describe('An array of 1 to 5 bullet points summarizing key findings or actions.'),
 });
 
 const QuoteSlideSchema = z.object({
-  slideType: z.literal('quote_slide'),
+  slideType: z.enum(['quote_slide']),
   quote: z.string().describe('An impactful quote or a key takeaway sentence.'),
   author: z.string().optional().describe('The author of the quote, or the source of the takeaway.'),
 });
