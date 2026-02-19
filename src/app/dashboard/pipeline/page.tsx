@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 
 
-import { getClassification, getBadgeClass, type OpportunityStage, type ClientClassification, type Opportunity } from '@/lib/types';
+import { getClassification, getBadgeClass, getCardClass, type OpportunityStage, type ClientClassification, type Opportunity } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -1158,7 +1158,7 @@ export default function PipelinePage() {
                         const latestActivity = prospect.activities && prospect.activities.length > 0 ? prospect.activities[0] : null;
 
                         return (
-                            <Card key={prospect.id} className="flex flex-col border-2 border-black">
+                            <Card key={prospect.id} className={cn("flex flex-col border-2 border-black", getCardClass(classification))}>
                                 <CardHeader>
                                     <div className="flex justify-between items-start gap-2">
                                         <div className="flex-1">

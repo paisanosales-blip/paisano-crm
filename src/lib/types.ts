@@ -39,6 +39,17 @@ export const getBadgeClass = (classification: ClientClassification) => {
     }
 };
 
+export const getCardClass = (classification: ClientClassification) => {
+    switch (classification) {
+        case 'PROSPECTO': return 'bg-gray-100/50 dark:bg-gray-800/30';
+        case 'CLIENTE POTENCIAL': return 'bg-blue-100/70 dark:bg-blue-900/40';
+        case 'CLIENTE': return 'bg-green-100/70 dark:bg-green-900/40';
+        case 'FINANCIAMIENTO': return 'bg-amber-100/70 dark:bg-amber-900/40';
+        case 'PERDIDO': return 'bg-red-100/70 dark:bg-red-900/40';
+        default: return 'bg-gray-100/50 dark:bg-gray-800/30';
+    }
+};
+
 export type Opportunity = {
   id: string;
   name: string;
