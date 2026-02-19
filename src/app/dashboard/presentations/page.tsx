@@ -1,19 +1,21 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { generatePresentationContent, type PresentationContent } from '@/ai/flows/generate-presentation-content';
 import { PresentationSlide } from '@/components/presentation-slide';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Lightbulb } from 'lucide-react';
+import { toPng } from 'html-to-image';
+
 
 type ReportType = 'monthly_sales_summary' | 'lost_opportunities_analysis' | 'weekly_performance';
 
@@ -25,6 +27,7 @@ export default function PresentationsPage() {
   const [reportType, setReportType] = useState<ReportType | ''>('');
   const [isLoading, setIsLoading] = useState(false);
   const [slides, setSlides] = useState<PresentationContent[]>([]);
+  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
   
   // Data fetching
   const opportunitiesQuery = useMemoFirebase(() => {
@@ -77,6 +80,7 @@ export default function PresentationsPage() {
 
     setIsLoading(true);
     setSlides([]);
+    slideRefs.current = [];
     
     try {
       const logoUrl = localStorage.getItem('sidebarLogo') || '';
@@ -105,6 +109,27 @@ export default function PresentationsPage() {
       setIsLoading(false);
     }
   };
+  
+  const handleDownload = async (index: number) => {
+    if (!slideRefs.current[index]) {
+      toast({ variant: 'destructive', title: 'Error de Descarga', description: 'No se pudo encontrar la referencia de la diapositiva.' });
+      return;
+    }
+
+    try {
+      const dataUrl = await toPng(slideRefs.current[index], { 
+        cacheBust: true, 
+        pixelRatio: 2 // Increase resolution for better quality
+      });
+      const link = document.createElement('a');
+      link.download = `diapositiva-${index + 1}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Failed to download image:', err);
+      toast({ variant: 'destructive', title: 'Error de Descarga', description: 'No se pudo convertir la diapositiva a imagen.' });
+    }
+  };
 
   return (
     <div className="grid gap-6">
@@ -115,7 +140,7 @@ export default function PresentationsPage() {
         <CardHeader>
           <CardTitle>Crea una Presentación con IA</CardTitle>
           <CardDescription>
-            Selecciona un tipo de reporte y la IA generará diapositivas con un diseño profesional que podrás copiar en tu presentación.
+            Selecciona un tipo de reporte y la IA generará diapositivas con un diseño profesional.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -156,9 +181,9 @@ export default function PresentationsPage() {
               <div className="w-full">
                 <Alert className="mb-4">
                     <Lightbulb className="h-4 w-4" />
-                    <AlertTitle>¡Consejo!</AlertTitle>
+                    <AlertTitle>¡Listo!</AlertTitle>
                     <AlertDescription>
-                        Para copiar una diapositiva, haga clic derecho sobre la imagen y seleccione "Copiar imagen". Luego, puede pegarla en PowerPoint, Google Slides u otro software.
+                        Navega por tus diapositivas. Puedes hacer clic derecho y "Copiar Imagen" o usar el botón de descarga para guardarlas.
                     </AlertDescription>
                 </Alert>
                 <Carousel className="w-full" opts={{ align: "start" }}>
@@ -166,7 +191,13 @@ export default function PresentationsPage() {
                     {slides.map((slide, index) => (
                         <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
                             <div className="p-1">
-                                <PresentationSlide slide={slide} />
+                                <div ref={(el) => (slideRefs.current[index] = el)}>
+                                  <PresentationSlide slide={slide} />
+                                </div>
+                                <Button onClick={() => handleDownload(index)} className="w-full mt-2">
+                                  <Download className="mr-2 h-4 w-4" />
+                                  Descargar Diapositiva
+                                </Button>
                             </div>
                         </CarouselItem>
                     ))}
