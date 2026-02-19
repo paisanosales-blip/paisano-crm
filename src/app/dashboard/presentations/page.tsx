@@ -17,6 +17,7 @@ import { Lightbulb } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { getClassification } from '@/lib/types';
 import { states } from '@/lib/geography';
+import { cn } from '@/lib/utils';
 
 type ReportType = 'monthly_sales_summary' | 'lost_opportunities_analysis' | 'weekly_performance';
 
@@ -398,62 +399,68 @@ export default function PresentationsPage() {
       </Card>
     </div>
     <Dialog open={isPreviewOpen} onOpenChange={handleDialogClose}>
-      <DialogContent className="max-w-4xl p-0 border-0">
-        <DialogHeader className="sr-only">
-          <DialogTitle>Vista Previa de Diapositiva</DialogTitle>
-          <DialogDescription>Vista previa de la diapositiva generada.</DialogDescription>
-        </DialogHeader>
-        <div className="relative" ref={slidePreviewRef}>
-          <div className="absolute inset-y-0 left-4 z-10 flex items-center">
-              <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full h-10 w-10 bg-background/50 hover:bg-background/80"
-                  onClick={() => {
-                      if(currentSlideIndex === null) return;
-                      const prevIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
-                      setCurrentSlideIndex(prevIndex);
-                      setPreviewSlide(slides[prevIndex]);
-                  }}
-              >
-                  <ArrowLeft className="h-5 w-5" />
+        <DialogContent className="max-w-4xl p-0 border-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Vista Previa de Diapositiva</DialogTitle>
+            <DialogDescription>Vista previa de la diapositiva generada.</DialogDescription>
+          </DialogHeader>
+          <div
+            className={cn(
+              "relative",
+              isFullscreen && "flex h-full w-full items-center justify-center bg-black p-4"
+            )}
+            ref={slidePreviewRef}
+          >
+            <div className="absolute inset-y-0 left-4 z-10 flex items-center">
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full h-10 w-10 bg-background/50 hover:bg-background/80"
+                    onClick={() => {
+                        if(currentSlideIndex === null) return;
+                        const prevIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
+                        setCurrentSlideIndex(prevIndex);
+                        setPreviewSlide(slides[prevIndex]);
+                    }}
+                >
+                    <ArrowLeft className="h-5 w-5" />
+                </Button>
+            </div>
+            <div className={cn("aspect-video w-full", isFullscreen && "h-full w-auto")}>
+                {previewSlide && <PresentationSlide slide={previewSlide} />}
+            </div>
+            <div className="absolute inset-y-0 right-4 z-10 flex items-center">
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full h-10 w-10 bg-background/50 hover:bg-background/80"
+                    onClick={() => {
+                        if(currentSlideIndex === null) return;
+                        const nextIndex = (currentSlideIndex + 1) % slides.length;
+                        setCurrentSlideIndex(nextIndex);
+                        setPreviewSlide(slides[nextIndex]);
+                    }}
+                >
+                    <ArrowRight className="h-5 w-5" />
+                </Button>
+            </div>
+          </div>
+          <DialogFooter className="p-4 border-t sm:justify-center flex-wrap gap-2">
+              <Button onClick={handleDownload} className="w-full sm:w-auto">
+                  <Download className="mr-2 h-4 w-4" />
+                  Descargar Diapositiva
               </Button>
-          </div>
-          <div className="aspect-video">
-              {previewSlide && <PresentationSlide slide={previewSlide} />}
-          </div>
-          <div className="absolute inset-y-0 right-4 z-10 flex items-center">
-              <Button
-                  variant="outline"
-                  size="icon"
-                  className="rounded-full h-10 w-10 bg-background/50 hover:bg-background/80"
-                  onClick={() => {
-                      if(currentSlideIndex === null) return;
-                      const nextIndex = (currentSlideIndex + 1) % slides.length;
-                      setCurrentSlideIndex(nextIndex);
-                      setPreviewSlide(slides[nextIndex]);
-                  }}
-              >
-                  <ArrowRight className="h-5 w-5" />
+               <Button onClick={toggleFullscreen} variant="outline" className="w-full sm:w-auto">
+                {isFullscreen ? (
+                    <Minimize className="mr-2 h-4 w-4" />
+                ) : (
+                    <Maximize className="mr-2 h-4 w-4" />
+                )}
+                {isFullscreen ? 'Salir de Pantalla Completa' : 'Pantalla Completa'}
               </Button>
-          </div>
-        </div>
-        <DialogFooter className="p-4 border-t sm:justify-center flex-wrap gap-2">
-            <Button onClick={handleDownload} className="w-full sm:w-auto">
-                <Download className="mr-2 h-4 w-4" />
-                Descargar Diapositiva
-            </Button>
-             <Button onClick={toggleFullscreen} variant="outline" className="w-full sm:w-auto">
-              {isFullscreen ? (
-                  <Minimize className="mr-2 h-4 w-4" />
-              ) : (
-                  <Maximize className="mr-2 h-4 w-4" />
-              )}
-              {isFullscreen ? 'Salir de Pantalla Completa' : 'Pantalla Completa'}
-            </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
