@@ -116,10 +116,16 @@ export default function PresentationsPage() {
       return;
     }
 
+    const nodeFilter = (node: HTMLElement) => {
+      // The library fails to parse cross-origin CSS, so we skip the google fonts stylesheet.
+      return !(node.tagName === 'LINK' && node.getAttribute('href')?.startsWith('https://fonts.googleapis.com'));
+    };
+
     try {
       const dataUrl = await toPng(slideRefs.current[index], { 
         cacheBust: true, 
-        pixelRatio: 2 // Increase resolution for better quality
+        pixelRatio: 2, // Increase resolution for better quality
+        filter: nodeFilter,
       });
       const link = document.createElement('a');
       link.download = `diapositiva-${index + 1}.png`;
