@@ -10,7 +10,7 @@ import {
   useDoc,
 } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
-import { formatDistanceToNow, differenceInHours, isToday } from 'date-fns';
+import { formatDistanceToNow, differenceInHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MoreHorizontal, PlusCircle, Wrench, Clock, CheckCircle, Hourglass } from 'lucide-react';
+import { PlusCircle, Wrench, Clock, CheckCircle, Hourglass } from 'lucide-react';
 import type { ServiceTicket, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -43,48 +43,57 @@ const statusConfig: { [key: string]: { label: string; color: string; icon: React
   Cerrado: { label: 'Cerrado', color: 'bg-green-500', icon: CheckCircle },
 };
 
-const getSemaforoStatus = (ticket: ServiceTicket): { color: string; tooltip: string } => {
-    if (!ticket) return { color: 'bg-gray-400', tooltip: 'Datos no disponibles' };
+const getSemaforoState = (ticket: ServiceTicket): { level: 'ok' | 'warning' | 'danger' | 'info' | 'neutral'; label: string; tooltip: string } => {
+    if (!ticket) return { level: 'neutral', label: 'Desconocido', tooltip: 'Datos no disponibles' };
     const now = new Date();
     const hoursSinceReported = differenceInHours(now, new Date(ticket.reportedAt));
 
     switch(ticket.status) {
         case 'Cerrado':
-            return { color: 'bg-green-500', tooltip: 'Ticket cerrado y resuelto.' };
+            return { level: 'ok', label: 'Resuelto', tooltip: 'Ticket cerrado y resuelto.' };
         case 'Solucionado':
-             return { color: 'bg-blue-500', tooltip: 'Ticket solucionado, pendiente de cierre.' };
+             return { level: 'info', label: 'Solucionado', tooltip: 'Ticket solucionado, pendiente de cierre.' };
         case 'En Progreso':
             if (ticket.lastInteractionAt) {
                 const hoursSinceInteraction = differenceInHours(now, new Date(ticket.lastInteractionAt));
                 if (hoursSinceInteraction <= 48) {
-                    return { color: 'bg-green-500', tooltip: 'En progreso con actividad reciente.' };
+                    return { level: 'ok', label: 'Activo', tooltip: 'En progreso con actividad reciente.' };
                 } else if (hoursSinceInteraction <= 72) {
-                    return { color: 'bg-yellow-500', tooltip: 'En progreso, requiere atención pronto.' };
+                    return { level: 'warning', label: 'Inactivo', tooltip: 'En progreso, requiere atención pronto.' };
                 } else {
-                    return { color: 'bg-red-500', tooltip: 'En progreso sin actividad por más de 3 días.' };
+                    return { level: 'danger', label: 'Crítico', tooltip: 'En progreso sin actividad por más de 3 días.' };
                 }
             } else {
-                return { color: 'bg-yellow-500', tooltip: 'En progreso, pero sin interacciones registradas.' };
+                return { level: 'warning', label: 'Inactivo', tooltip: 'En progreso, pero sin interacciones registradas.' };
             }
         case 'Abierto':
             if (ticket.lastInteractionAt) {
                  const hoursSinceInteraction = differenceInHours(now, new Date(ticket.lastInteractionAt));
                  if (hoursSinceInteraction <= 24) {
-                    return { color: 'bg-green-500', tooltip: 'Ticket abierto con actividad reciente.' };
+                    return { level: 'ok', label: 'Activo', tooltip: 'Ticket abierto con actividad reciente.' };
                  } else {
-                    return { color: 'bg-yellow-500', tooltip: 'Ticket abierto sin actividad en las últimas 24h.' };
+                    return { level: 'warning', label: 'Atención', tooltip: 'Ticket abierto sin actividad en las últimas 24h.' };
                  }
             } else {
                 if (hoursSinceReported > 24) {
-                    return { color: 'bg-red-500', tooltip: 'Abierto por más de 24h sin interacción.' };
+                    return { level: 'danger', label: 'Urgente', tooltip: 'Abierto por más de 24h sin interacción.' };
                 } else {
-                    return { color: 'bg-yellow-500', tooltip: 'Recién abierto, pendiente de primera interacción.' };
+                    return { level: 'warning', label: 'Nuevo', tooltip: 'Recién abierto, pendiente de primera interacción.' };
                 }
             }
         default:
-             return { color: 'bg-gray-400', tooltip: 'Estado desconocido.' };
+             return { level: 'neutral', label: 'Desconocido', tooltip: 'Estado desconocido.' };
     }
 }
+
+const semaforoBadgeVariants = {
+  ok: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
+  warning: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-300 dark:border-yellow-800',
+  danger: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800',
+  info: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800',
+  neutral: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800/40 dark:text-gray-300 dark:border-gray-700',
+};
+
 
 export default function CustomerServicePage() {
   const { user, isUserLoading } = useUser();
@@ -139,7 +148,7 @@ export default function CustomerServicePage() {
     return {
         open: tickets.filter(t => t.status === 'Abierto').length,
         inProgress: tickets.filter(t => t.status === 'En Progreso').length,
-        solvedToday: solvedTickets.filter(t => isToday(new Date(t.solvedAt!))).length,
+        solvedToday: solvedTickets.filter(t => new Date(t.solvedAt!).toDateString() === new Date().toDateString()).length,
         avgResolutionHours: solvedTickets.length > 0 ? Math.round(totalHours / solvedTickets.length) : 0,
     };
   }, [tickets]);
@@ -190,7 +199,7 @@ export default function CustomerServicePage() {
         </CardHeader>
         <CardContent>
           <Table>
-            <TableHeader><TableRow><TableHead className="w-[50px]">Semáforo</TableHead><TableHead>Estado</TableHead><TableHead>Cliente / VIN</TableHead><TableHead>Incidente</TableHead><TableHead>Agente</TableHead><TableHead>Reportado</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Atención</TableHead><TableHead>Estado</TableHead><TableHead>Cliente / VIN</TableHead><TableHead>Incidente</TableHead><TableHead>Agente</TableHead><TableHead>Reportado</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead></TableRow></TableHeader>
             <TableBody>
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-12 w-full" /></TableCell></TableRow>)
@@ -199,11 +208,11 @@ export default function CustomerServicePage() {
                   <TableRow key={ticket.id} onClick={() => router.push(`/dashboard/service/${ticket.id}`)} className="cursor-pointer">
                     <TableCell>
                       {(() => {
-                          const { color, tooltip } = getSemaforoStatus(ticket);
+                          const semaforo = getSemaforoState(ticket);
                           return (
-                              <div className="flex justify-center">
-                                  <div className={cn("h-3 w-3 rounded-full", color)} title={tooltip} />
-                              </div>
+                              <Badge variant="outline" className={cn("font-semibold", semaforoBadgeVariants[semaforo.level])} title={semaforo.tooltip}>
+                                  {semaforo.label}
+                              </Badge>
                           )
                       })()}
                     </TableCell>

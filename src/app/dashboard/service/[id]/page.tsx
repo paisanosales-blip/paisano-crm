@@ -16,7 +16,7 @@ import {
 } from '@/firebase';
 import { collection, query, doc, orderBy, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, differenceInHours } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   Wrench, Clock, CheckCircle, Hourglass, ArrowLeft, MessageSquare, Paperclip, Send, ShieldCheck, ShieldOff, HardHat, File, Image as ImageIcon, FileText, Download, User, MoreHorizontal, Pencil, Trash2
@@ -43,6 +43,58 @@ const statusConfig: { [key: string]: { label: string; color: string; icon: React
   Solucionado: { label: 'Solucionado', color: 'bg-blue-500', icon: Clock },
   Cerrado: { label: 'Cerrado', color: 'bg-green-500', icon: CheckCircle },
 };
+
+const getSemaforoState = (ticket: ServiceTicket | null): { level: 'ok' | 'warning' | 'danger' | 'info' | 'neutral'; label: string; tooltip: string } => {
+    if (!ticket) return { level: 'neutral', label: 'Cargando', tooltip: 'Cargando datos del ticket...' };
+    const now = new Date();
+    const hoursSinceReported = differenceInHours(now, new Date(ticket.reportedAt));
+
+    switch(ticket.status) {
+        case 'Cerrado':
+            return { level: 'ok', label: 'Resuelto', tooltip: 'Ticket cerrado y resuelto.' };
+        case 'Solucionado':
+             return { level: 'info', label: 'Solucionado', tooltip: 'Ticket solucionado, pendiente de cierre.' };
+        case 'En Progreso':
+            if (ticket.lastInteractionAt) {
+                const hoursSinceInteraction = differenceInHours(now, new Date(ticket.lastInteractionAt));
+                if (hoursSinceInteraction <= 48) {
+                    return { level: 'ok', label: 'Activo', tooltip: 'En progreso con actividad reciente.' };
+                } else if (hoursSinceInteraction <= 72) {
+                    return { level: 'warning', label: 'Inactivo', tooltip: 'En progreso, requiere atención pronto.' };
+                } else {
+                    return { level: 'danger', label: 'Crítico', tooltip: 'En progreso sin actividad por más de 3 días.' };
+                }
+            } else {
+                return { level: 'warning', label: 'Inactivo', tooltip: 'En progreso, pero sin interacciones registradas.' };
+            }
+        case 'Abierto':
+            if (ticket.lastInteractionAt) {
+                 const hoursSinceInteraction = differenceInHours(now, new Date(ticket.lastInteractionAt));
+                 if (hoursSinceInteraction <= 24) {
+                    return { level: 'ok', label: 'Activo', tooltip: 'Ticket abierto con actividad reciente.' };
+                 } else {
+                    return { level: 'warning', label: 'Atención', tooltip: 'Ticket abierto sin actividad en las últimas 24h.' };
+                 }
+            } else {
+                if (hoursSinceReported > 24) {
+                    return { level: 'danger', label: 'Urgente', tooltip: 'Abierto por más de 24h sin interacción.' };
+                } else {
+                    return { level: 'warning', label: 'Nuevo', tooltip: 'Recién abierto, pendiente de primera interacción.' };
+                }
+            }
+        default:
+             return { level: 'neutral', label: 'Desconocido', tooltip: 'Estado desconocido.' };
+    }
+}
+
+const semaforoBadgeVariants = {
+  ok: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
+  warning: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-300 dark:border-yellow-800',
+  danger: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800',
+  info: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800',
+  neutral: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800/40 dark:text-gray-300 dark:border-gray-700',
+};
+
 
 const FileTypeIcon = ({ fileType, className }: { fileType: string, className?: string }) => {
     if (fileType.startsWith('image/')) return <ImageIcon className={cn("h-5 w-5 text-muted-foreground", className)} />;
@@ -89,6 +141,10 @@ export default function ServiceTicketDetailPage() {
   const isLoading = isTicketLoading || areInteractionsLoading || areAgentsLoading;
   
   const canEditTicket = userProfile?.role === 'manager' || (ticket?.assignedAgentId === user?.uid);
+  
+  const semaforoState = useMemo(() => getSemaforoState(ticket), [ticket]);
+  const currentStatusConfig = ticket ? statusConfig[ticket.status] : null;
+
 
   const handleStatusChange = (newStatus: ServiceTicket['status']) => {
     const updateData: Partial<ServiceTicket> = { status: newStatus };
@@ -216,7 +272,6 @@ export default function ServiceTicketDetailPage() {
       return <div className="p-6 text-center">Ticket no encontrado.</div>
   }
 
-  const currentStatusConfig = statusConfig[ticket.status];
 
   return (
     <>
@@ -235,10 +290,19 @@ export default function ServiceTicketDetailPage() {
                               <CardTitle className="text-2xl font-bold">Ticket de Servicio: {ticket.vin}</CardTitle>
                               <CardDescription>Reportado por {ticket.clientName}</CardDescription>
                           </div>
-                          <Badge className={cn("text-white text-base", currentStatusConfig.color)}>
-                              <currentStatusConfig.icon className="mr-2 h-4 w-4" />
-                              {currentStatusConfig.label}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            {semaforoState && (
+                                <Badge variant="outline" className={cn("text-base font-bold", semaforoBadgeVariants[semaforoState.level])} title={semaforoState.tooltip}>
+                                    {semaforoState.label}
+                                </Badge>
+                            )}
+                            {currentStatusConfig && (
+                                <Badge className={cn("text-white text-base", currentStatusConfig.color)}>
+                                    <currentStatusConfig.icon className="mr-2 h-4 w-4" />
+                                    {currentStatusConfig.label}
+                                </Badge>
+                            )}
+                          </div>
                       </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
