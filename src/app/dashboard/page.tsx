@@ -346,110 +346,100 @@ export default function DashboardPage() {
                 </div>
             </div>
             {isLoading ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    {Array.from({length: 10}).map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
+                <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+                    {Array.from({length: 10}).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
                 </div>
             ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
                     <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Prospectos Registrados</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Total Prospectos</CardTitle>
                             <Users className="h-4 w-4 text-slate-500" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{dashboardStats.totalProspectosRegistrados}</div>
-                            <p className="text-xs text-muted-foreground">Total histórico de oportunidades.</p>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{dashboardStats.totalProspectosRegistrados}</div>
                         </CardContent>
                     </Card>
                      <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Nuevos Prospectos ({reportType === 'monthly' ? 'Mes' : 'Semana'})</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Nuevos ({reportType === 'monthly' ? 'Mes' : 'Semana'})</CardTitle>
                             <Users className="h-4 w-4 text-sky-500" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{dashboardStats.prospectosActivos}</div>
-                            <p className="text-xs text-muted-foreground">Oportunidades creadas en el periodo.</p>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{dashboardStats.prospectosActivos}</div>
                         </CardContent>
                     </Card>
                     <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Nuevos Clientes Potenciales</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Potenciales</CardTitle>
                             <Target className="h-4 w-4 text-blue-500" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{dashboardStats.clientesPotenciales}</div>
-                            <p className="text-xs text-muted-foreground">Nuevas oportunidades en cotización o negociación.</p>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{dashboardStats.clientesPotenciales}</div>
                         </CardContent>
                     </Card>
                     <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Nuevos Clientes</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Nuevos Clientes</CardTitle>
                             <UserCheck className="h-4 w-4 text-green-500" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">+{dashboardStats.clientesGanados}</div>
-                            <p className="text-xs text-muted-foreground">Oportunidades cerradas como ganadas en el periodo.</p>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">+{dashboardStats.clientesGanados}</div>
                         </CardContent>
                     </Card>
                     <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Ingresos del Periodo</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Ingresos Periodo</CardTitle>
                             <DollarSign className="h-4 w-4 text-emerald-500" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dashboardStats.ingresosTotalesUSD)}</div>
-                            <p className="text-sm text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(dashboardStats.ingresosTotalesMXN)}</p>
-                            <p className="text-xs text-muted-foreground mt-1">De cotizaciones que se hicieron clientes en el periodo.</p>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dashboardStats.ingresosTotalesUSD)}</div>
+                            <p className="text-xs text-muted-foreground -mt-1">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(dashboardStats.ingresosTotalesMXN)}</p>
                         </CardContent>
                     </Card>
                     <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Tasa de Conversión</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Tasa Conversión</CardTitle>
                             <TrendingUp className="h-4 w-4 text-indigo-500" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{dashboardStats.tasaDeConversion}%</div>
-                            <p className="text-xs text-muted-foreground">Nuevos clientes / Nuevas oportunidades del periodo.</p>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{dashboardStats.tasaDeConversion}%</div>
                         </CardContent>
                     </Card>
                     <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Cotizaciones Hechas</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Cotizaciones</CardTitle>
                             <FileText className="h-4 w-4 text-violet-500" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{dashboardStats.cotizacionesHechas}</div>
-                            <p className="text-xs text-muted-foreground">Generadas este periodo.</p>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{dashboardStats.cotizacionesHechas}</div>
                         </CardContent>
                     </Card>
                     <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Prospectos No Atendidos</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">No Atendidos</CardTitle>
                             <UserX className="h-4 w-4 text-amber-500" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{dashboardStats.clientesNoAtendidos}</div>
-                            <p className="text-xs text-muted-foreground">Nuevas oportunidades que siguen en 'Primer contacto'.</p>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{dashboardStats.clientesNoAtendidos}</div>
                         </CardContent>
                     </Card>
                      <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Financiamiento Externo</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Financiamiento</CardTitle>
                             <Landmark className="h-4 w-4 text-orange-500" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{dashboardStats.clientesEnFinanciamiento}</div>
-                            <p className="text-xs text-muted-foreground">Movidos a financiamiento este periodo.</p>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{dashboardStats.clientesEnFinanciamiento}</div>
                         </CardContent>
                     </Card>
                      <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Prospectos Descartados</CardTitle>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Descartados</CardTitle>
                             <ArchiveX className="h-4 w-4 text-red-500" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{dashboardStats.prospectosDescartados}</div>
-                            <p className="text-xs text-muted-foreground">Prospectos marcados como perdidos en el periodo.</p>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{dashboardStats.prospectosDescartados}</div>
                         </CardContent>
                     </Card>
                 </div>

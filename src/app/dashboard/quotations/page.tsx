@@ -207,7 +207,7 @@ export default function QuotationsPage() {
         if (clientQuoteIds.length === 0) return false;
         return clientQuoteIds.every(id => selectedQuoteIds.has(id));
     };
-
+    
     const isAnyClientQuoteSelected = (clientName: string) => {
         const clientQuoteIds = groupedQuotations[clientName]?.map(q => q.id) || [];
         return clientQuoteIds.some(id => selectedQuoteIds.has(id));
@@ -306,15 +306,49 @@ export default function QuotationsPage() {
             </div>
 
             {isLoading ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
-                    {Array.from({length: 4}).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                    {Array.from({length: 4}).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
                 </div>
             ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
-                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Valor Total Enviado</CardTitle><Send className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(quotationStats.sentValueUSD)}</div><p className="text-xs text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(quotationStats.sentValueMXN)}</p><p className="text-xs text-muted-foreground mt-1">en {quotationStats.sentCount} cotizaciones</p></CardContent></Card>
-                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Valor Total Aceptado</CardTitle><DollarSign className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(quotationStats.acceptedValueUSD)}</div><p className="text-xs text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(quotationStats.acceptedValueMXN)}</p><p className="text-xs text-muted-foreground mt-1">de {quotationStats.acceptedCount} cotizaciones</p></CardContent></Card>
-                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Cotizaciones Aceptadas</CardTitle><FileCheck className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{quotationStats.acceptedCount}</div><p className="text-xs text-muted-foreground">De un total de {enrichedQuotations.length} cotizaciones</p></CardContent></Card>
-                    <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Rechazadas / Borrador</CardTitle><FileX className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{quotationStats.rejectedCount}</div><p className="text-xs text-muted-foreground">{quotationStats.draftCount} en borrador</p></CardContent></Card>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
+                    <Card className="bg-muted/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Valor Enviado</CardTitle>
+                            <Send className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(quotationStats.sentValueUSD)}</div>
+                            <p className="text-xs text-muted-foreground -mt-1">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(quotationStats.sentValueMXN)} ({quotationStats.sentCount})</p>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-muted/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Valor Aceptado</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(quotationStats.acceptedValueUSD)}</div>
+                            <p className="text-xs text-muted-foreground -mt-1">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(quotationStats.acceptedValueMXN)} ({quotationStats.acceptedCount})</p>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-muted/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Aceptadas / Total</CardTitle>
+                            <FileCheck className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{quotationStats.acceptedCount} <span className="font-normal text-sm text-muted-foreground">/ {enrichedQuotations.length}</span></div>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-muted/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Rechazadas / Borrador</CardTitle>
+                            <FileX className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{quotationStats.rejectedCount} <span className="font-normal text-sm text-muted-foreground">/ {quotationStats.draftCount}</span></div>
+                        </CardContent>
+                    </Card>
                 </div>
             )}
 

@@ -654,44 +654,40 @@ export default function FollowUpsPage() {
             </div>
         ) : (
              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
+                <Card className="bg-muted/50">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                        <CardTitle className="text-xs font-medium">Pendientes</CardTitle>
                         <ListTodo className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl font-bold">{followUpStats.totalPending}</div>
-                        <p className="text-xs text-muted-foreground">Actividades por completar</p>
+                    <CardContent className="p-3 pt-0">
+                        <div className="text-lg font-bold">{followUpStats.totalPending}</div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Atrasados</CardTitle>
+                <Card className="bg-muted/50">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                        <CardTitle className="text-xs font-medium">Atrasados</CardTitle>
                         <AlertOctagon className="h-4 w-4 text-destructive" />
                     </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl font-bold text-destructive">{followUpStats.overdue}</div>
-                        <p className="text-xs text-muted-foreground">Pasaron su fecha límite</p>
+                    <CardContent className="p-3 pt-0">
+                        <div className="text-lg font-bold text-destructive">{followUpStats.overdue}</div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Para Hoy</CardTitle>
+                <Card className="bg-muted/50">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                        <CardTitle className="text-xs font-medium">Para Hoy</CardTitle>
                         <CalendarClock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl font-bold">{followUpStats.dueToday}</div>
-                        <p className="text-xs text-muted-foreground">Actividades programadas hoy</p>
+                    <CardContent className="p-3 pt-0">
+                        <div className="text-lg font-bold">{followUpStats.dueToday}</div>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Completados</CardTitle>
+                <Card className="bg-muted/50">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                        <CardTitle className="text-xs font-medium">Completados</CardTitle>
                         <CheckCheck className="h-4 w-4 text-green-600" />
                     </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                        <div className="text-xl font-bold text-green-600">{followUpStats.completed}</div>
-                        <p className="text-xs text-muted-foreground">Total de finalizadas</p>
+                    <CardContent className="p-3 pt-0">
+                        <div className="text-lg font-bold text-green-600">{followUpStats.completed}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -785,9 +781,9 @@ export default function FollowUpsPage() {
                                     <p className={cn("font-semibold", activity.completed ? 'line-through' : 'text-foreground')}>
                                         {activity.type}
                                         <span className="font-normal text-muted-foreground"> con </span> 
-                                        <span className="font-medium">{activity.clientName}</span>
+                                        <span className="font-medium">{activity.clientName.toUpperCase()}</span>
                                         {activity.prospect?.contactPerson && (
-                                            <span className="text-sm font-normal text-muted-foreground"> ({activity.prospect.contactPerson})</span>
+                                            <span className="text-sm font-normal text-muted-foreground"> ({activity.prospect.contactPerson.toUpperCase()})</span>
                                         )}
                                     </p>
                                     {activity.prospect?.opportunity?.stage && (
