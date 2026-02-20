@@ -176,6 +176,11 @@ export default function NewQuotationPage() {
     if (!leads || !selectedClientId) return null;
     return (leads as Client[]).find(lead => lead.id === selectedClientId) || null;
   }, [leads, selectedClientId]);
+
+  const sortedLeads = useMemo(() => {
+    if (!leads) return [];
+    return [...(leads as any[])].sort((a, b) => a.clientName.localeCompare(b.clientName));
+  }, [leads]);
   
   const handleOtherChargeChange = (index: number, field: 'description' | 'amount', value: string) => {
     const newCharges = [...otherCharges];
@@ -703,7 +708,7 @@ export default function NewQuotationPage() {
                                         {isLoading ? (
                                             <SelectItem value="loading" disabled>Cargando clientes...</SelectItem>
                                         ) : (
-                                            leads?.map((lead: any) => (
+                                            sortedLeads.map((lead: any) => (
                                                 <SelectItem key={lead.id} value={lead.id}>
                                                     {lead.clientName.toUpperCase()}
                                                 </SelectItem>
