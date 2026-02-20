@@ -1013,93 +1013,85 @@ export default function PipelinePage() {
       </div>
 
       {isLoading ? (
-            <div className="grid gap-6 grid-cols-2 md:grid-cols-4 mb-6">
-                {Array.from({length: 8}).map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}
-            </div>
-        ) : (
-            <div className="grid gap-6 grid-cols-2 md:grid-cols-4 mb-6">
-                <Card className="bg-muted/50">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Prospectos Activos</CardTitle>
-                        <Users className="h-4 w-4 text-sky-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{pipelineStats.activeProspects}</div>
-                        <p className="text-xs text-muted-foreground">Oportunidades en el flujo de ventas.</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Clientes sin Seguimiento</CardTitle>
-                        <HelpCircle className="h-4 w-4 text-amber-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{pipelineStats.prospectsWithoutFollowUp}</div>
-                        <p className="text-xs text-muted-foreground">Prospectos activos sin actividades.</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Clientes Potenciales</CardTitle>
-                        <Target className="h-4 w-4 text-blue-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{pipelineStats.potentialClients}</div>
-                        <p className="text-xs text-muted-foreground">En cotización o negociación.</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">En Etapas Iniciales</CardTitle>
-                        <Phone className="h-4 w-4 text-slate-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{pipelineStats.initialContact}</div>
-                        <p className="text-xs text-muted-foreground">Contacto inicial o envío de info.</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">En Financiamiento</CardTitle>
-                        <Landmark className="h-4 w-4 text-orange-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{pipelineStats.financingClients}</div>
-                        <p className="text-xs text-muted-foreground">Prospectos en proceso de financiamiento.</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Nuevos Prospectos del Mes</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-indigo-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{pipelineStats.newProspectsThisMonth}</div>
-                        <p className="text-xs text-muted-foreground">Oportunidades creadas en el mes actual.</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Respondieron Últ. Seg.</CardTitle>
-                        <UserCheck className="h-4 w-4 text-green-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{pipelineStats.respondedLastFollowUp}</div>
-                        <p className="text-xs text-muted-foreground">Clientes que sí respondieron.</p>
-                    </CardContent>
-                </Card>
-                <Card className="bg-muted/50">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">No Respondieron Últ. Seg.</CardTitle>
-                        <UserX className="h-4 w-4 text-red-500" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{pipelineStats.notRespondedLastFollowUp}</div>
-                        <p className="text-xs text-muted-foreground">Clientes sin respuesta.</p>
-                    </CardContent>
-                </Card>
-            </div>
-        )}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8 mb-6">
+              {Array.from({length: 8}).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+          </div>
+      ) : (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8 mb-6">
+              <Card className="bg-muted/50">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                      <CardTitle className="text-xs font-medium">Prospectos Activos</CardTitle>
+                      <Users className="h-4 w-4 text-sky-500" />
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                      <div className="text-lg font-bold">{pipelineStats.activeProspects}</div>
+                  </CardContent>
+              </Card>
+              <Card className="bg-muted/50">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                      <CardTitle className="text-xs font-medium">Sin Seguimiento</CardTitle>
+                      <HelpCircle className="h-4 w-4 text-amber-500" />
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                      <div className="text-lg font-bold">{pipelineStats.prospectsWithoutFollowUp}</div>
+                  </CardContent>
+              </Card>
+              <Card className="bg-muted/50">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                      <CardTitle className="text-xs font-medium">Potenciales</CardTitle>
+                      <Target className="h-4 w-4 text-blue-500" />
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                      <div className="text-lg font-bold">{pipelineStats.potentialClients}</div>
+                  </CardContent>
+              </Card>
+              <Card className="bg-muted/50">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                      <CardTitle className="text-xs font-medium">Etapas Iniciales</CardTitle>
+                      <Phone className="h-4 w-4 text-slate-500" />
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                      <div className="text-lg font-bold">{pipelineStats.initialContact}</div>
+                  </CardContent>
+              </Card>
+              <Card className="bg-muted/50">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                      <CardTitle className="text-xs font-medium">En Financiamiento</CardTitle>
+                      <Landmark className="h-4 w-4 text-orange-500" />
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                      <div className="text-lg font-bold">{pipelineStats.financingClients}</div>
+                  </CardContent>
+              </Card>
+              <Card className="bg-muted/50">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                      <CardTitle className="text-xs font-medium">Nuevos (Mes)</CardTitle>
+                      <TrendingUp className="h-4 w-4 text-indigo-500" />
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                      <div className="text-lg font-bold">{pipelineStats.newProspectsThisMonth}</div>
+                  </CardContent>
+              </Card>
+              <Card className="bg-muted/50">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                      <CardTitle className="text-xs font-medium">Respondieron</CardTitle>
+                      <UserCheck className="h-4 w-4 text-green-500" />
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                      <div className="text-lg font-bold">{pipelineStats.respondedLastFollowUp}</div>
+                  </CardContent>
+              </Card>
+              <Card className="bg-muted/50">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                      <CardTitle className="text-xs font-medium">No Respondieron</CardTitle>
+                      <UserX className="h-4 w-4 text-red-500" />
+                  </CardHeader>
+                  <CardContent className="p-3 pt-0">
+                      <div className="text-lg font-bold">{pipelineStats.notRespondedLastFollowUp}</div>
+                  </CardContent>
+              </Card>
+          </div>
+      )}
 
       <div className="mb-4">
         <h2 className="text-lg font-semibold">Seguimiento de Prospectos</h2>
