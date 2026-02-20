@@ -34,7 +34,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2, KeyRound, Pencil, Eye, ThumbsUp, Undo2, FileCheck2, History } from 'lucide-react';
+import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2, KeyRound, Pencil, Eye, ThumbsUp, Undo2, FileCheck2, History, Award, TrendingUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   generateMarketingPlan,
@@ -51,6 +51,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { MarketingPlan, CompletedMarketingTask, TaskCompletionData } from '@/lib/types';
 import { TiktokIcon, InstagramIcon, FacebookIcon, LinkedinIcon } from '@/components/social-icons';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 const GENERATION_CODE = 'PAISANO2026';
@@ -124,7 +125,7 @@ export default function MarketingPage() {
 
   const { data: completedTasks, isLoading: areTasksLoading } = useCollection<CompletedMarketingTask>(completedTasksQuery);
 
-  const { completedPoints, progress, rank, rankGoalPoints } = useMemo(() => {
+  const { completedPoints, rank } = useMemo(() => {
     if (!plan?.planData) {
       return { totalPoints: 0, completedPoints: 0, progress: 0, rank: 'Aprendiz' as const, rankGoalPoints: 10 };
     }
@@ -134,28 +135,16 @@ export default function MarketingPage() {
       .reduce((acc, task) => acc + task.points, 0) || 0;
     
     let currentRank: 'Aprendiz' | 'Estratega' | 'Maestro' = 'Aprendiz';
-    let progressValue = 0;
-    let goalPoints = 10;
-
+    
     if (completed >= 20) {
         currentRank = 'Maestro';
-        progressValue = 100;
-        goalPoints = completed;
     } else if (completed >= 10) {
         currentRank = 'Estratega';
-        progressValue = ((completed - 10) / (20 - 10)) * 100;
-        goalPoints = 20;
-    } else {
-        currentRank = 'Aprendiz';
-        progressValue = (completed / 10) * 100;
-        goalPoints = 10;
     }
 
     return {
         completedPoints: completed,
-        progress: progressValue,
         rank: currentRank,
-        rankGoalPoints: goalPoints,
     };
   }, [plan, completedTasks]);
   
@@ -454,7 +443,7 @@ export default function MarketingPage() {
                 <div>
                     <CardTitle>Progreso del Plan Semanal</CardTitle>
                     <CardDescription>
-                        Resumen de tu avance en las metas de marketing de la semana (solo puntos de tareas aprobadas).
+                        Resumen de tu avance en las metas de marketing de la semana.
                     </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
@@ -480,70 +469,87 @@ export default function MarketingPage() {
                 </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                    <Label className="text-sm font-medium">Rango Semanal</Label>
-                    <Badge variant={rank === 'Maestro' ? 'default' : rank === 'Estratega' ? 'secondary' : 'outline'} className="text-base py-1 px-3">{rank}</Badge>
+          <CardContent>
+            {isLoading ? (
+                <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+                    {Array.from({length: 5}).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
                 </div>
-                <div>
-                    <div className="flex justify-between items-center mb-1">
-                        <Label className="text-sm font-medium">Progreso al Siguiente Rango</Label>
-                        <span className="text-sm font-semibold">
-                            {completedPoints} 
-                            {rank !== 'Maestro' && ` de ${rankGoalPoints}`} pts.
-                        </span>
-                    </div>
-                    <Progress value={progress} className="w-full h-3" />
+            ) : (
+                <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+                    <Card className="bg-muted/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Rango Semanal</CardTitle>
+                            <Award className="h-4 w-4 text-amber-500" />
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{rank}</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-muted/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Puntos (Aprobados)</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-indigo-500" />
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{completedPoints}</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-muted/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Aprobadas</CardTitle>
+                            <ThumbsUp className="h-4 w-4 text-green-500" />
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{planReviewStats.approved}</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-muted/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Pendientes</CardTitle>
+                            <History className="h-4 w-4 text-gray-500" />
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{planReviewStats.pending}</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-muted/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Con Cambios</CardTitle>
+                            <Undo2 className="h-4 w-4 text-yellow-500" />
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{planReviewStats.changesRequired}</div>
+                        </CardContent>
+                    </Card>
                 </div>
-              </div>
-              <div className="pt-4 border-t">
-                  <h4 className="text-sm font-medium text-muted-foreground mb-3 text-center">Estado de las Tareas</h4>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <ThumbsUp className="mx-auto h-6 w-6 text-green-500 mb-1" />
-                      <p className="text-xl font-bold">{planReviewStats.approved}</p>
-                      <p className="text-xs font-medium text-muted-foreground">Aprobadas</p>
-                    </div>
-                    <div>
-                      <History className="mx-auto h-6 w-6 text-gray-500 mb-1" />
-                      <p className="text-xl font-bold">{planReviewStats.pending}</p>
-                      <p className="text-xs font-medium text-muted-foreground">Pendientes</p>
-                    </div>
-                    <div>
-                      <Undo2 className="mx-auto h-6 w-6 text-yellow-500 mb-1" />
-                      <p className="text-xl font-bold">{planReviewStats.changesRequired}</p>
-                      <p className="text-xs font-medium text-muted-foreground">Con Cambios</p>
-                    </div>
+            )}
+             <div className="pt-4 mt-4 border-t">
+                  <div className="p-4 rounded-lg bg-muted/50 mt-4">
+                      <h4 className="text-sm font-medium text-muted-foreground mb-3 text-center">Actividades Aprobadas por Red Social</h4>
+                      <div className="grid grid-cols-4 gap-4 text-center">
+                          <div>
+                              <TiktokIcon className="mx-auto h-6 w-6 text-foreground mb-1" />
+                              <p className="text-xl font-bold">{socialMediaStats.tiktok}</p>
+                              <p className="text-xs font-medium text-muted-foreground">TikTok</p>
+                          </div>
+                          <div>
+                              <InstagramIcon className="mx-auto h-6 w-6 text-pink-500 mb-1" />
+                              <p className="text-xl font-bold">{socialMediaStats.instagram}</p>
+                              <p className="text-xs font-medium text-muted-foreground">Instagram</p>
+                          </div>
+                          <div>
+                              <FacebookIcon className="mx-auto h-6 w-6 text-blue-600 mb-1" />
+                              <p className="text-xl font-bold">{socialMediaStats.facebook}</p>
+                              <p className="text-xs font-medium text-muted-foreground">Facebook</p>
+                          </div>
+                          <div>
+                              <LinkedinIcon className="mx-auto h-6 w-6 text-sky-700 mb-1" />
+                              <p className="text-xl font-bold">{socialMediaStats.linkedin}</p>
+                              <p className="text-xs font-medium text-muted-foreground">LinkedIn</p>
+                          </div>
+                      </div>
                   </div>
-              </div>
-               <div className="pt-4 border-t">
-                    <div className="p-4 rounded-lg bg-muted/50 mt-4">
-                        <h4 className="text-sm font-medium text-muted-foreground mb-3 text-center">Actividades Aprobadas por Red Social</h4>
-                        <div className="grid grid-cols-4 gap-4 text-center">
-                            <div>
-                                <TiktokIcon className="mx-auto h-6 w-6 text-foreground mb-1" />
-                                <p className="text-xl font-bold">{socialMediaStats.tiktok}</p>
-                                <p className="text-xs font-medium text-muted-foreground">TikTok</p>
-                            </div>
-                            <div>
-                                <InstagramIcon className="mx-auto h-6 w-6 text-pink-500 mb-1" />
-                                <p className="text-xl font-bold">{socialMediaStats.instagram}</p>
-                                <p className="text-xs font-medium text-muted-foreground">Instagram</p>
-                            </div>
-                            <div>
-                                <FacebookIcon className="mx-auto h-6 w-6 text-blue-600 mb-1" />
-                                <p className="text-xl font-bold">{socialMediaStats.facebook}</p>
-                                <p className="text-xs font-medium text-muted-foreground">Facebook</p>
-                            </div>
-                            <div>
-                                <LinkedinIcon className="mx-auto h-6 w-6 text-sky-700 mb-1" />
-                                <p className="text-xl font-bold">{socialMediaStats.linkedin}</p>
-                                <p className="text-xs font-medium text-muted-foreground">LinkedIn</p>
-                            </div>
-                        </div>
-                    </div>
-              </div>
+            </div>
             </CardContent>
         </Card>
 
