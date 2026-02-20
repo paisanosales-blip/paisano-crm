@@ -6,117 +6,60 @@ service firebase.storage {
     // Helper Functions
     // ------------------------------------------------------------------------
 
-    /**
-     * @description Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Ownership checks
-     * @param userId The UID to check against the authenticated user's UID.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * @description Fetches the user's profile data from Firestore to check their role.
-     */
     function getUserData() {
       return get(/databases/(default)/documents/users/$(request.auth.uid)).data;
     }
 
-    /**
-     * @description Checks if the authenticated user has the 'Admin' role.
-     */
-    function isAdmin() {
-      return isSignedIn() && getUserData().role.lower() == 'admin';
-    }
-
-    /**
-     * @description Checks if the authenticated user has the 'Manager' role.
-     */
     function isManager() {
-      return isSignedIn() && getUserData().role.lower() == 'manager';
+      return isSignedIn() && exists(/databases/(default)/documents/users/$(request.auth.uid)) && getUserData().role.lower() == 'manager';
     }
 
-    function isServiceAgent() {
-      return isSignedIn() && getUserData().role.lower() == 'service_agent';
-    }
-
-    /**
-     * @description Checks if the user is either an Admin or a Manager.
-     */
-    function isAdminOrManager() {
-      return isAdmin() || isManager();
-    }
-
-    /**
-     * @description Checks if the user attempting the action is the seller assigned
-     * to the opportunity linked by 'opportunityId'. This is done by fetching the
-     * corresponding opportunity document from Firestore.
-     * @param opportunityId The ID of the opportunity document to check.
-     */
     function isOpportunityOwner(opportunityId) {
-      // Use exists() to prevent errors if the document doesn't exist yet.
       return exists(/databases/(default)/documents/opportunities/$(opportunityId)) &&
              get(/databases/(default)/documents/opportunities/$(opportunityId)).data.sellerId == request.auth.uid;
+    }
+    
+    function isTicketAgent(ticketId) {
+      return exists(/databases/(default)/documents/serviceTickets/$(ticketId)) &&
+             get(/databases/(default)/documents/serviceTickets/$(ticketId)).data.assignedAgentId == request.auth.uid;
     }
 
     // ------------------------------------------------------------------------
     // Path Rules
     // ------------------------------------------------------------------------
 
-    /**
-     * @description Rules for user profile pictures. Users can read and write their own profile picture.
-     * @path /profile-pictures/{userId}/{allPaths=**}
-     * @allow (read, write) If the user is the owner of the profile.
-     * @principle Enforces ownership for file operations.
-     */
     match /profile-pictures/{userId}/{allPaths=**} {
       allow read, write: if isOwner(userId);
     }
 
-
-    /**
-     * @description Rules for quotation files. Files are stored in a path structured
-     * as /quotations/{opportunityId}/{fileName}.
-     * @path /quotations/{opportunityId}/{allPaths=**}
-     * @allow (read, write) If the user is authenticated AND (they are an Admin/Manager OR they are the seller assigned to the opportunity).
-     * @principle Enforces ownership for file operations based on related data in Firestore.
-     */
     match /quotations/{opportunityId}/{allPaths=**} {
-      allow read, write: if isSignedIn() && (isAdminOrManager() || isOpportunityOwner(opportunityId));
+      allow read, write: if isSignedIn() && (isManager() || isOpportunityOwner(opportunityId));
     }
 
-    /**
-     * @description Rules for global app assets like logos.
-     * @path /app/{allPaths=**}
-     * @allow read: if true;
-     * @allow write: if isManager();
+    match /app/{allPaths=**} {
+      allow read: if true;
+      allow write: if isManager();
     }
 
-    /**
-     * @description Rules for marketing uploads. Any signed-in user can upload files.
-     */
     match /marketing_uploads/{allPaths=**} {
       allow read, write: if isSignedIn();
     }
 
-    /**
-     * @description Rules for shared files.
-     */
     match /shared-files/{allPaths=**} {
       allow read, write: if isSignedIn();
     }
 
-    /**
-     * @description Rules for customer service evidence files.
-     */
     match /service_evidence/{ticketId}/{allPaths=**} {
-      allow read, write: if isSignedIn() && (isManager() || isServiceAgent());
+      allow read: if isSignedIn() && (isManager() || isTicketAgent(ticketId));
+      allow write: if isSignedIn() && (isManager() || isTicketAgent(ticketId));
     }
   }
 }

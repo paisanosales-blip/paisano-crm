@@ -12,8 +12,7 @@ service cloud.firestore {
     // NOTE: This function uses get() and can ONLY be used in rules for single-document
     // operations like 'get', 'update', 'delete'. It CANNOT be used to validate 'list' queries.
     function isManager() {
-      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return isSignedIn() && userData != null && 'role' in userData && userData.role.lower() == 'manager';
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.lower() == 'manager';
     }
 
     // =====================================================================
@@ -116,5 +115,3 @@ service cloud.firestore {
     }
   }
 }
-
-    
