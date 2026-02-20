@@ -1,6 +1,6 @@
 'use client';
 
-import { Bar, BarChart, CartesianGrid, Pie, PieChart, XAxis, YAxis, Cell, LabelList } from 'recharts';
+import { Bar, BarChart, CartesianGrid, Pie, PieChart, XAxis, YAxis, Cell, LabelList, Funnel, FunnelChart } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import type { ChartConfig } from '@/components/ui/chart';
@@ -179,6 +179,37 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
             });
     }, [leads]);
 
+    const funnelData = React.useMemo(() => {
+        if (!opportunities) return [];
+    
+        const funnelStages: (keyof typeof pipelineConfig)[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
+        const stageOrder = funnelStages.reduce((acc, stage, index) => {
+            acc[stage] = index;
+            return acc;
+        }, {} as Record<string, number>);
+    
+        const stageCounts = funnelStages.map(stage => ({
+            stage,
+            value: 0,
+            name: pipelineConfig[stage].label,
+            fill: pipelineConfig[stage].color
+        }));
+        
+        opportunities.forEach(opp => {
+            const oppStageIndex = stageOrder[opp.stage as keyof typeof stageOrder];
+            
+            // Only count if the stage is part of the main funnel
+            if (oppStageIndex !== undefined) {
+                // An opportunity in a later stage has also passed through all previous stages
+                for (let i = 0; i <= oppStageIndex; i++) {
+                    stageCounts[i].value += 1;
+                }
+            }
+        });
+    
+        return stageCounts;
+    }, [opportunities]);
+
     if (isLoading) {
         return (
             <div className="grid gap-6 md:grid-cols-2">
@@ -186,6 +217,7 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                 <Skeleton className="h-[400px]" />
                 <Skeleton className="h-[400px]" />
                 <Skeleton className="h-[400px]" />
+                <Skeleton className="h-[350px] md:col-span-2" />
             </div>
         )
     }
@@ -352,6 +384,56 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                 ) : (
                      <div className="h-[300px] w-full flex items-center justify-center text-muted-foreground">
                         No hay oportunidades.
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+        <Card className="md:col-span-2">
+            <CardHeader>
+                <CardTitle>Embudo de Ventas</CardTitle>
+                <CardDescription>Conversión de prospectos a través de las etapas de venta.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {funnelData.length > 0 && funnelData.some(d => d.value > 0) ? (
+                    <ChartContainer config={{}} className="h-[300px] w-full aspect-video">
+                        <FunnelChart layout="vertical">
+                            <ChartTooltip
+                                cursor={false}
+                                content={<ChartTooltipContent indicator="dot" />}
+                            />
+                            <Funnel
+                                data={funnelData}
+                                dataKey="value"
+                                nameKey="name"
+                                isAnimationActive
+                                layout="vertical"
+                                neckWidth="30%"
+                                neckHeight="20%"
+                            >
+                                <LabelList
+                                    position="right"
+                                    fill="hsl(var(--foreground))"
+                                    stroke="none"
+                                    dataKey="name"
+                                    className="font-medium"
+                                />
+                                <LabelList 
+                                    position="center"
+                                    fill="#fff"
+                                    stroke="hsl(var(--foreground))"
+                                    strokeWidth={0.2}
+                                    formatter={(value: number) => value}
+                                    className="font-bold text-sm"
+                                />
+                                {funnelData.map((entry) => (
+                                    <Cell key={`cell-${entry.stage}`} fill={entry.fill} />
+                                ))}
+                            </Funnel>
+                        </FunnelChart>
+                    </ChartContainer>
+                ) : (
+                    <div className="h-[300px] w-full flex items-center justify-center text-muted-foreground">
+                        No hay suficientes datos para construir el embudo.
                     </div>
                 )}
             </CardContent>
