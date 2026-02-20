@@ -12,7 +12,7 @@ import {
   addDocumentNonBlocking,
   useStorage,
 } from '@/firebase';
-import { collection, query, doc, orderBy } from 'firebase/firestore';
+import { collection, query, doc, orderBy, where } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -73,12 +73,12 @@ export default function ServiceTicketDetailPage() {
   const interactionsQuery = useMemoFirebase(() => query(collection(firestore, 'serviceTickets', ticketId, 'interactions'), orderBy('createdAt', 'desc')), [firestore, ticketId]);
   const { data: interactions, isLoading: areInteractionsLoading } = useCollection<ServiceInteraction>(interactionsQuery);
 
-  const agentsQuery = useMemoFirebase(() => query(collection(firestore, 'users'), where('role', 'in', ['service_agent', 'manager'])), [firestore]);
+  const agentsQuery = useMemoFirebase(() => query(collection(firestore, 'users'), where('role', 'in', ['seller', 'manager'])), [firestore]);
   const { data: agents, isLoading: areAgentsLoading } = useCollection<User>(agentsQuery);
 
   const isLoading = isTicketLoading || areInteractionsLoading || areAgentsLoading;
   
-  const canEdit = userProfile?.role === 'manager' || (userProfile?.role === 'service_agent' && ticket?.assignedAgentId === user?.uid);
+  const canEdit = userProfile?.role === 'manager' || (ticket?.assignedAgentId === user?.uid);
 
   const handleStatusChange = (newStatus: ServiceTicket['status']) => {
     const updateData: Partial<ServiceTicket> = { status: newStatus };
@@ -97,8 +97,8 @@ export default function ServiceTicketDetailPage() {
   const handleAgentChange = (agentId: string) => {
     const agent = agents?.find(a => a.id === agentId);
     if (!agent) return;
-    updateDocumentNonBlocking(ticketRef, { assignedAgentId: agent.id, assignedAgentName: agent.name });
-    toast({ title: "Agente reasignado", description: `El ticket ha sido asignado a ${agent.name}.` });
+    updateDocumentNonBlocking(ticketRef, { assignedAgentId: agent.id, assignedAgentName: `${agent.firstName} ${agent.lastName}` });
+    toast({ title: "Agente reasignado", description: `El ticket ha sido asignado a ${agent.firstName} ${agent.lastName}.` });
   };
 
   const handlePostInteraction = async () => {
@@ -138,7 +138,7 @@ export default function ServiceTicketDetailPage() {
     const interactionData: Omit<ServiceInteraction, 'id'> = {
       ticketId,
       agentId: user.uid,
-      agentName: userProfile.name,
+      agentName: `${userProfile.firstName} ${userProfile.lastName}`,
       comment: newComment,
       createdAt: new Date().toISOString(),
       ...filePayload
@@ -281,7 +281,7 @@ export default function ServiceTicketDetailPage() {
                          <Select value={ticket.assignedAgentId} onValueChange={handleAgentChange} disabled={!canEdit}>
                             <SelectTrigger><SelectValue placeholder="Asignar agente..." /></SelectTrigger>
                             <SelectContent>
-                                {agents?.map((agent: User) => <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>)}
+                                {agents?.map((agent: User) => <SelectItem key={agent.id} value={agent.id}>{agent.firstName} {agent.lastName}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
@@ -299,3 +299,5 @@ export default function ServiceTicketDetailPage() {
     </div>
   );
 }
+
+    

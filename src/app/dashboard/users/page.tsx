@@ -30,7 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
-const ROLES = ['seller', 'manager', 'service_agent'];
+const ROLES = ['seller', 'manager'];
 
 export default function UsersPage() {
   const { user: currentUser, isUserLoading: isUserAuthLoading } = useUser();
@@ -242,3 +242,5 @@ export default function UsersPage() {
     </>
   );
 }
+
+    

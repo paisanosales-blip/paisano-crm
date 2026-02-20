@@ -13,7 +13,7 @@ import {
   addDocumentNonBlocking,
   useDoc
 } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -54,7 +54,7 @@ export default function NewServiceTicketPage() {
   const { data: userProfile } = useDoc(userProfileRef);
   
   const agentsQuery = useMemoFirebase(() => {
-    return query(collection(firestore, 'users'), where('role', 'in', ['service_agent', 'manager']));
+    return query(collection(firestore, 'users'), where('role', 'in', ['seller', 'manager']));
   }, [firestore]);
   const { data: agents, isLoading: areAgentsLoading } = useCollection<User>(agentsQuery);
 
@@ -90,7 +90,7 @@ export default function NewServiceTicketPage() {
       isWarranty: false, // Default value
       status: 'Abierto',
       reportedAt: new Date().toISOString(),
-      assignedAgentName: selectedAgent.name,
+      assignedAgentName: `${selectedAgent.firstName} ${selectedAgent.lastName}`,
     };
 
     try {
@@ -140,7 +140,7 @@ export default function NewServiceTicketPage() {
 
                <div className="p-4 border rounded-lg space-y-6">
                   <h3 className="font-semibold text-lg border-b pb-2">Asignación</h3>
-                  <FormField control={form.control} name="assignedAgentId" render={({ field }) => ( <FormItem><FormLabel>Asignar a Agente</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={areAgentsLoading}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar un agente..." /></SelectTrigger></FormControl><SelectContent>{agents?.map(agent => <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="assignedAgentId" render={({ field }) => ( <FormItem><FormLabel>Asignar a Agente</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={areAgentsLoading}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar un agente..." /></SelectTrigger></FormControl><SelectContent>{agents?.map(agent => <SelectItem key={agent.id} value={agent.id}>{agent.firstName} {agent.lastName}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
               </div>
 
               <div className="flex justify-end gap-4 pt-4">
@@ -154,3 +154,5 @@ export default function NewServiceTicketPage() {
     </div>
   );
 }
+
+    

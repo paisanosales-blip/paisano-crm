@@ -58,15 +58,15 @@ export default function CustomerServicePage() {
   const { data: userProfile } = useDoc(userProfileRef);
 
   const agentsQuery = useMemoFirebase(() => {
-    return query(collection(firestore, 'users'), where('role', 'in', ['service_agent', 'manager']));
+    return query(collection(firestore, 'users'), where('role', 'in', ['seller', 'manager']));
   }, [firestore]);
   const { data: agents, isLoading: areAgentsLoading } = useCollection<User>(agentsQuery);
 
   const ticketsQuery = useMemoFirebase(() => {
-    if (!userProfile) return null;
+    if (!userProfile || !user) return null;
     let q = query(collection(firestore, 'serviceTickets'));
     
-    if (userProfile.role === 'service_agent') {
+    if (userProfile.role === 'seller') {
         q = query(q, where('assignedAgentId', '==', user.uid));
     }
 
@@ -138,7 +138,7 @@ export default function CustomerServicePage() {
                   <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filtrar por agente" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos los Agentes</SelectItem>
-                    {agents?.map((agent: User) => <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>)}
+                    {agents?.map((agent: User) => <SelectItem key={agent.id} value={agent.id}>{agent.firstName} {agent.lastName}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}
@@ -181,3 +181,5 @@ export default function CustomerServicePage() {
     </div>
   );
 }
+
+    

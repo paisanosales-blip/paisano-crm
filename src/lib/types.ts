@@ -1,9 +1,10 @@
 export type User = {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   avatarUrl: string;
-  role: 'manager' | 'seller' | 'service_agent';
+  role: 'manager' | 'seller';
 };
 
 export type Client = {
@@ -217,3 +218,5 @@ export type ServiceInteraction = {
   fileUrl?: string;
   fileName?: string;
 };
+
+    
