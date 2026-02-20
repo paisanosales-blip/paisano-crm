@@ -661,6 +661,7 @@
         "status": { "type": "string", "enum": ["Abierto", "En Progreso", "Solucionado", "Cerrado"], "description": "Current status of the ticket." },
         "reportedAt": { "type": "string", "format": "date-time" },
         "solvedAt": { "type": "string", "format": "date-time" },
+        "lastInteractionAt": { "type": "string", "format": "date-time" },
         "assignedAgentId": { "type": "string", "description": "ID of the assigned seller." },
         "assignedAgentName": { "type": "string", "description": "Name of the assigned seller." },
         "clientName": { "type": "string" },

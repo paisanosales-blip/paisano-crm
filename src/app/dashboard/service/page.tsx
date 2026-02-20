@@ -43,6 +43,49 @@ const statusConfig: { [key: string]: { label: string; color: string; icon: React
   Cerrado: { label: 'Cerrado', color: 'bg-green-500', icon: CheckCircle },
 };
 
+const getSemaforoStatus = (ticket: ServiceTicket): { color: string; tooltip: string } => {
+    if (!ticket) return { color: 'bg-gray-400', tooltip: 'Datos no disponibles' };
+    const now = new Date();
+    const hoursSinceReported = differenceInHours(now, new Date(ticket.reportedAt));
+
+    switch(ticket.status) {
+        case 'Cerrado':
+            return { color: 'bg-green-500', tooltip: 'Ticket cerrado y resuelto.' };
+        case 'Solucionado':
+             return { color: 'bg-blue-500', tooltip: 'Ticket solucionado, pendiente de cierre.' };
+        case 'En Progreso':
+            if (ticket.lastInteractionAt) {
+                const hoursSinceInteraction = differenceInHours(now, new Date(ticket.lastInteractionAt));
+                if (hoursSinceInteraction <= 48) {
+                    return { color: 'bg-green-500', tooltip: 'En progreso con actividad reciente.' };
+                } else if (hoursSinceInteraction <= 72) {
+                    return { color: 'bg-yellow-500', tooltip: 'En progreso, requiere atención pronto.' };
+                } else {
+                    return { color: 'bg-red-500', tooltip: 'En progreso sin actividad por más de 3 días.' };
+                }
+            } else {
+                return { color: 'bg-yellow-500', tooltip: 'En progreso, pero sin interacciones registradas.' };
+            }
+        case 'Abierto':
+            if (ticket.lastInteractionAt) {
+                 const hoursSinceInteraction = differenceInHours(now, new Date(ticket.lastInteractionAt));
+                 if (hoursSinceInteraction <= 24) {
+                    return { color: 'bg-green-500', tooltip: 'Ticket abierto con actividad reciente.' };
+                 } else {
+                    return { color: 'bg-yellow-500', tooltip: 'Ticket abierto sin actividad en las últimas 24h.' };
+                 }
+            } else {
+                if (hoursSinceReported > 24) {
+                    return { color: 'bg-red-500', tooltip: 'Abierto por más de 24h sin interacción.' };
+                } else {
+                    return { color: 'bg-yellow-500', tooltip: 'Recién abierto, pendiente de primera interacción.' };
+                }
+            }
+        default:
+             return { color: 'bg-gray-400', tooltip: 'Estado desconocido.' };
+    }
+}
+
 export default function CustomerServicePage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -147,13 +190,23 @@ export default function CustomerServicePage() {
         </CardHeader>
         <CardContent>
           <Table>
-            <TableHeader><TableRow><TableHead>Estado</TableHead><TableHead>Cliente / VIN</TableHead><TableHead>Incidente</TableHead><TableHead>Agente</TableHead><TableHead>Reportado</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead className="w-[50px]">Semáforo</TableHead><TableHead>Estado</TableHead><TableHead>Cliente / VIN</TableHead><TableHead>Incidente</TableHead><TableHead>Agente</TableHead><TableHead>Reportado</TableHead><TableHead><span className="sr-only">Acciones</span></TableHead></TableRow></TableHeader>
             <TableBody>
               {isLoading ? (
-                Array.from({ length: 5 }).map((_, i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-12 w-full" /></TableCell></TableRow>)
+                Array.from({ length: 5 }).map((_, i) => <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-12 w-full" /></TableCell></TableRow>)
               ) : tickets && tickets.length > 0 ? (
                 tickets.map((ticket: ServiceTicket) => (
                   <TableRow key={ticket.id} onClick={() => router.push(`/dashboard/service/${ticket.id}`)} className="cursor-pointer">
+                    <TableCell>
+                      {(() => {
+                          const { color, tooltip } = getSemaforoStatus(ticket);
+                          return (
+                              <div className="flex justify-center">
+                                  <div className={cn("h-3 w-3 rounded-full", color)} title={tooltip} />
+                              </div>
+                          )
+                      })()}
+                    </TableCell>
                     <TableCell>
                       <Badge className={cn("text-white", statusConfig[ticket.status].color)}>
                         {statusConfig[ticket.status].label}
@@ -172,7 +225,7 @@ export default function CustomerServicePage() {
                   </TableRow>
                 ))
               ) : (
-                <TableRow><TableCell colSpan={6} className="h-24 text-center">No se encontraron tickets.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="h-24 text-center">No se encontraron tickets.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -181,5 +234,3 @@ export default function CustomerServicePage() {
     </div>
   );
 }
-
-    

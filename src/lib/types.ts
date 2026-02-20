@@ -201,6 +201,7 @@ export type ServiceTicket = {
   status: 'Abierto' | 'En Progreso' | 'Solucionado' | 'Cerrado';
   reportedAt: string;
   solvedAt?: string;
+  lastInteractionAt?: string;
   assignedAgentId: string;
   assignedAgentName: string;
   clientName: string;

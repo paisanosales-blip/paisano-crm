@@ -12,13 +12,14 @@ import {
   updateDocumentNonBlocking,
   addDocumentNonBlocking,
   useStorage,
+  deleteDocumentNonBlocking,
 } from '@/firebase';
 import { collection, query, doc, orderBy, where } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
-  Wrench, Clock, CheckCircle, Hourglass, ArrowLeft, MessageSquare, Paperclip, Send, ShieldCheck, ShieldOff, HardHat, File, Image as ImageIcon, FileText, Download, User
+  Wrench, Clock, CheckCircle, Hourglass, ArrowLeft, MessageSquare, Paperclip, Send, ShieldCheck, ShieldOff, HardHat, File, Image as ImageIcon, FileText, Download, User, MoreHorizontal, Pencil, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -28,10 +29,13 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import type { ServiceTicket, ServiceInteraction, User } from '@/lib/types';
+import type { ServiceTicket, ServiceInteraction } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { EditInteractionDialog } from '@/components/edit-interaction-dialog';
 
 const statusConfig: { [key: string]: { label: string; color: string; icon: React.ElementType } } = {
   Abierto: { label: 'Abierto', color: 'bg-red-500', icon: Wrench },
@@ -62,6 +66,11 @@ export default function ServiceTicketDetailPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [isDeleteInteractionDialogOpen, setIsDeleteInteractionDialogOpen] = useState(false);
+  const [interactionToDelete, setInteractionToDelete] = useState<ServiceInteraction | null>(null);
+  const [isEditInteractionDialogOpen, setIsEditInteractionDialogOpen] = useState(false);
+  const [interactionToEdit, setInteractionToEdit] = useState<ServiceInteraction | null>(null);
+
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
     return doc(firestore, 'users', user.uid);
@@ -75,11 +84,11 @@ export default function ServiceTicketDetailPage() {
   const { data: interactions, isLoading: areInteractionsLoading } = useCollection<ServiceInteraction>(interactionsQuery);
 
   const agentsQuery = useMemoFirebase(() => query(collection(firestore, 'users'), where('role', 'in', ['seller', 'manager'])), [firestore]);
-  const { data: agents, isLoading: areAgentsLoading } = useCollection<User>(agentsQuery);
+  const { data: agents, isLoading: areAgentsLoading } = useCollection(agentsQuery);
 
   const isLoading = isTicketLoading || areInteractionsLoading || areAgentsLoading;
   
-  const canEdit = userProfile?.role === 'manager' || (ticket?.assignedAgentId === user?.uid);
+  const canEditTicket = userProfile?.role === 'manager' || (ticket?.assignedAgentId === user?.uid);
 
   const handleStatusChange = (newStatus: ServiceTicket['status']) => {
     const updateData: Partial<ServiceTicket> = { status: newStatus };
@@ -146,6 +155,7 @@ export default function ServiceTicketDetailPage() {
     };
 
     addDocumentNonBlocking(collection(firestore, 'serviceTickets', ticketId, 'interactions'), interactionData);
+    updateDocumentNonBlocking(ticketRef, { lastInteractionAt: new Date().toISOString() });
     
     setNewComment('');
     setFileToUpload(null);
@@ -154,6 +164,49 @@ export default function ServiceTicketDetailPage() {
     setUploadProgress(0);
     toast({ title: "Interacción registrada" });
   };
+
+  const handleDeleteInteractionClick = (interaction: ServiceInteraction) => {
+    setInteractionToDelete(interaction);
+    setIsDeleteInteractionDialogOpen(true);
+  };
+
+  const handleEditInteractionClick = (interaction: ServiceInteraction) => {
+    setInteractionToEdit(interaction);
+    setIsEditInteractionDialogOpen(true);
+  };
+
+  const handleDeleteInteractionConfirm = async () => {
+    if (!interactionToDelete) return;
+    const interactionRef = doc(firestore, 'serviceTickets', ticketId, 'interactions', interactionToDelete.id);
+    deleteDocumentNonBlocking(interactionRef);
+
+    if (interactionToDelete.fileUrl) {
+        try {
+            const fileStorageRef = ref(storage, interactionToDelete.fileUrl);
+            await deleteObject(fileStorageRef);
+        } catch (error: any) {
+            if (error.code !== 'storage/object-not-found') {
+                console.error("Error deleting file from storage:", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error de Storage',
+                    description: 'No se pudo eliminar el archivo adjunto, pero el comentario fue eliminado.'
+                });
+            }
+        }
+    }
+    toast({ title: "Interacción eliminada" });
+    setIsDeleteInteractionDialogOpen(false);
+  };
+
+  const handleEditInteractionConfirm = (newComment: string) => {
+    if (!interactionToEdit) return;
+    const interactionRef = doc(firestore, 'serviceTickets', ticketId, 'interactions', interactionToEdit.id);
+    updateDocumentNonBlocking(interactionRef, { comment: newComment });
+    toast({ title: "Comentario actualizado" });
+    setIsEditInteractionDialogOpen(false);
+  };
+
 
   if (isLoading) {
     return <div className="p-6"><Skeleton className="h-screen w-full" /></div>;
@@ -166,148 +219,190 @@ export default function ServiceTicketDetailPage() {
   const currentStatusConfig = statusConfig[ticket.status];
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <Button variant="outline" onClick={() => router.back()} className="mb-4">
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Volver a la Lista
-      </Button>
+    <>
+      <div className="p-4 md:p-6 space-y-6">
+        <Button variant="outline" onClick={() => router.back()} className="mb-4">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Volver a la Lista
+        </Button>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 space-y-6">
-            <Card>
-                <CardHeader>
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <CardTitle className="text-2xl font-bold">Ticket de Servicio: {ticket.vin}</CardTitle>
-                            <CardDescription>Reportado por {ticket.clientName}</CardDescription>
-                        </div>
-                         <Badge className={cn("text-white text-base", currentStatusConfig.color)}>
-                            <currentStatusConfig.icon className="mr-2 h-4 w-4" />
-                            {currentStatusConfig.label}
-                        </Badge>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div>
-                        <h4 className="font-semibold text-muted-foreground">Causa del Incidente</h4>
-                        <p>{ticket.incidentCause}</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div><p className="text-muted-foreground">Reportado:</p><p>{format(new Date(ticket.reportedAt), "dd MMMM yyyy, HH:mm", { locale: es })}</p></div>
-                        {ticket.solvedAt && <div><p className="text-muted-foreground">Solucionado:</p><p>{format(new Date(ticket.solvedAt), "dd MMMM yyyy, HH:mm", { locale: es })}</p></div>}
-                        <div><p className="text-muted-foreground">Tiempo de Uso:</p><p>{ticket.usageTime}</p></div>
-                        <div><p className="text-muted-foreground">Método de Compra:</p><p>{ticket.purchaseMethod}</p></div>
-                        <div><p className="text-muted-foreground">Vendido Por:</p><p>{ticket.purchaseSource}</p></div>
-                    </div>
-                </CardContent>
-            </Card>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 space-y-6">
+              <Card>
+                  <CardHeader>
+                      <div className="flex justify-between items-start">
+                          <div>
+                              <CardTitle className="text-2xl font-bold">Ticket de Servicio: {ticket.vin}</CardTitle>
+                              <CardDescription>Reportado por {ticket.clientName}</CardDescription>
+                          </div>
+                          <Badge className={cn("text-white text-base", currentStatusConfig.color)}>
+                              <currentStatusConfig.icon className="mr-2 h-4 w-4" />
+                              {currentStatusConfig.label}
+                          </Badge>
+                      </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                      <div>
+                          <h4 className="font-semibold text-muted-foreground">Causa del Incidente</h4>
+                          <p>{ticket.incidentCause}</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div><p className="text-muted-foreground">Reportado:</p><p>{format(new Date(ticket.reportedAt), "dd MMMM yyyy, HH:mm", { locale: es })}</p></div>
+                          {ticket.solvedAt && <div><p className="text-muted-foreground">Solucionado:</p><p>{format(new Date(ticket.solvedAt), "dd MMMM yyyy, HH:mm", { locale: es })}</p></div>}
+                          <div><p className="text-muted-foreground">Tiempo de Uso:</p><p>{ticket.usageTime}</p></div>
+                          <div><p className="text-muted-foreground">Método de Compra:</p><p>{ticket.purchaseMethod}</p></div>
+                          <div><p className="text-muted-foreground">Vendido Por:</p><p>{ticket.purchaseSource}</p></div>
+                      </div>
+                  </CardContent>
+              </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Interacciones y Evidencias</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {/* Add new interaction form */}
-                    {canEdit && (
-                         <div className="space-y-4 p-4 border rounded-md mb-6">
-                            <Textarea placeholder="Añadir un comentario..." value={newComment} onChange={(e) => setNewComment(e.target.value)} />
-                            <div className="flex justify-between items-center">
-                                <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-                                    <Paperclip className="mr-2 h-4 w-4" />
-                                    {fileToUpload ? fileToUpload.name : 'Adjuntar Archivo'}
-                                </Button>
-                                <input type="file" ref={fileInputRef} onChange={(e) => setFileToUpload(e.target.files?.[0] || null)} className="hidden" />
-                                <Button onClick={handlePostInteraction} disabled={isUploading}>
-                                    <Send className="mr-2 h-4 w-4" />
-                                    {isUploading ? 'Publicando...' : 'Publicar'}
-                                </Button>
-                            </div>
-                            {isUploading && uploadProgress > 0 && <Progress value={uploadProgress} />}
-                        </div>
-                    )}
-                   
-                    {/* Timeline */}
-                    <div className="relative pl-6 space-y-8 border-l-2 border-border">
-                        {interactions && interactions.length > 0 ? (
-                            interactions.map((item) => (
-                                <div key={item.id} className="relative">
-                                    <div className="absolute -left-[29px] top-1 flex h-10 w-10 items-center justify-center rounded-full bg-background border-2 border-border">
-                                        <User className="h-5 w-5 text-muted-foreground" />
-                                    </div>
-                                    <div className="pl-8">
-                                        <div className="flex items-center gap-2">
-                                            <p className="font-semibold text-foreground">{item.agentName}</p>
-                                            <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: es })}</p>
-                                        </div>
-                                        <p className="text-sm text-muted-foreground">{item.comment}</p>
-                                        {item.fileUrl && (
-                                            <div className="mt-2">
-                                                {item.fileType?.startsWith('image/') ? (
-                                                    <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="block relative aspect-video w-full max-w-sm rounded-md overflow-hidden group border">
-                                                        <Image
-                                                            src={item.fileUrl}
-                                                            alt={item.fileName || 'Evidencia'}
-                                                            fill
-                                                            className="object-cover transition-transform group-hover:scale-105"
-                                                        />
-                                                    </a>
-                                                ) : (
-                                                    <Button asChild variant="outline" size="sm">
-                                                        <a href={item.fileUrl} target="_blank" rel="noopener noreferrer">
-                                                            <FileTypeIcon fileType={item.fileType || ''} className="mr-2 h-4 w-4" />
-                                                            {item.fileName}
-                                                            <Download className="ml-2 h-4 w-4" />
-                                                        </a>
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="pl-8 text-muted-foreground">No hay interacciones en este ticket.</div>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
+              <Card>
+                  <CardHeader>
+                      <CardTitle>Interacciones y Evidencias</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      {canEditTicket && (
+                          <div className="space-y-4 p-4 border rounded-md mb-6">
+                              <Textarea placeholder="Añadir un comentario..." value={newComment} onChange={(e) => setNewComment(e.target.value)} />
+                              <div className="flex justify-between items-center">
+                                  <Button size="sm" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                                      <Paperclip className="mr-2 h-4 w-4" />
+                                      {fileToUpload ? fileToUpload.name : 'Adjuntar Archivo'}
+                                  </Button>
+                                  <input type="file" ref={fileInputRef} onChange={(e) => setFileToUpload(e.target.files?.[0] || null)} className="hidden" />
+                                  <Button onClick={handlePostInteraction} disabled={isUploading}>
+                                      <Send className="mr-2 h-4 w-4" />
+                                      {isUploading ? 'Publicando...' : 'Publicar'}
+                                  </Button>
+                              </div>
+                              {isUploading && uploadProgress > 0 && <Progress value={uploadProgress} />}
+                          </div>
+                      )}
+                    
+                      <div className="relative pl-6 space-y-8 border-l-2 border-border">
+                          {interactions && interactions.length > 0 ? (
+                              interactions.map((item) => (
+                                  <div key={item.id} className="relative">
+                                      <div className="absolute -left-[29px] top-1 flex h-10 w-10 items-center justify-center rounded-full bg-background border-2 border-border">
+                                          <User className="h-5 w-5 text-muted-foreground" />
+                                      </div>
+                                      <div className="absolute top-1 right-1 z-10">
+                                          {(user?.uid === item.agentId || userProfile?.role === 'manager') && (
+                                              <DropdownMenu>
+                                                  <DropdownMenuTrigger asChild>
+                                                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                                                          <MoreHorizontal className="h-4 w-4" />
+                                                      </Button>
+                                                  </DropdownMenuTrigger>
+                                                  <DropdownMenuContent>
+                                                      <DropdownMenuItem onSelect={() => handleEditInteractionClick(item)}>
+                                                          <Pencil className="mr-2 h-4 w-4" />
+                                                          Editar
+                                                      </DropdownMenuItem>
+                                                      <DropdownMenuItem onSelect={() => handleDeleteInteractionClick(item)} className="text-destructive">
+                                                          <Trash2 className="mr-2 h-4 w-4" />
+                                                          Eliminar
+                                                      </DropdownMenuItem>
+                                                  </DropdownMenuContent>
+                                              </DropdownMenu>
+                                          )}
+                                      </div>
+                                      <div className="pl-8">
+                                          <div className="flex items-center gap-2">
+                                              <p className="font-semibold text-foreground">{item.agentName}</p>
+                                              <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: es })}</p>
+                                          </div>
+                                          <p className="text-sm text-muted-foreground">{item.comment}</p>
+                                          {item.fileUrl && (
+                                              <div className="mt-2">
+                                                  {item.fileType?.startsWith('image/') ? (
+                                                      <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="block relative aspect-video w-full max-w-sm rounded-md overflow-hidden group border">
+                                                          <Image
+                                                              src={item.fileUrl}
+                                                              alt={item.fileName || 'Evidencia'}
+                                                              fill
+                                                              className="object-cover transition-transform group-hover:scale-105"
+                                                          />
+                                                      </a>
+                                                  ) : (
+                                                      <Button asChild variant="outline" size="sm">
+                                                          <a href={item.fileUrl} target="_blank" rel="noopener noreferrer">
+                                                              <FileTypeIcon fileType={item.fileType || ''} className="mr-2 h-4 w-4" />
+                                                              {item.fileName}
+                                                              <Download className="ml-2 h-4 w-4" />
+                                                          </a>
+                                                      </Button>
+                                                  )}
+                                              </div>
+                                          )}
+                                      </div>
+                                  </div>
+                              ))
+                          ) : (
+                              <div className="pl-8 text-muted-foreground">No hay interacciones en este ticket.</div>
+                          )}
+                      </div>
+                  </CardContent>
+              </Card>
+          </div>
 
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Gestión del Ticket</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                        <Label>Estado del Ticket</Label>
-                        <Select value={ticket.status} onValueChange={(val) => handleStatusChange(val as ServiceTicket['status'])} disabled={!canEdit}>
-                            <SelectTrigger><SelectValue placeholder="Cambiar estado..." /></SelectTrigger>
-                            <SelectContent>
-                                {Object.keys(statusConfig).map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Agente Asignado</Label>
-                         <Select value={ticket.assignedAgentId} onValueChange={handleAgentChange} disabled={!canEdit}>
-                            <SelectTrigger><SelectValue placeholder="Asignar agente..." /></SelectTrigger>
-                            <SelectContent>
-                                {agents?.map((agent: User) => <SelectItem key={agent.id} value={agent.id}>{agent.firstName} {agent.lastName}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                     <div className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="warranty-switch" className="text-base">Garantía</Label>
-                            <p className="text-sm text-muted-foreground">¿El incidente está cubierto por la garantía?</p>
-                        </div>
-                        <Switch id="warranty-switch" checked={ticket.isWarranty} onCheckedChange={handleWarrantyChange} disabled={!canEdit} />
-                     </div>
-                </CardContent>
-            </Card>
+          <div className="space-y-6">
+              <Card>
+                  <CardHeader>
+                      <CardTitle>Gestión del Ticket</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                      <div className="space-y-2">
+                          <Label>Estado del Ticket</Label>
+                          <Select value={ticket.status} onValueChange={(val) => handleStatusChange(val as ServiceTicket['status'])} disabled={!canEditTicket}>
+                              <SelectTrigger><SelectValue placeholder="Cambiar estado..." /></SelectTrigger>
+                              <SelectContent>
+                                  {Object.keys(statusConfig).map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                              </SelectContent>
+                          </Select>
+                      </div>
+                      <div className="space-y-2">
+                          <Label>Agente Asignado</Label>
+                          <Select value={ticket.assignedAgentId} onValueChange={handleAgentChange} disabled={userProfile?.role !== 'manager'}>
+                              <SelectTrigger><SelectValue placeholder="Asignar agente..." /></SelectTrigger>
+                              <SelectContent>
+                                  {agents?.map((agent) => <SelectItem key={agent.id} value={agent.id}>{agent.firstName} {agent.lastName}</SelectItem>)}
+                              </SelectContent>
+                          </Select>
+                      </div>
+                      <div className="flex items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                              <Label htmlFor="warranty-switch" className="text-base">Garantía</Label>
+                              <p className="text-sm text-muted-foreground">¿El incidente está cubierto por la garantía?</p>
+                          </div>
+                          <Switch id="warranty-switch" checked={ticket.isWarranty} onCheckedChange={handleWarrantyChange} disabled={!canEditTicket} />
+                      </div>
+                  </CardContent>
+              </Card>
+          </div>
         </div>
       </div>
-    </div>
+      <AlertDialog open={isDeleteInteractionDialogOpen} onOpenChange={setIsDeleteInteractionDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar Interacción?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Esta acción no se puede deshacer. Se eliminará permanentemente el comentario y el archivo adjunto (si existe).
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteInteractionConfirm} variant="destructive">Eliminar</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <EditInteractionDialog
+        open={isEditInteractionDialogOpen}
+        onOpenChange={setIsEditInteractionDialogOpen}
+        interaction={interactionToEdit}
+        onConfirm={handleEditInteractionConfirm}
+        isSubmitting={false}
+      />
+    </>
   );
 }
