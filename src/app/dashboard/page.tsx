@@ -19,7 +19,6 @@ import { getClassification } from '@/lib/types';
 import { DashboardCharts } from '@/components/dashboard-charts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LostOpportunitiesAnalysis } from '@/components/lost-opportunities-analysis';
-import { SellerActivitySummary } from '@/components/seller-activity-summary';
 import { cn } from '@/lib/utils';
 
 export default function DashboardPage() {
@@ -347,7 +346,7 @@ export default function DashboardPage() {
             </div>
             {isLoading ? (
                 <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-                    {Array.from({length: 10}).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}
+                    {Array.from({length: 10}).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
                 </div>
             ) : (
                 <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
@@ -445,13 +444,6 @@ export default function DashboardPage() {
                 </div>
             )}
             <div className="grid gap-6 mt-4">
-                {selectedUserData && selectedUserData.id !== 'all' && !isLoading && (
-                    <SellerActivitySummary 
-                        sellerName={selectedUserData.firstName}
-                        opportunities={allOpportunities}
-                        activities={allActivities}
-                    />
-                )}
                 <DashboardCharts opportunities={allOpportunities} leads={allLeads} isLoading={isLoading} />
                 {!isLoading && (
                   <LostOpportunitiesAnalysis discardedOpportunities={periodData.discardedOpportunities} />
