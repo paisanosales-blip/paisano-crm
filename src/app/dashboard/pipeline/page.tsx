@@ -1220,7 +1220,7 @@ export default function PipelinePage() {
                                   </div>
                                   <div 
                                       className="p-3 rounded-md bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800/60 space-y-1 text-center flex-grow flex flex-col justify-center cursor-pointer hover:bg-yellow-100"
-                                      onClick={() => handleViewTimeline(prospect.id)}
+                                      onClick={() => router.push(`/dashboard/clients/${prospect.id}`)}
                                   >
                                       <Label className="text-xs text-muted-foreground pointer-events-none">ÚLTIMO SEGUIMIENTO</Label>
                                       <p className="text-sm italic text-foreground truncate pointer-events-none" title={latestActivity ? latestActivity.description : "Sin seguimientos"}>
