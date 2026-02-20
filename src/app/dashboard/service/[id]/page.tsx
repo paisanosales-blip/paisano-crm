@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   useUser,
   useFirestore,
@@ -110,7 +111,7 @@ export default function ServiceTicketDetailPage() {
 
     setIsUploading(true);
 
-    let filePayload: { fileUrl?: string; fileName?: string } = {};
+    let filePayload: { fileUrl?: string; fileName?: string; fileType?: string; } = {};
 
     if (fileToUpload) {
         setUploadProgress(0);
@@ -126,7 +127,7 @@ export default function ServiceTicketDetailPage() {
                 );
             });
             const downloadURL = await getDownloadURL(snapshot.ref);
-            filePayload = { fileUrl: downloadURL, fileName: fileToUpload.name };
+            filePayload = { fileUrl: downloadURL, fileName: fileToUpload.name, fileType: fileToUpload.type };
         } catch (error) {
             console.error("Upload failed:", error);
             toast({ variant: 'destructive', title: 'Error de Subida', description: 'No se pudo subir el archivo.' });
@@ -241,13 +242,24 @@ export default function ServiceTicketDetailPage() {
                                         <p className="text-sm text-muted-foreground">{item.comment}</p>
                                         {item.fileUrl && (
                                             <div className="mt-2">
-                                                <Button asChild variant="outline" size="sm">
-                                                    <a href={item.fileUrl} target="_blank" rel="noopener noreferrer">
-                                                        <FileTypeIcon fileType={item.fileName?.split('.').pop() || ''} className="mr-2 h-4 w-4" />
-                                                        {item.fileName}
-                                                        <Download className="ml-2 h-4 w-4" />
+                                                {item.fileType?.startsWith('image/') ? (
+                                                    <a href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="block relative aspect-video w-full max-w-sm rounded-md overflow-hidden group border">
+                                                        <Image
+                                                            src={item.fileUrl}
+                                                            alt={item.fileName || 'Evidencia'}
+                                                            fill
+                                                            className="object-cover transition-transform group-hover:scale-105"
+                                                        />
                                                     </a>
-                                                </Button>
+                                                ) : (
+                                                    <Button asChild variant="outline" size="sm">
+                                                        <a href={item.fileUrl} target="_blank" rel="noopener noreferrer">
+                                                            <FileTypeIcon fileType={item.fileType || ''} className="mr-2 h-4 w-4" />
+                                                            {item.fileName}
+                                                            <Download className="ml-2 h-4 w-4" />
+                                                        </a>
+                                                    </Button>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -299,5 +311,3 @@ export default function ServiceTicketDetailPage() {
     </div>
   );
 }
-
-    

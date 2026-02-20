@@ -217,6 +217,5 @@ export type ServiceInteraction = {
   createdAt: string;
   fileUrl?: string;
   fileName?: string;
+  fileType?: string;
 };
-
-    
