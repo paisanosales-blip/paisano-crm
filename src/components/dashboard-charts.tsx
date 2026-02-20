@@ -62,7 +62,7 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
       className="text-xs font-bold"
       style={{ pointerEvents: 'none' }}
     >
-      {`${(percent * 100).toFixed(0)}%`}
+      {`(${(percent * 100).toFixed(0)}%`}
     </text>
   );
 };
@@ -210,6 +210,40 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
         return stageCounts;
     }, [opportunities]);
 
+    const { salesBySellerData, salesBySellerConfig } = React.useMemo(() => {
+      if (!opportunities) {
+          return {
+              salesBySellerData: [],
+              salesBySellerConfig: { revenue: { label: 'Ingresos' } },
+          };
+      }
+
+      const salesBySeller = opportunities
+          .filter(opp => opp.stage === 'Cierre de venta' && opp.currency === 'USD')
+          .reduce((acc, opp) => {
+              const seller = opp.sellerName || 'Sin Asignar';
+              acc[seller] = (acc[seller] || 0) + (opp.value || 0);
+              return acc;
+          }, {} as Record<string, number>);
+
+      const sortedSellers = Object.entries(salesBySeller)
+          .sort(([, a], [, b]) => b - a);
+
+      const config: ChartConfig = { revenue: { label: 'Ingresos (USD)' } };
+      
+      const data = sortedSellers.map(([seller, revenue], index) => {
+          const key = seller.replace(/\s+/g, '');
+          config[key] = { label: seller, color: `hsl(var(--chart-${(index % 5) + 1}))` };
+          return {
+              seller,
+              revenue,
+              fill: `var(--color-chart-${(index % 5) + 1})`
+          }
+      });
+
+      return { salesBySellerData: data, salesBySellerConfig: config };
+  }, [opportunities]);
+
     if (isLoading) {
         return (
             <div className="grid gap-6 md:grid-cols-2">
@@ -217,6 +251,7 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                 <Skeleton className="h-[400px]" />
                 <Skeleton className="h-[400px]" />
                 <Skeleton className="h-[400px]" />
+                <Skeleton className="h-[350px] md:col-span-2" />
                 <Skeleton className="h-[350px] md:col-span-2" />
             </div>
         )
@@ -384,6 +419,48 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
                 ) : (
                      <div className="h-[300px] w-full flex items-center justify-center text-muted-foreground">
                         No hay oportunidades.
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+         <Card className="md:col-span-2">
+            <CardHeader>
+                <CardTitle>Rendimiento de Ventas por Vendedor</CardTitle>
+                <CardDescription>Ingresos totales (USD) generados por cada vendedor en el período seleccionado.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {salesBySellerData.length > 0 ? (
+                    <ChartContainer config={salesBySellerConfig} className="h-[350px] w-full">
+                        <BarChart accessibilityLayer data={salesBySellerData} margin={{ top: 20 }}>
+                            <CartesianGrid vertical={false} />
+                            <XAxis
+                                dataKey="seller"
+                                tickLine={false}
+                                tickMargin={10}
+                                axisLine={false}
+                            />
+                            <YAxis tickFormatter={(value) => `$${Number(value) / 1000}k`} />
+                            <ChartTooltip
+                                cursor={false}
+                                content={<ChartTooltipContent indicator="dot" formatter={(value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value as number)} />}
+                            />
+                            <Bar dataKey="revenue" radius={4}>
+                                <LabelList
+                                    position="top"
+                                    offset={4}
+                                    className="fill-foreground"
+                                    fontSize={12}
+                                    formatter={(value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)}
+                                />
+                                {salesBySellerData.map((entry) => (
+                                    <Cell key={entry.seller} fill={entry.fill} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ChartContainer>
+                ) : (
+                    <div className="h-[350px] w-full flex items-center justify-center text-muted-foreground">
+                        No hay datos de ventas para mostrar.
                     </div>
                 )}
             </CardContent>
