@@ -33,7 +33,7 @@
         },
         "role": {
           "type": "string",
-          "description": "The user's role (Manager, Seller). Manager has administrative privileges."
+          "description": "The user's role (Manager, Seller, service_agent). Manager has administrative privileges."
         },
         "avatarUrl": {
           "type": "string",
@@ -645,6 +645,45 @@
         "description": { "type": "string" }
       },
       "required": ["fileName", "fileUrl", "fileType", "fileSize", "uploadedByUserId", "uploadedByUserName", "createdAt"]
+    },
+    "ServiceTicket": {
+      "title": "Service Ticket",
+      "type": "object",
+      "description": "Represents a customer service ticket for an incident.",
+      "properties": {
+        "id": { "type": "string" },
+        "vin": { "type": "string", "description": "Vehicle Identification Number." },
+        "incidentCause": { "type": "string", "description": "Description of the incident or problem." },
+        "usageTime": { "type": "string", "description": "How long the client has been using the product." },
+        "purchaseMethod": { "type": "string", "enum": ["Directo", "Dealer"] },
+        "purchaseSource": { "type": "string", "description": "Name of the dealer or 'Paisano Trailer' if direct." },
+        "isWarranty": { "type": "boolean", "description": "Does the incident qualify for warranty?" },
+        "status": { "type": "string", "enum": ["Abierto", "En Progreso", "Solucionado", "Cerrado"], "description": "Current status of the ticket." },
+        "reportedAt": { "type": "string", "format": "date-time" },
+        "solvedAt": { "type": "string", "format": "date-time" },
+        "assignedAgentId": { "type": "string", "description": "ID of the assigned service agent." },
+        "assignedAgentName": { "type": "string", "description": "Name of the assigned service agent." },
+        "clientName": { "type": "string" },
+        "clientPhone": { "type": "string" },
+        "clientEmail": { "type": "string" }
+      },
+      "required": ["id", "vin", "incidentCause", "purchaseMethod", "purchaseSource", "status", "reportedAt", "assignedAgentId", "assignedAgentName", "clientName"]
+    },
+    "ServiceInteraction": {
+      "title": "Service Interaction",
+      "type": "object",
+      "description": "Represents a comment, note, or file upload within a service ticket.",
+      "properties": {
+        "id": { "type": "string" },
+        "ticketId": { "type": "string" },
+        "agentId": { "type": "string" },
+        "agentName": { "type": "string" },
+        "comment": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "fileUrl": { "type": "string", "format": "uri" },
+        "fileName": { "type": "string" }
+      },
+      "required": ["id", "ticketId", "agentId", "agentName", "comment", "createdAt"]
     }
   },
   "auth": {
@@ -811,6 +850,27 @@
           "schema": { "$ref": "#/backend/entities/SharedFile" },
           "description": "Stores metadata for shared files uploaded by users.",
           "params": [{ "name": "fileId", "description": "Unique ID for the shared file."}]
+        }
+      },
+       {
+        "path": "/serviceTickets/{ticketId}",
+        "definition": {
+          "entityName": "ServiceTicket",
+          "schema": { "$ref": "#/backend/entities/ServiceTicket" },
+          "description": "Stores customer service tickets.",
+          "params": [{ "name": "ticketId", "description": "Unique ID for the service ticket."}]
+        }
+      },
+      {
+        "path": "/serviceTickets/{ticketId}/interactions/{interactionId}",
+        "definition": {
+          "entityName": "ServiceInteraction",
+          "schema": { "$ref": "#/backend/entities/ServiceInteraction" },
+          "description": "Stores interactions for a specific service ticket.",
+          "params": [
+            { "name": "ticketId", "description": "The ID of the parent service ticket." },
+            { "name": "interactionId", "description": "The ID of the interaction." }
+          ]
         }
       }
     ],

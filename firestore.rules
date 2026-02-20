@@ -16,6 +16,11 @@ service cloud.firestore {
       return isSignedIn() && userData != null && 'role' in userData && userData.role.lower() == 'manager';
     }
 
+    function isServiceAgent() {
+      let userData = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return isSignedIn() && userData != null && 'role' in userData && userData.role.lower() == 'service_agent';
+    }
+
     // =====================================================================
     // App Settings
     // =====================================================================
@@ -98,6 +103,17 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.resource.data.uploadedByUserId == request.auth.uid;
       allow update, delete: if isManager() || resource.data.uploadedByUserId == request.auth.uid;
+    }
+
+    // =====================================================================
+    // Customer Service
+    // =====================================================================
+    match /serviceTickets/{ticketId} {
+      allow read, write: if isManager() || isServiceAgent();
+      
+      match /interactions/{interactionId} {
+        allow read, write: if isManager() || isServiceAgent();
+      }
     }
   }
 }

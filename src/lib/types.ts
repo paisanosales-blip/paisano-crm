@@ -3,7 +3,7 @@ export type User = {
   name: string;
   email: string;
   avatarUrl: string;
-  role: 'manager' | 'seller';
+  role: 'manager' | 'seller' | 'service_agent';
 };
 
 export type Client = {
@@ -187,4 +187,33 @@ export type SharedFile = {
   uploadedByUserName: string;
   createdAt: string;
   description?: string;
+};
+
+export type ServiceTicket = {
+  id: string;
+  vin: string;
+  incidentCause: string;
+  usageTime: string;
+  purchaseMethod: 'Directo' | 'Dealer';
+  purchaseSource: string;
+  isWarranty: boolean;
+  status: 'Abierto' | 'En Progreso' | 'Solucionado' | 'Cerrado';
+  reportedAt: string;
+  solvedAt?: string;
+  assignedAgentId: string;
+  assignedAgentName: string;
+  clientName: string;
+  clientPhone?: string;
+  clientEmail?: string;
+};
+
+export type ServiceInteraction = {
+  id: string;
+  ticketId: string;
+  agentId: string;
+  agentName: string;
+  comment: string;
+  createdAt: string;
+  fileUrl?: string;
+  fileName?: string;
 };

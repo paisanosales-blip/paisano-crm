@@ -42,6 +42,10 @@ service firebase.storage {
       return isSignedIn() && getUserData().role.lower() == 'manager';
     }
 
+    function isServiceAgent() {
+      return isSignedIn() && getUserData().role.lower() == 'service_agent';
+    }
+
     /**
      * @description Checks if the user is either an Admin or a Manager.
      */
@@ -106,6 +110,13 @@ service firebase.storage {
      */
     match /shared-files/{allPaths=**} {
       allow read, write: if isSignedIn();
+    }
+
+    /**
+     * @description Rules for customer service evidence files.
+     */
+    match /service_evidence/{ticketId}/{allPaths=**} {
+      allow read, write: if isSignedIn() && (isManager() || isServiceAgent());
     }
   }
 }
