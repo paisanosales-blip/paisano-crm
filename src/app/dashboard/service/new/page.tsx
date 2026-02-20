@@ -117,31 +117,47 @@ export default function NewServiceTicketPage() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-6 p-4 border rounded-lg">
-                    <h3 className="font-semibold text-lg border-b pb-2">Información del Cliente</h3>
-                    <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Nombre del Cliente</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem><FormLabel>Teléfono</FormLabel><FormControl><Input placeholder="+1 555 123 4567" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                    <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="john.doe@example.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              
+              {/* Client and Purchase Information */}
+              <div className="space-y-4">
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-medium">Información del Cliente y Compra</h3>
+                  <p className="text-sm text-muted-foreground">Datos sobre quién reporta el incidente y cómo adquirió el producto.</p>
                 </div>
-                 <div className="space-y-6 p-4 border rounded-lg">
-                    <h3 className="font-semibold text-lg border-b pb-2">Detalles de la Compra</h3>
-                    <FormField control={form.control} name="purchaseMethod" render={({ field }) => (<FormItem><FormLabel>Método de Compra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Directo">Directo (Paisano)</SelectItem><SelectItem value="Dealer">Dealer</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="purchaseSource" render={({ field }) => ( <FormItem><FormLabel>Vendido por</FormLabel><FormControl><Input placeholder="Nombre del Dealer o 'Paisano'" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <div className="grid md:grid-cols-2 gap-6 pt-2">
+                  <FormField control={form.control} name="clientName" render={({ field }) => ( <FormItem><FormLabel>Nombre del Cliente</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="clientPhone" render={({ field }) => ( <FormItem><FormLabel>Teléfono (Opcional)</FormLabel><FormControl><Input placeholder="+1 555 123 4567" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="clientEmail" render={({ field }) => ( <FormItem className="md:col-span-2"><FormLabel>Email (Opcional)</FormLabel><FormControl><Input placeholder="john.doe@example.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                  <FormField control={form.control} name="purchaseMethod" render={({ field }) => (<FormItem><FormLabel>Método de Compra</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger></FormControl><SelectContent><SelectItem value="Directo">Directo (Paisano)</SelectItem><SelectItem value="Dealer">Dealer</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="purchaseSource" render={({ field }) => ( <FormItem><FormLabel>Vendido por</FormLabel><FormControl><Input placeholder="Nombre del Dealer o 'Paisano'" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 </div>
-              </div>
-              <div className="p-4 border rounded-lg space-y-6">
-                <h3 className="font-semibold text-lg border-b pb-2">Detalles del Incidente</h3>
-                <FormField control={form.control} name="vin" render={({ field }) => ( <FormItem><FormLabel>VIN (Número de Serie)</FormLabel><FormControl><Input placeholder="Ingrese el VIN del remolque" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="usageTime" render={({ field }) => ( <FormItem><FormLabel>Tiempo de Uso</FormLabel><FormControl><Input placeholder="Ej: 3 meses, 1 año" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="incidentCause" render={({ field }) => ( <FormItem><FormLabel>Causa del Incidente</FormLabel><FormControl><Textarea placeholder="Describa el problema reportado por el cliente..." className="min-h-[100px]" {...field} /></FormControl><FormMessage /></FormItem> )} />
               </div>
 
-               <div className="p-4 border rounded-lg space-y-6">
-                  <h3 className="font-semibold text-lg border-b pb-2">Asignación</h3>
-                  <FormField control={form.control} name="assignedAgentId" render={({ field }) => ( <FormItem><FormLabel>Asignar a Agente</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={areAgentsLoading}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar un agente..." /></SelectTrigger></FormControl><SelectContent>{agents?.map(agent => <SelectItem key={agent.id} value={agent.id}>{agent.firstName} {agent.lastName}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+              {/* Incident Details */}
+               <div className="space-y-4">
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-medium">Detalles del Incidente</h3>
+                  <p className="text-sm text-muted-foreground">Información específica sobre el producto y el problema reportado.</p>
+                </div>
+                <div className="grid md:grid-cols-2 gap-6 pt-2">
+                    <FormField control={form.control} name="vin" render={({ field }) => ( <FormItem><FormLabel>VIN (Número de Serie)</FormLabel><FormControl><Input placeholder="Ingrese el VIN del remolque" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                    <FormField control={form.control} name="usageTime" render={({ field }) => ( <FormItem><FormLabel>Tiempo de Uso</FormLabel><FormControl><Input placeholder="Ej: 3 meses, 1 año" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                </div>
+                <FormField control={form.control} name="incidentCause" render={({ field }) => ( <FormItem><FormLabel>Causa del Incidente</FormLabel><FormControl><Textarea placeholder="Describa el problema reportado por el cliente..." className="min-h-[100px]" {...field} /></FormControl><FormMessage /></FormItem> )} />
               </div>
+              
+              {/* Assignment */}
+              <div className="space-y-4">
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-medium">Asignación</h3>
+                  <p className="text-sm text-muted-foreground">Asigne este ticket a un miembro del equipo para su seguimiento.</p>
+                </div>
+                <div className="max-w-sm pt-2">
+                   <FormField control={form.control} name="assignedAgentId" render={({ field }) => ( <FormItem><FormLabel>Asignar a Agente</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value} disabled={areAgentsLoading}><FormControl><SelectTrigger><SelectValue placeholder="Seleccionar un agente..." /></SelectTrigger></FormControl><SelectContent>{agents?.map(agent => <SelectItem key={agent.id} value={agent.id}>{agent.firstName} {agent.lastName}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                </div>
+              </div>
+
 
               <div className="flex justify-end gap-4 pt-4">
                   <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>Cancelar</Button>
@@ -154,5 +170,3 @@ export default function NewServiceTicketPage() {
     </div>
   );
 }
-
-    
