@@ -31,6 +31,7 @@ const quotationSchema = z.object({
     value: z.coerce.number().min(1, 'El valor es requerido.'),
     currency: z.string().min(2, 'La moneda es requerida.').default('USD'),
     pdf: z.instanceof(File).optional(),
+    vins: z.string().optional(),
 });
 
 export type QuotationFormValues = z.infer<typeof quotationSchema>;
@@ -69,6 +70,7 @@ export function QuotationUploadDialog({
     defaultValues: {
       value: 0,
       currency: 'USD',
+      vins: '',
     },
   });
 
@@ -83,12 +85,14 @@ export function QuotationUploadDialog({
           value: quotation.value,
           currency: quotation.currency,
           pdf: undefined,
+          vins: quotation.vins || '',
         });
       } else {
         form.reset({
           value: 0,
           currency: 'USD',
           pdf: undefined,
+          vins: '',
         });
       }
     }
@@ -140,6 +144,20 @@ export function QuotationUploadDialog({
                 )}
                 />
             </div>
+
+            <FormField
+              control={form.control}
+              name="vins"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>VINs (separados por coma)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="123..., 456..." {...field} value={field.value || ''} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <FormField
               control={form.control}

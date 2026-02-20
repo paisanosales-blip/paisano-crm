@@ -95,6 +95,7 @@ export type Quotation = {
   version: number;
   pdfUrl?: string;
   createdAt: string;
+  vins?: string;
 };
 
 export type Activity = {

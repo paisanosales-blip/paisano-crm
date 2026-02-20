@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useToast } from '@/hooks/use-toast';
 import { type QuotationFormValues } from './quotation-upload-dialog';
 import QRCode from 'qrcode';
+import { Textarea } from './ui/textarea';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
@@ -73,6 +74,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     notes: 'THANK YOU FOR YOUR PREFERENCE.',
   });
   const [currency, setCurrency] = useState('USD');
+  const [vins, setVins] = useState('');
   const [otherCharges, setOtherCharges] = useState<{ description: string; amount: number }[]>([]);
 
   useEffect(() => {
@@ -364,9 +366,21 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     
     currentY = (doc as any).autoTable.previous.finalY;
     
+    if (vins) {
+      currentY += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.text('VINS:', margin, currentY);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      const vinsText = vins.split(',').map(v => v.trim()).join(', ');
+      const splitVins = doc.splitTextToSize(vinsText, docWidth - (margin * 2) - 15);
+      doc.text(splitVins, margin + 12, currentY);
+      currentY += (splitVins.length * 4);
+    }
+    
     currentY += 4;
-    const totalsY = currentY;
-    let lineY = totalsY;
+    let lineY = currentY;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     
@@ -575,6 +589,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       value: total,
       currency,
       pdf: pdfFile,
+      vins,
     });
     
     localStorage.setItem('lastQuotationNumber', String(currentNumber));
@@ -583,6 +598,8 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     setItems([{ productId: '', description: '', quantity: 1, price: 0, individualFreight: 0 }]);
     setFreight(0);
     setFreightTo('');
+    setVins('');
+    setOtherCharges([]);
   };
 
   return (
@@ -698,6 +715,17 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
                       <PlusCircle className="mr-2 h-4 w-4" />
                       AÑADIR PRODUCTO
                   </Button>
+              </div>
+
+               <div className="mt-6 border-t pt-4">
+                <Label htmlFor="vins-dialog">VINS</Label>
+                <Textarea
+                    id="vins-dialog"
+                    placeholder="Ingrese los VINS separados por coma"
+                    value={vins}
+                    onChange={(e) => setVins(e.target.value)}
+                    className="mt-2"
+                />
               </div>
 
               <div className="flex justify-end">

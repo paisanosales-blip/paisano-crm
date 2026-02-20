@@ -464,6 +464,7 @@ export default function PipelinePage() {
                 version: String(Number(currentProspect.quotation.version || 1) + (values.pdf ? 1 : 0)),
                 status: 'Enviada',
                 sellerId: user.uid, // ensure sellerId is present
+                vins: values.vins,
             };
             await updateDoc(quotationRef, quotationData);
             quotationIdForFollowUp = currentProspect.quotation.id;
@@ -475,6 +476,7 @@ export default function PipelinePage() {
                 pdfUrl: finalPdfUrl,
                 value: values.value,
                 currency: values.currency,
+                vins: values.vins,
                 version: '1',
                 status: 'Enviada',
                 createdDate: new Date().toISOString(),
@@ -735,7 +737,7 @@ export default function PipelinePage() {
           .join('\n')
       : 'No hay interacciones pasadas.';
 
-    const clientDetails = `Nombre: ${prospect.clientName}, Tipo: ${prospect.clientType}, Contacto: ${prospect.contactPerson}, Ubicación: ${prospect.city}, ${prospect.country}.`;
+    const clientDetails = `Nombre: ${prospect.clientName.toUpperCase()}, Tipo: ${prospect.clientType}, Contacto: ${prospect.contactPerson.toUpperCase()}, Ubicación: ${prospect.city}, ${prospect.country}.`;
     
     try {
       const result = await suggestNextAction({
@@ -1807,7 +1809,7 @@ export default function PipelinePage() {
           setFinancingDialogOpen(isOpen);
         }}
         onConfirm={handleFinancingConfirm}
-        prospectName={currentProspect.clientName}
+        prospectName={currentProspect.clientName.toUpperCase()}
         isSubmitting={isSubmitting}
       />
     )}
