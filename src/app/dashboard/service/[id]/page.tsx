@@ -290,12 +290,7 @@ export default function ServiceTicketDetailPage() {
                               <CardTitle className="text-2xl font-bold">Ticket de Servicio: {ticket.vin}</CardTitle>
                               <CardDescription>Reportado por {ticket.clientName}</CardDescription>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {semaforoState && (
-                                <Badge variant="outline" className={cn("text-base font-bold", semaforoBadgeVariants[semaforoState.level])} title={semaforoState.tooltip}>
-                                    {semaforoState.label}
-                                </Badge>
-                            )}
+                           <div className="flex items-center gap-2">
                             {currentStatusConfig && (
                                 <Badge className={cn("text-white text-base", currentStatusConfig.color)}>
                                     <currentStatusConfig.icon className="mr-2 h-4 w-4" />
@@ -411,6 +406,36 @@ export default function ServiceTicketDetailPage() {
           </div>
 
           <div className="space-y-6">
+              <Card>
+                  <CardHeader>
+                      <CardTitle>Atención Requerida</CardTitle>
+                      <CardDescription>Estado de atención basado en el tiempo de respuesta.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <div className={cn("flex items-center justify-between rounded-lg p-4", 
+                          semaforoState.level === 'ok' ? 'bg-green-100 dark:bg-green-950/40' :
+                          semaforoState.level === 'warning' ? 'bg-yellow-100 dark:bg-yellow-950/40' :
+                          semaforoState.level === 'danger' ? 'bg-red-100 dark:bg-red-950/40' :
+                          'bg-blue-100 dark:bg-blue-950/40'
+                      )}>
+                          <div className="space-y-0.5">
+                              <p className={cn("font-bold text-lg", 
+                                  semaforoState.level === 'ok' ? 'text-green-800 dark:text-green-200' :
+                                  semaforoState.level === 'warning' ? 'text-yellow-800 dark:text-yellow-200' :
+                                  semaforoState.level === 'danger' ? 'text-red-800 dark:text-red-200' :
+                                  'text-blue-800 dark:text-blue-200'
+                              )}>{semaforoState.label}</p>
+                              <p className="text-xs text-muted-foreground">{semaforoState.tooltip}</p>
+                          </div>
+                          <div className={cn("h-6 w-6 rounded-full", 
+                              semaforoState.level === 'ok' ? 'bg-green-500' :
+                              semaforoState.level === 'warning' ? 'bg-yellow-400' :
+                              semaforoState.level === 'danger' ? 'bg-red-500' :
+                              'bg-blue-500'
+                          )} />
+                      </div>
+                  </CardContent>
+              </Card>
               <Card>
                   <CardHeader>
                       <CardTitle>Gestión del Ticket</CardTitle>
