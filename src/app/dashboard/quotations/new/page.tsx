@@ -651,172 +651,216 @@ export default function NewQuotationPage() {
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-headline font-bold">NUEVA COTIZACIÓN</h1>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-            <Button variant="outline" onClick={() => setIsDetailsDialogOpen(true)} className="w-full sm:w-auto justify-center">
-                <Settings className="mr-2 h-4 w-4" />
-                DETALLES DE COTIZACIÓN
-            </Button>
-            <Button onClick={handleGenerateAndSave} disabled={(clientMode === 'registered' && !selectedClientId) || isSubmitting} className="w-full sm:w-auto justify-center">
+            <Button onClick={handleGenerateAndSave} disabled={(clientMode === 'registered' && !selectedClientId && clientMode !== 'custom') || isSubmitting} className="w-full sm:w-auto justify-center">
                 {isSubmitting ? 'GUARDANDO...' : <><FileDown className="mr-2 h-4 w-4" />GUARDAR COTIZACIÓN</>}
             </Button>
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Detalles de la Cotización</CardTitle>
-            <CardDescription>
-              Seleccione un cliente y añada productos para generar el documento de cotización.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-              <Tabs value={clientMode} onValueChange={(value) => setClientMode(value as any)} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="registered">Cliente Registrado</TabsTrigger>
-                      <TabsTrigger value="custom">Cliente Personalizado</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="registered" className="pt-6">
-                       <div className="max-w-sm">
-                          <Label htmlFor="client-select">SELECCIONAR CLIENTE</Label>
-                          <Select onValueChange={setSelectedClientId} value={selectedClientId} disabled={isLoading}>
-                              <SelectTrigger id="client-select">
-                                  <SelectValue placeholder="Elegir un cliente..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                  {isLoading ? (
-                                      <SelectItem value="loading" disabled>Cargando clientes...</SelectItem>
-                                  ) : (
-                                      leads?.map((lead: any) => (
-                                          <SelectItem key={lead.id} value={lead.id}>
-                                              {lead.clientName.toUpperCase()}
-                                          </SelectItem>
-                                      ))
-                                  )}
-                              </SelectContent>
-                          </Select>
-                      </div>
-                  </TabsContent>
-                  <TabsContent value="custom" className="pt-6">
-                      <Form {...customClientForm}>
-                        <form className="grid grid-cols-6 gap-x-4 gap-y-6">
-                          <FormField control={customClientForm.control} name="contactPerson" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-3"><FormLabel>NOMBRE DEL CLIENTE</FormLabel><FormControl><Input placeholder="Juan Pérez" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                          <FormField control={customClientForm.control} name="clientName" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-3"><FormLabel>NOMBRE DE EMPRESA</FormLabel><FormControl><Input placeholder="Constructora Acme" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                          <FormField control={customClientForm.control} name="country" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>PAÍS</FormLabel><Select onValueChange={(value) => { field.onChange(value); customClientForm.setValue('state', ''); customClientForm.setValue('city', ''); }} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un país" /></SelectTrigger></FormControl><SelectContent>{countries.map((country) => (<SelectItem key={country.code} value={country.code}>{country.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
-                          <FormField control={customClientForm.control} name="state" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>ESTADO</FormLabel><Select onValueChange={(value) => { field.onChange(value); customClientForm.setValue('city', ''); }} value={field.value} disabled={!selectedCountry}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un estado" /></SelectTrigger></FormControl><SelectContent>{availableStates.map((state) => (<SelectItem key={state.code} value={state.code}>{state.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
-                          <FormField control={customClientForm.control} name="city" render={({ field }) => ( <FormItem key={selectedState} className="col-span-6 sm:col-span-2"><FormLabel>CIUDAD</FormLabel>{selectedState && availableCities.length > 0 ? (<Select onValueChange={field.onChange} value={field.value} ><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una ciudad" /></SelectTrigger></FormControl><SelectContent>{availableCities.map(city => (<SelectItem key={city} value={city}>{city}</SelectItem>))}</SelectContent></Select>) : (<FormControl><Input placeholder="Ciudad" {...field} value={field.value || ''} disabled={!selectedState} /></FormControl>)}<FormMessage /></FormItem> )} />
-                          <FormField control={customClientForm.control} name="contactMethod" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>FORMA DE CONTACTO</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una opción" /></SelectTrigger></FormControl><SelectContent>{contactMethods.map((method) => (<SelectItem key={method} value={method}>{method}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
-                          <FormField control={customClientForm.control} name="language" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>IDIOMA</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un idioma" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Español">ESPAÑOL</SelectItem><SelectItem value="Inglés">INGLÉS</SelectItem><SelectItem value="Bilingüe">BILINGÜE</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
-                          <FormField control={customClientForm.control} name="clientType" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>TIPO DE CLIENTE</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un tipo" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Dealer">Dealer</SelectItem><SelectItem value="EMPRESA DE TRANSPORTE">EMPRESA DE TRANSPORTE</SelectItem><SelectItem value="Sand Industry">Sand Industry</SelectItem><SelectItem value="USUARIO FINAL">USUARIO FINAL</SelectItem><SelectItem value="De construccion">De construccion</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
-                          <FormField control={customClientForm.control} name="website" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>PÁGINA WEB</FormLabel><FormControl><Input placeholder="ejemplo.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                          <FormField control={customClientForm.control} name="phone" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>TELÉFONO</FormLabel><FormControl><Input placeholder="+1 (555) 123-4567" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                          <FormField control={customClientForm.control} name="email" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>EMAIL</FormLabel><FormControl><Input placeholder="contacto@ejemplo.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                        </form>
-                      </Form>
-                  </TabsContent>
-              </Tabs>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                  <div className="space-y-2">
-                      <Label htmlFor="currency-select">MONEDA</Label>
-                      <Select onValueChange={setCurrency} value={currency}>
-                          <SelectTrigger id="currency-select">
-                              <SelectValue placeholder="Seleccionar moneda..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="USD">USD</SelectItem>
-                              <SelectItem value="MXN">MXN</SelectItem>
-                          </SelectContent>
-                      </Select>
-                  </div>
-                  <div className="flex items-end pb-1.5">
-                    <div className="flex items-center space-x-2">
-                        <Checkbox id="individual-freight" checked={isIndividualFreight} onCheckedChange={(checked) => setIsIndividualFreight(!!checked)} />
-                        <Label htmlFor="individual-freight">Flete INDIVIDUAL</Label>
-                    </div>
-                  </div>
-              </div>
-              <div className="flex items-center space-x-2 mt-4">
-                <Checkbox id="assign-to-company" checked={assignToCompany} onCheckedChange={(checked) => setAssignToCompany(!!checked)} />
-                <Label htmlFor="assign-to-company">Sin Vendedor (usar datos generales de la empresa)</Label>
-              </div>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <div className="lg:col-span-3 space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><span className="flex items-center justify-center bg-primary text-primary-foreground rounded-full h-6 w-6 text-sm font-bold">1</span> Cliente</CardTitle>
+                        <CardDescription>Seleccione un cliente existente o ingrese los datos de uno nuevo.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Tabs value={clientMode} onValueChange={(value) => setClientMode(value as any)} className="w-full">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="registered">CLIENTE REGISTRADO</TabsTrigger>
+                                <TabsTrigger value="custom">CLIENTE NUEVO</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="registered" className="pt-6">
+                                <div className="max-w-md">
+                                <Label htmlFor="client-select">Seleccionar Cliente</Label>
+                                <Select onValueChange={setSelectedClientId} value={selectedClientId} disabled={isLoading}>
+                                    <SelectTrigger id="client-select">
+                                        <SelectValue placeholder="Elegir un cliente..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {isLoading ? (
+                                            <SelectItem value="loading" disabled>Cargando clientes...</SelectItem>
+                                        ) : (
+                                            leads?.map((lead: any) => (
+                                                <SelectItem key={lead.id} value={lead.id}>
+                                                    {lead.clientName.toUpperCase()}
+                                                </SelectItem>
+                                            ))
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                                </div>
+                            </TabsContent>
+                            <TabsContent value="custom" className="pt-6">
+                                <Form {...customClientForm}>
+                                    <form className="grid grid-cols-6 gap-x-4 gap-y-6">
+                                        <FormField control={customClientForm.control} name="contactPerson" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-3"><FormLabel>NOMBRE DEL CLIENTE</FormLabel><FormControl><Input placeholder="Juan Pérez" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                        <FormField control={customClientForm.control} name="clientName" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-3"><FormLabel>NOMBRE DE EMPRESA</FormLabel><FormControl><Input placeholder="Constructora Acme" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                        <FormField control={customClientForm.control} name="country" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>PAÍS</FormLabel><Select onValueChange={(value) => { field.onChange(value); customClientForm.setValue('state', ''); customClientForm.setValue('city', ''); }} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un país" /></SelectTrigger></FormControl><SelectContent>{countries.map((country) => (<SelectItem key={country.code} value={country.code}>{country.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
+                                        <FormField control={customClientForm.control} name="state" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>ESTADO</FormLabel><Select onValueChange={(value) => { field.onChange(value); customClientForm.setValue('city', ''); }} value={field.value} disabled={!selectedCountry}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un estado" /></SelectTrigger></FormControl><SelectContent>{availableStates.map((state) => (<SelectItem key={state.code} value={state.code}>{state.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
+                                        <FormField control={customClientForm.control} name="city" render={({ field }) => ( <FormItem key={selectedState} className="col-span-6 sm:col-span-2"><FormLabel>CIUDAD</FormLabel>{selectedState && availableCities.length > 0 ? (<Select onValueChange={field.onChange} value={field.value} ><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una ciudad" /></SelectTrigger></FormControl><SelectContent>{availableCities.map(city => (<SelectItem key={city} value={city}>{city}</SelectItem>))}</SelectContent></Select>) : (<FormControl><Input placeholder="Ciudad" {...field} value={field.value || ''} disabled={!selectedState} /></FormControl>)}<FormMessage /></FormItem> )} />
+                                        <FormField control={customClientForm.control} name="contactMethod" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>FORMA DE CONTACTO</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una opción" /></SelectTrigger></FormControl><SelectContent>{contactMethods.map((method) => (<SelectItem key={method} value={method}>{method}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
+                                        <FormField control={customClientForm.control} name="language" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>IDIOMA</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un idioma" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Español">ESPAÑOL</SelectItem><SelectItem value="Inglés">INGLÉS</SelectItem><SelectItem value="Bilingüe">BILINGÜE</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
+                                        <FormField control={customClientForm.control} name="clientType" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>TIPO DE CLIENTE</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un tipo" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Dealer">Dealer</SelectItem><SelectItem value="EMPRESA DE TRANSPORTE">EMPRESA DE TRANSPORTE</SelectItem><SelectItem value="Sand Industry">Sand Industry</SelectItem><SelectItem value="USUARIO FINAL">USUARIO FINAL</SelectItem><SelectItem value="De construccion">De construccion</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
+                                        <FormField control={customClientForm.control} name="website" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>PÁGINA WEB</FormLabel><FormControl><Input placeholder="ejemplo.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                        <FormField control={customClientForm.control} name="phone" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>TELÉFONO</FormLabel><FormControl><Input placeholder="+1 (555) 123-4567" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                        <FormField control={customClientForm.control} name="email" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>EMAIL</FormLabel><FormControl><Input placeholder="contacto@ejemplo.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                    </form>
+                                </Form>
+                            </TabsContent>
+                        </Tabs>
+                    </CardContent>
+                </Card>
 
-              <div className="mt-8">
-                  <Label>PRODUCTOS / SERVICIOS</Label>
-                  <Table>
-                      <TableHeader>
-                          <TableRow>
-                              <TableHead className="w-[40%]">PRODUCTO</TableHead>
-                              <TableHead>CANTIDAD</TableHead>
-                              <TableHead>PRECIO UNITARIO</TableHead>
-                              {isIndividualFreight && <TableHead>FLETE</TableHead>}
-                              <TableHead>TOTAL</TableHead>
-                              <TableHead className="w-[50px]"><span className="sr-only">ACCIONES</span></TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {items.map((item, index) => (
-                              <TableRow key={index}>
-                                  <TableCell>
-                                      <Select 
-                                        onValueChange={(value) => handleProductSelect(index, value)}
-                                        value={item.productId}
-                                        disabled={isLoading}
-                                      >
-                                          <SelectTrigger>
-                                              <SelectValue placeholder="Seleccionar un producto..." />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                              {isLoading ? (
-                                                  <SelectItem value="loading" disabled>Cargando...</SelectItem>
-                                              ) : (
-                                                  allProducts?.map((prod) => (
-                                                      <SelectItem key={prod.id} value={prod.id}>{prod.name}</SelectItem>
-                                                  ))
-                                              )}
-                                          </SelectContent>
-                                      </Select>
-                                  </TableCell>
-                                  <TableCell>
-                                      <Input type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} className="w-20" />
-                                  </TableCell>
-                                  <TableCell>
-                                      <Input type="number" value={item.price} onChange={(e) => handleItemChange(index, 'price', e.target.value)} className="w-32" />
-                                  </TableCell>
-                                  {isIndividualFreight && ( <TableCell><Input type="number" value={item.individualFreight} onChange={(e) => handleItemChange(index, 'individualFreight', e.target.value)} className="w-32" /></TableCell> )}
-                                  <TableCell className="font-medium">${(isIndividualFreight ? ((item.quantity * item.price) + (item.quantity * item.individualFreight)) : (item.quantity * item.price)).toFixed(2)}</TableCell>
-                                  <TableCell><Button variant="ghost" size="icon" onClick={() => removeItem(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
-                              </TableRow>
-                          ))}
-                      </TableBody>
-                  </Table>
-                  <Button variant="outline" size="sm" onClick={addItem} className="mt-4">
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      AÑADIR PRODUCTO
-                  </Button>
-              </div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><span className="flex items-center justify-center bg-primary text-primary-foreground rounded-full h-6 w-6 text-sm font-bold">2</span> Productos y Cargos</CardTitle>
+                        <CardDescription>Añada los productos y otros cargos a la cotización.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Label>PRODUCTOS / SERVICIOS</Label>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[40%]">PRODUCTO</TableHead>
+                                    <TableHead>CANTIDAD</TableHead>
+                                    <TableHead>PRECIO UNITARIO</TableHead>
+                                    {isIndividualFreight && <TableHead>FLETE</TableHead>}
+                                    <TableHead>TOTAL</TableHead>
+                                    <TableHead className="w-[50px]"><span className="sr-only">ACCIONES</span></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {items.map((item, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell>
+                                            <Select 
+                                                onValueChange={(value) => handleProductSelect(index, value)}
+                                                value={item.productId}
+                                                disabled={isLoading}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Seleccionar un producto..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {isLoading ? (
+                                                        <SelectItem value="loading" disabled>Cargando...</SelectItem>
+                                                    ) : (
+                                                        allProducts?.map((prod) => (
+                                                            <SelectItem key={prod.id} value={prod.id}>{prod.name}</SelectItem>
+                                                        ))
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Input type="number" value={item.quantity} onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} className="w-20" />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Input type="number" value={item.price} onChange={(e) => handleItemChange(index, 'price', e.target.value)} className="w-32" />
+                                        </TableCell>
+                                        {isIndividualFreight && ( <TableCell><Input type="number" value={item.individualFreight} onChange={(e) => handleItemChange(index, 'individualFreight', e.target.value)} className="w-32" /></TableCell> )}
+                                        <TableCell className="font-medium">${(isIndividualFreight ? ((item.quantity * item.price) + (item.quantity * item.individualFreight)) : (item.quantity * item.price)).toFixed(2)}</TableCell>
+                                        <TableCell><Button variant="ghost" size="icon" onClick={() => removeItem(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                        <Button variant="outline" size="sm" onClick={addItem} className="mt-4">
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            AÑADIR PRODUCTO
+                        </Button>
+                        <div className="mt-6 border-t pt-4">
+                            <Label>OTROS CARGOS</Label>
+                            <div className="mt-2 space-y-2">
+                                {otherCharges.map((charge, index) => (
+                                    <div key={index} className="flex items-center gap-2">
+                                        <Input placeholder="Descripción del cargo" value={charge.description} onChange={(e) => handleOtherChargeChange(index, 'description', e.target.value)} className="flex-1" />
+                                        <Input type="number" value={charge.amount} onChange={(e) => handleOtherChargeChange(index, 'amount', e.target.value)} className="w-32" />
+                                        <Button variant="ghost" size="icon" onClick={() => removeOtherCharge(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                    </div>
+                                ))}
+                            </div>
+                            <Button variant="outline" size="sm" onClick={addOtherCharge} className="mt-2">
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Añadir Otro Cargo
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+            
+            <div className="lg:col-span-2 space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2"><span className="flex items-center justify-center bg-primary text-primary-foreground rounded-full h-6 w-6 text-sm font-bold">3</span> Configuración</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="currency-select">Moneda</Label>
+                            <Select onValueChange={setCurrency} value={currency}>
+                                <SelectTrigger id="currency-select">
+                                    <SelectValue placeholder="Seleccionar moneda..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="USD">USD</SelectItem>
+                                    <SelectItem value="MXN">MXN</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="freight-to">Flete a</Label>
+                            <Input id="freight-to" placeholder="Destino" value={freightTo} onChange={(e) => setFreightTo(e.target.value)} />
+                        </div>
+                        {!isIndividualFreight && (
+                        <div className="space-y-2">
+                            <Label htmlFor="freight-amount">Monto de Flete</Label>
+                            <Input id="freight-amount" type="number" value={freight} onChange={(e) => setFreight(Number(e.target.value))} />
+                        </div>
+                        )}
+                        <div className="flex items-center space-x-2 pt-2">
+                            <Checkbox id="individual-freight" checked={isIndividualFreight} onCheckedChange={(checked) => setIsIndividualFreight(!!checked)} />
+                            <Label htmlFor="individual-freight">Usar flete individual por producto</Label>
+                        </div>
+                        <div className="flex items-center space-x-2 pt-2">
+                            <Checkbox id="assign-to-company" checked={assignToCompany} onCheckedChange={(checked) => setAssignToCompany(!!checked)} />
+                            <Label htmlFor="assign-to-company">Asignar a la empresa (sin vendedor)</Label>
+                        </div>
+                        <Button variant="outline" onClick={() => setIsDetailsDialogOpen(true)} className="w-full justify-center mt-2">
+                            <Settings className="mr-2 h-4 w-4" />
+                            Avanzado (Términos, Notas, etc.)
+                        </Button>
+                    </CardContent>
+                </Card>
 
-              <div className="flex justify-end mt-8">
-                  <div className="w-full max-w-sm space-y-4">
-                      <div className="flex justify-between items-center font-medium"><p>SUBTOTAL:</p><p>${subtotal.toFixed(2)}</p></div>
-                      <div className="flex justify-between items-center"><Label htmlFor="freight-to">FLETE A:</Label><Input id="freight-to" placeholder="Destino" value={freightTo} onChange={(e) => setFreightTo(e.target.value)} className="w-48" /></div>
-                      {!isIndividualFreight && ( <div className="flex justify-between items-center"><Label htmlFor="freight-amount">MONTO DE FLETE</Label><Input id="freight-amount" type="number" value={freight} onChange={(e) => setFreight(Number(e.target.value))} className="w-32" /></div> )}
-                      {isIndividualFreight && ( <div className="flex justify-between items-center font-medium"><p>TOTAL DE FLETES:</p><p>${items.reduce((acc, item) => acc + (item.individualFreight * item.quantity), 0).toFixed(2)}</p></div> )}
-                      <div className="mt-4 space-y-2">
+                <Card className="sticky top-20">
+                    <CardHeader>
+                        <CardTitle>Resumen Total</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2 text-sm">
+                        <div className="flex justify-between items-center"><p className="text-muted-foreground">SUBTOTAL:</p><p className="font-medium">${subtotal.toFixed(2)}</p></div>
+                        {isIndividualFreight ? (
+                            <div className="flex justify-between items-center">
+                                <p className="text-muted-foreground">TOTAL FLETES:</p>
+                                <p className="font-medium">${items.reduce((acc, item) => acc + (item.individualFreight * item.quantity), 0).toFixed(2)}</p>
+                            </div>
+                        ) : (
+                            <div className="flex justify-between items-center">
+                                <p className="text-muted-foreground">FLETE:</p>
+                                <p className="font-medium">${freight.toFixed(2)}</p>
+                            </div>
+                        )}
                         {otherCharges.map((charge, index) => (
-                            <div key={index} className="flex justify-between items-center gap-2">
-                                <Input placeholder="Descripción del cargo" value={charge.description} onChange={(e) => handleOtherChargeChange(index, 'description', e.target.value)} className="flex-1" />
-                                <Input type="number" value={charge.amount} onChange={(e) => handleOtherChargeChange(index, 'amount', e.target.value)} className="w-32" />
-                                <Button variant="ghost" size="icon" onClick={() => removeOtherCharge(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            <div key={index} className="flex justify-between items-center">
+                            <p className="text-muted-foreground truncate pr-2">{charge.description || 'Otro Cargo'}:</p>
+                            <p className="font-medium">${charge.amount.toFixed(2)}</p>
                             </div>
                         ))}
-                        <Button variant="outline" size="sm" onClick={addOtherCharge}>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Añadir Otro Cargo
-                        </Button>
-                      </div>
-                      <div className="flex justify-between items-center text-lg font-bold pt-4 border-t"><p>TOTAL:</p><p>${total.toFixed(2)}</p></div>
-                  </div>
-              </div>
-          </CardContent>
-        </Card>
+                        <div className="flex justify-between items-center text-lg font-bold pt-2 border-t"><p>TOTAL ({currency}):</p><p>${total.toFixed(2)}</p></div>
+                    </CardContent>
+                </Card>
+            </div>
+        </div>
       </div>
       <QuotationDetailsDialog
         open={isDetailsDialogOpen}
