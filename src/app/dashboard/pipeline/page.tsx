@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, MessageCircle, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2, LayoutGrid, List } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, MessageCircle, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2, LayoutGrid, List, CalendarCheck } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -1020,7 +1020,7 @@ export default function PipelinePage() {
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-8 mb-6">
               <Card className="bg-muted/50">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                      <CardTitle className="text-xs font-medium">Prospectos Activos</CardTitle>
+                      <CardTitle className="text-xs font-medium">Activos</CardTitle>
                       <Users className="h-4 w-4 text-sky-500" />
                   </CardHeader>
                   <CardContent className="p-3 pt-0">
@@ -1232,7 +1232,7 @@ export default function PipelinePage() {
                                           </p>
                                       )}
                                   </div>
-                                  <div className="flex items-center gap-x-6 justify-center pt-2 border-t">
+                                  <div className="flex items-center gap-x-5 justify-center pt-2 border-t">
                                       <a href={prospect.phone ? `https://wa.me/${(prospect.country === 'US' ? '1' : '52')}${prospect.phone.replace(/\D/g, '')}` : '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => !prospect.phone && e.preventDefault()} className={cn("transition-colors", prospect.phone ? "text-green-500 hover:text-green-600" : "text-muted-foreground/40 cursor-not-allowed")} title={prospect.phone ? `WhatsApp: ${prospect.phone}` : 'No hay teléfono para WhatsApp'}>
                                           <MessageSquare className="h-5 w-5" />
                                       </a>
@@ -1245,6 +1245,9 @@ export default function PipelinePage() {
                                       <a href={prospect.phone ? `tel:${prospect.phone}` : '#'} onClick={(e) => !prospect.phone && e.preventDefault()} className={cn("transition-colors", prospect.phone ? "text-foreground/80 hover:text-foreground" : "text-muted-foreground/40 cursor-not-allowed")} title={prospect.phone ? `Llamar: ${prospect.phone}` : 'No hay teléfono'}>
                                           <Phone className="h-5 w-5" />
                                       </a>
+                                       <button onClick={() => handleNewFollowUpClick(prospect)} className={cn("transition-colors", "text-foreground/80 hover:text-foreground")} title="Nuevo Seguimiento">
+                                          <CalendarCheck className="h-5 w-5" />
+                                      </button>
                                   </div>
                               </CardContent>
                           </Card>
