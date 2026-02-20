@@ -25,6 +25,7 @@ import QRCode from 'qrcode';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { countries, states, cities } from '@/lib/geography';
+import { Textarea } from '@/components/ui/textarea';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
@@ -146,6 +147,7 @@ export default function NewQuotationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [assignToCompany, setAssignToCompany] = useState(false);
   const [otherCharges, setOtherCharges] = useState<{ description: string; amount: number }[]>([]);
+  const [vins, setVins] = useState('');
 
   const customClientForm = useForm<CustomClientFormValues>({
     resolver: zodResolver(customClientSchema),
@@ -454,6 +456,20 @@ export default function NewQuotationPage() {
       });
       docPdf.autoTable({ head: tableHead, body: tableBody, startY: currentY, theme: 'striped', headStyles: { font: 'helvetica', fontStyle: 'bold', fillColor: [139, 0, 0], textColor: [255, 255, 255], fontSize: 9 }, styles: { font: 'helvetica', fontSize: 9, cellPadding: 3 }, columnStyles: isIndividualFreight ? columnStyles5 : columnStyles4, margin: { left: margin, right: margin } });
       currentY = (docPdf as any).autoTable.previous.finalY;
+      
+      if (vins) {
+        currentY += 6;
+        docPdf.setFont('helvetica', 'bold');
+        docPdf.setFontSize(8);
+        docPdf.text('VINS:', margin, currentY);
+        docPdf.setFont('helvetica', 'normal');
+        docPdf.setFontSize(8);
+        const vinsText = vins.split(',').map(v => v.trim()).join(', ');
+        const splitVins = docPdf.splitTextToSize(vinsText, docWidth - (margin * 2) - 15);
+        docPdf.text(splitVins, margin + 12, currentY);
+        currentY += (splitVins.length * 4);
+      }
+      
       currentY += 4;
       let lineY = currentY;
       docPdf.setFont('helvetica', 'bold');
@@ -626,6 +642,7 @@ export default function NewQuotationPage() {
         opportunityId, sellerId: user.uid, sellerName, pdfUrl: downloadURL,
         value: total, currency, version: newVersion, status: 'Enviada' as const,
         createdDate: new Date().toISOString(),
+        vins: vins,
       };
       await addDoc(quotesCollection, quotationData);
 
@@ -640,6 +657,11 @@ export default function NewQuotationPage() {
       toast({ variant: 'destructive', title: 'Error al Guardar', description: 'Ocurrió un problema al guardar la cotización. Verifique los permisos e intente de nuevo.' });
     } finally {
       setIsSubmitting(false);
+      setItems([{ productId: '', description: '', quantity: 1, price: 0, individualFreight: 0 }]);
+      setFreight(0);
+      setFreightTo('');
+      setVins('');
+      setOtherCharges([]);
     }
   };
 
@@ -785,6 +807,16 @@ export default function NewQuotationPage() {
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Añadir Otro Cargo
                             </Button>
+                        </div>
+                        <div className="mt-6 border-t pt-4">
+                            <Label htmlFor="vins">VINS</Label>
+                            <Textarea
+                                id="vins"
+                                placeholder="Ingrese los VINS separados por coma"
+                                value={vins}
+                                onChange={(e) => setVins(e.target.value)}
+                                className="mt-2"
+                            />
                         </div>
                     </CardContent>
                 </Card>
