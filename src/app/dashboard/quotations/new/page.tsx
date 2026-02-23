@@ -27,7 +27,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { countries, states, cities } from '@/lib/geography';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
@@ -534,7 +533,7 @@ export default function NewQuotationPage() {
         docPdf.setFontSize(7);
         const termsDim = docPdf.getTextDimensions(termsBody, { ...textOptions });
         
-        const newText = `LOS PRECIOS SOLO SON VALIDOS SI LA ORDEN DE COMPRA ENTRA DENTRO DEL MES EN CURSO, EL CUAL ES ${format(new Date(), "MMMM", { locale: es })}.`.toUpperCase();
+        const newText = `PRICING IS VALID ONLY IF THE PURCHASE ORDER IS PLACED WITHIN THE CURRENT MONTH OF ${format(new Date(), "MMMM")}.`.toUpperCase();
         const newTextDim = docPdf.getTextDimensions(newText, { ...textOptions, fontStyle: 'bold' });
         
         const termsHeight = termsDim.h + 8 + newTextDim.h + 5;

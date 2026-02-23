@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -443,7 +442,7 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       doc.setFontSize(7);
       const termsDim = doc.getTextDimensions(termsBody, { ...textOptions });
       
-      const newText = `LOS PRECIOS SOLO SON VALIDOS SI LA ORDEN DE COMPRA ENTRA DENTRO DEL MES EN CURSO, EL CUAL ES ${format(new Date(), "MMMM", { locale: es })}.`.toUpperCase();
+      const newText = `PRICING IS VALID ONLY IF THE PURCHASE ORDER IS PLACED WITHIN THE CURRENT MONTH OF ${format(new Date(), "MMMM")}.`.toUpperCase();
       const newTextDim = doc.getTextDimensions(newText, { ...textOptions, fontStyle: 'bold' });
       
       const termsHeight = termsDim.h + 8 + newTextDim.h + 5;
