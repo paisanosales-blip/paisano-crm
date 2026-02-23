@@ -210,39 +210,40 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
         return stageCounts;
     }, [opportunities]);
 
-    const { salesBySellerData, salesBySellerConfig } = React.useMemo(() => {
-      if (!opportunities) {
+    const { opportunitiesByClientTypeData, opportunitiesByClientTypeConfig } = React.useMemo(() => {
+      if (!opportunities || !leads) {
           return {
-              salesBySellerData: [],
-              salesBySellerConfig: { revenue: { label: 'Ingresos' } },
+              opportunitiesByClientTypeData: [],
+              opportunitiesByClientTypeConfig: { opportunities: { label: 'Oportunidades' } },
           };
       }
 
-      const salesBySeller = opportunities
-          .filter(opp => opp.stage === 'Cierre de venta' && opp.currency === 'USD')
-          .reduce((acc, opp) => {
-              const seller = opp.sellerName || 'Sin Asignar';
-              acc[seller] = (acc[seller] || 0) + (opp.value || 0);
-              return acc;
-          }, {} as Record<string, number>);
+      const leadsMap = new Map(leads.map(lead => [lead.id, lead]));
 
-      const sortedSellers = Object.entries(salesBySeller)
-          .sort(([, a], [, b]) => b - a);
+      const countByClientType = opportunities.reduce((acc, opp) => {
+          const lead = leadsMap.get(opp.leadId);
+          const clientType = lead?.clientType || 'No especificado';
+          acc[clientType] = (acc[clientType] || 0) + 1;
+          return acc;
+      }, {} as Record<string, number>);
 
-      const config: ChartConfig = { revenue: { label: 'Ingresos (USD)' } };
+      const sortedData = Object.entries(countByClientType).sort(([, a], [, b]) => b - a);
+
+      const config: ChartConfig = { opportunities: { label: 'Oportunidades' } };
       
-      const data = sortedSellers.map(([seller, revenue], index) => {
-          const key = seller.replace(/\s+/g, '');
-          config[key] = { label: seller, color: `hsl(var(--chart-${(index % 5) + 1}))` };
+      const data = sortedData.map(([type, count], index) => {
+          const key = type.replace(/\s+/g, '');
+          config[key] = { label: type, color: `hsl(var(--chart-${(index % 5) + 1}))` };
           return {
-              seller,
-              revenue,
+              clientType: type,
+              opportunities: count,
               fill: `var(--color-chart-${(index % 5) + 1})`
           }
       });
 
-      return { salesBySellerData: data, salesBySellerConfig: config };
-  }, [opportunities]);
+      return { opportunitiesByClientTypeData: data, opportunitiesByClientTypeConfig: config };
+  }, [opportunities, leads]);
+
 
     if (isLoading) {
         return (
@@ -425,42 +426,41 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
         </Card>
          <Card className="md:col-span-2">
             <CardHeader>
-                <CardTitle>Rendimiento de Ventas por Vendedor</CardTitle>
-                <CardDescription>Ingresos totales (USD) generados por cada vendedor en el período seleccionado.</CardDescription>
+                <CardTitle>Oportunidades por Tipo de Cliente</CardTitle>
+                <CardDescription>Distribución de todas las oportunidades según el tipo de cliente.</CardDescription>
             </CardHeader>
             <CardContent>
-                {salesBySellerData.length > 0 ? (
-                    <ChartContainer config={salesBySellerConfig} className="h-[350px] w-full">
-                        <BarChart accessibilityLayer data={salesBySellerData} margin={{ top: 20 }}>
+                {opportunitiesByClientTypeData.length > 0 ? (
+                    <ChartContainer config={opportunitiesByClientTypeConfig} className="h-[350px] w-full">
+                        <BarChart accessibilityLayer data={opportunitiesByClientTypeData} margin={{ top: 20 }}>
                             <CartesianGrid vertical={false} />
                             <XAxis
-                                dataKey="seller"
+                                dataKey="clientType"
                                 tickLine={false}
                                 tickMargin={10}
                                 axisLine={false}
                             />
-                            <YAxis tickFormatter={(value) => `$${Number(value) / 1000}k`} />
+                            <YAxis />
                             <ChartTooltip
                                 cursor={false}
-                                content={<ChartTooltipContent indicator="dot" formatter={(value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value as number)} />}
+                                content={<ChartTooltipContent indicator="dot" />}
                             />
-                            <Bar dataKey="revenue" radius={4}>
+                            <Bar dataKey="opportunities" radius={4}>
                                 <LabelList
                                     position="top"
                                     offset={4}
                                     className="fill-foreground"
                                     fontSize={12}
-                                    formatter={(value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)}
                                 />
-                                {salesBySellerData.map((entry) => (
-                                    <Cell key={entry.seller} fill={entry.fill} />
+                                {opportunitiesByClientTypeData.map((entry) => (
+                                    <Cell key={entry.clientType} fill={entry.fill} />
                                 ))}
                             </Bar>
                         </BarChart>
                     </ChartContainer>
                 ) : (
                     <div className="h-[350px] w-full flex items-center justify-center text-muted-foreground">
-                        No hay datos de ventas para mostrar.
+                        No hay datos de oportunidades para mostrar.
                     </div>
                 )}
             </CardContent>
