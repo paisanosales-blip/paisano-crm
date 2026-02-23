@@ -244,10 +244,10 @@ export default function PipelinePage() {
   };
 
   const handleStageChange = async (opportunityId: string, newStage: OpportunityStage) => {
-    if (!firestore || !user) return;
+    if (!firestore) return;
     const opportunityRef = doc(firestore, 'opportunities', opportunityId);
     try {
-      await updateDoc(opportunityRef, { stage: newStage, sellerId: user.uid });
+      await updateDoc(opportunityRef, { stage: newStage });
       toast({ title: 'Éxito', description: `Prospecto movido a: ${newStage}` });
       router.refresh();
     } catch(error) {
@@ -291,17 +291,16 @@ export default function PipelinePage() {
   };
 
   const handleDiscardConfirm = async (payload: DiscardConfirmPayload) => {
-    if (!prospectToDiscard || !firestore || !user) return;
+    if (!prospectToDiscard || !firestore) return;
 
     setIsSubmitting(true);
     try {
       const opportunityRef = doc(firestore, 'opportunities', prospectToDiscard.opportunity.id);
       
       const updateData = {
-        stage: 'Descartado',
+        stage: 'Descartado' as const,
         discardedDate: new Date().toISOString(),
         discardReason: payload.reason,
-        sellerId: user.uid,
       };
 
       await updateDoc(opportunityRef, updateData);
@@ -391,7 +390,7 @@ export default function PipelinePage() {
 
 
   const handleInfoSentConfirm = async (payload: InfoSentConfirmPayload) => {
-    if (!currentProspect || !firestore || !user) {
+    if (!currentProspect || !firestore) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
     }
@@ -408,7 +407,6 @@ export default function PipelinePage() {
           ...checklist,
           infoSentNotes: notes || '',
           infoSentContactChannels: usedChannels,
-          sellerId: user.uid, // Always include sellerId for security rules
       };
 
       const isStageChange = currentProspect.opportunity.stage === 'Primer contacto';
@@ -451,6 +449,8 @@ export default function PipelinePage() {
     const performDatabaseUpdate = async (finalPdfUrl: string) => {
       try {
         const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
+        const originalSellerId = currentProspect.opportunity.sellerId;
+        const originalSellerName = currentProspect.opportunity.sellerName;
         
         let quotationIdForFollowUp = null;
 
@@ -462,8 +462,7 @@ export default function PipelinePage() {
                 currency: values.currency,
                 pdfUrl: finalPdfUrl,
                 version: String(Number(currentProspect.quotation.version || 1) + (values.pdf ? 1 : 0)),
-                status: 'Enviada',
-                sellerId: user.uid, // ensure sellerId is present
+                status: 'Enviada' as const,
                 vins: values.vins,
             };
             await updateDoc(quotationRef, quotationData);
@@ -471,14 +470,14 @@ export default function PipelinePage() {
         } else { // Creating a new quotation
             const quotationData: any = {
                 opportunityId: currentProspect.opportunity.id,
-                sellerId: user.uid,
-                sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+                sellerId: originalSellerId,
+                sellerName: originalSellerName,
                 pdfUrl: finalPdfUrl,
                 value: values.value,
                 currency: values.currency,
                 vins: values.vins,
                 version: '1',
-                status: 'Enviada',
+                status: 'Enviada' as const,
                 createdDate: new Date().toISOString(),
             };
             
@@ -491,10 +490,7 @@ export default function PipelinePage() {
         }
         
         if (currentProspect.opportunity.stage === 'Envió de Información') {
-          await updateDoc(opportunityRef, { stage: 'Envió de Cotización', sellerId: user.uid });
-        } else {
-          // This case is for editing an existing quotation without changing the stage
-          await updateDoc(opportunityRef, { sellerId: user.uid });
+          await updateDoc(opportunityRef, { stage: 'Envió de Cotización' });
         }
         
         toast({
@@ -568,7 +564,7 @@ export default function PipelinePage() {
   };
 
   const handleNegotiationConfirm = async (payload: NegotiationConfirmPayload) => {
-    if (!currentProspect || !firestore || !user) {
+    if (!currentProspect || !firestore) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
     }
@@ -577,7 +573,7 @@ export default function PipelinePage() {
     
     try {
       const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
-      const updateData: any = { ...payload, sellerId: user.uid };
+      const updateData: any = { ...payload };
       const isStageChange = currentProspect.opportunity.stage === 'Envió de Cotización';
       if (isStageChange) {
         updateData.stage = 'Negociación';
@@ -604,7 +600,7 @@ export default function PipelinePage() {
   };
 
   const handleClosingConfirm = async (payload: ClosingConfirmPayload) => {
-    if (!currentProspect || !firestore || !user) {
+    if (!currentProspect || !firestore) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
     }
@@ -613,7 +609,7 @@ export default function PipelinePage() {
     
     try {
       const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
-      const updateData: any = { ...payload, sellerId: user.uid };
+      const updateData: any = { ...payload };
       const isStageChange = currentProspect.opportunity.stage === 'Negociación';
       if (isStageChange) {
         updateData.stage = 'Cierre de venta';
@@ -640,7 +636,7 @@ export default function PipelinePage() {
   };
 
   const handleFinancingConfirm = async (payload: FinancingConfirmPayload) => {
-    if (!currentProspect || !firestore || !user) {
+    if (!currentProspect || !firestore) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
       return;
     }
@@ -649,9 +645,8 @@ export default function PipelinePage() {
       const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
       const updateData = {
         ...payload,
-        stage: 'Financiamiento Externo',
+        stage: 'Financiamiento Externo' as const,
         financiamientoExternoDate: new Date().toISOString(),
-        sellerId: user.uid,
       };
       await updateDoc(opportunityRef, updateData);
       toast({ title: 'Éxito', description: `Prospecto movido a: Financiamiento Externo` });
