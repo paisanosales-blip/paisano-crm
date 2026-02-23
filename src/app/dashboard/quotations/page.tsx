@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -136,6 +136,12 @@ export default function QuotationsPage() {
         }).sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime());
 
     }, [quotations, opportunities, leads, isLoading]);
+
+    const totalClientsWithQuotes = useMemo(() => {
+        if (!enrichedQuotations) return 0;
+        const clientNames = new Set(enrichedQuotations.map(q => q.clientName));
+        return clientNames.size;
+    }, [enrichedQuotations]);
 
     const quotationStats = React.useMemo(() => {
         if (!enrichedQuotations) return { sentValueUSD: 0, acceptedValueUSD: 0, sentValueMXN: 0, acceptedValueMXN: 0, sentCount: 0, acceptedCount: 0, rejectedCount: 0, draftCount: 0 };
@@ -333,11 +339,11 @@ export default function QuotationsPage() {
                     </Card>
                     <Card className="bg-muted/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                            <CardTitle className="text-xs font-medium">Aceptadas / Total</CardTitle>
+                            <CardTitle className="text-xs font-medium">Aceptadas / Clientes</CardTitle>
                             <FileCheck className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent className="p-3 pt-0">
-                            <div className="text-lg font-bold">{quotationStats.acceptedCount} <span className="font-normal text-sm text-muted-foreground">/ {enrichedQuotations.length}</span></div>
+                            <div className="text-lg font-bold">{quotationStats.acceptedCount} <span className="font-normal text-sm text-muted-foreground">/ {totalClientsWithQuotes}</span></div>
                         </CardContent>
                     </Card>
                     <Card className="bg-muted/50">
