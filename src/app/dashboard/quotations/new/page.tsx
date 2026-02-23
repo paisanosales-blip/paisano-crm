@@ -26,6 +26,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { countries, states, cities } from '@/lib/geography';
 import { Textarea } from '@/components/ui/textarea';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
@@ -526,21 +528,35 @@ export default function NewQuotationPage() {
       currentY += 10;
       const termsBody = quotationDetails.terms ? quotationDetails.terms.toUpperCase() : '';
       if (termsBody) {
-        const textMaxWidth = docWidth - (margin * 2);
+        const textMaxWidth = docPdf.internal.pageSize.width - (margin * 2);
         const textOptions = { align: 'justify' as const, maxWidth: textMaxWidth };
         docPdf.setFont('helvetica', 'normal');
         docPdf.setFontSize(7);
         const termsDim = docPdf.getTextDimensions(termsBody, { ...textOptions });
-        const termsHeight = termsDim.h + 8; 
+        
+        const newText = `LOS PRECIOS SOLO SON VALIDOS SI LA ORDEN DE COMPRA ENTRA DENTRO DEL MES EN CURSO, EL CUAL ES ${format(new Date(), "MMMM", { locale: es })}.`.toUpperCase();
+        const newTextDim = docPdf.getTextDimensions(newText, { ...textOptions, fontStyle: 'bold' });
+        
+        const termsHeight = termsDim.h + 8 + newTextDim.h + 5;
         if (currentY + termsHeight > pageHeight - 35) { docPdf.addPage(); currentY = margin; }
+        
         docPdf.setFont('helvetica', 'bold');
         docPdf.setFontSize(8);
         docPdf.text('TERMS AND CONDITIONS', margin, currentY);
         currentY += 5;
+        
         docPdf.setFont('helvetica', 'normal');
         docPdf.setFontSize(7);
         docPdf.text(termsBody, margin, currentY, textOptions);
         currentY += termsDim.h;
+
+        currentY += 5; // Some spacing
+        docPdf.setTextColor(139, 0, 0); // RED
+        docPdf.setFont('helvetica', 'bold');
+        docPdf.text(newText, margin, currentY, textOptions);
+        docPdf.setTextColor(0, 0, 0); // Reset to BLACK
+        docPdf.setFont('helvetica', 'normal');
+        currentY += newTextDim.h;
       }
       
       const fixedSpacingBeforeSignature = 4;

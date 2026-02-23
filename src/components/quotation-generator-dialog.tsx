@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -440,7 +442,11 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       const termsDim = doc.getTextDimensions(termsBody, { ...textOptions });
-      const termsHeight = termsDim.h + 8;
+      
+      const newText = `LOS PRECIOS SOLO SON VALIDOS SI LA ORDEN DE COMPRA ENTRA DENTRO DEL MES EN CURSO, EL CUAL ES ${format(new Date(), "MMMM", { locale: es })}.`.toUpperCase();
+      const newTextDim = doc.getTextDimensions(newText, { ...textOptions, fontStyle: 'bold' });
+      
+      const termsHeight = termsDim.h + 8 + newTextDim.h + 5;
 
       if (currentY + termsHeight > pageHeight - 35) {
           doc.addPage();
@@ -455,8 +461,15 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       doc.text(termsBody, margin, currentY, textOptions);
-      
       currentY += termsDim.h;
+
+      currentY += 5; // Some spacing
+      doc.setTextColor(139, 0, 0); // RED
+      doc.setFont('helvetica', 'bold');
+      doc.text(newText, margin, currentY, textOptions);
+      doc.setTextColor(0, 0, 0); // Reset to BLACK
+      doc.setFont('helvetica', 'normal');
+      currentY += newTextDim.h;
     }
     
     // --- Additional Notes, QR Code & Signature (Combined Block) ---
