@@ -166,10 +166,6 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
       toast({ variant: 'destructive', title: 'Error', description: 'No se ha seleccionado un prospecto.' });
       return;
     }
-    if (((!isIndividualFreight && freight > 0) || isIndividualFreight) && !freightTo.trim()) {
-      toast({ variant: 'destructive', title: 'Error', description: 'El destino del flete es requerido.' });
-      return;
-    }
     if (items.length === 0 || items.every(i => i.quantity === 0)) {
         toast({ variant: 'destructive', title: 'Error', description: 'Debe agregar al menos un producto a la cotización.' });
         return;

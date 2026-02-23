@@ -265,10 +265,6 @@ export default function NewQuotationPage() {
         toast({ variant: 'destructive', title: 'Error', description: 'Debe agregar al menos un producto con precio a la cotización.' });
         return;
     }
-    if (((!isIndividualFreight && freight > 0) || isIndividualFreight) && !freightTo.trim()) {
-      toast({ variant: 'destructive', title: 'Error', description: 'El destino del flete es requerido.' });
-      return;
-    }
 
     setIsSubmitting(true);
     try {
@@ -518,7 +514,7 @@ export default function NewQuotationPage() {
       docPdf.line(docWidth - 80, totalY, docWidth - margin, totalY);
       lineY = totalY + 7;
       docPdf.setFont('helvetica', 'bold');
-      docPdf.text('TOTAL (DOLLARS):', docWidth - 70, lineY, { align: 'right' });
+      docPdf.text(`TOTAL (${currency}):`, docWidth - 70, lineY, { align: 'right' });
       docPdf.setTextColor(RED);
       docPdf.text(`$${total.toFixed(2)}`, docWidth - margin, lineY, { align: 'right' });
       currentY = lineY;
