@@ -290,6 +290,15 @@
           "description": "Date when the opportunity was moved to external financing.",
           "format": "date-time"
         },
+        "cotizacionFinanciamientoExternoNotes": {
+          "type": "string",
+          "description": "Observations from the external quotation financing stage."
+        },
+        "cotizacionFinanciamientoExternoDate": {
+          "type": "string",
+          "description": "Date when the opportunity was moved to external quotation financing.",
+          "format": "date-time"
+        },
         "discardedDate": {
           "type": "string",
           "description": "Date when the opportunity was discarded.",
