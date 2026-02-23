@@ -235,9 +235,9 @@ export function DashboardCharts({ opportunities, leads, isLoading }: DashboardCh
           const key = type.replace(/\s+/g, '');
           config[key] = { label: type, color: `hsl(var(--chart-${(index % 5) + 1}))` };
           return {
-              clientType: type,
+              clientType: type.toUpperCase(),
               opportunities: count,
-              fill: `var(--color-chart-${(index % 5) + 1})`
+              fill: `hsl(var(--chart-${(index % 5) + 1}))`
           }
       });
 
