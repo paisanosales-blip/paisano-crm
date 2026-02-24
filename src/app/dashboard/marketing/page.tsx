@@ -127,7 +127,7 @@ export default function MarketingPage() {
 
   const { completedPoints, rank } = useMemo(() => {
     if (!plan?.planData) {
-      return { totalPoints: 0, completedPoints: 0, progress: 0, rank: 'Aprendiz' as const, rankGoalPoints: 10 };
+      return { completedPoints: 0, rank: 'Aprendiz' as const };
     }
     
     const completed = completedTasks
@@ -471,85 +471,111 @@ export default function MarketingPage() {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-                <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-                    {Array.from({length: 5}).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
-                </div>
+                <Skeleton className="h-40 w-full" />
             ) : (
-                <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-                    <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                            <CardTitle className="text-xs font-medium">Rango Semanal</CardTitle>
-                            <Award className="h-4 w-4 text-amber-500" />
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0">
-                            <div className="text-lg font-bold">{rank}</div>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                            <CardTitle className="text-xs font-medium">Puntos (Aprobados)</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-indigo-500" />
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0">
-                            <div className="text-lg font-bold">{completedPoints}</div>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                            <CardTitle className="text-xs font-medium">Aprobadas</CardTitle>
-                            <ThumbsUp className="h-4 w-4 text-green-500" />
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0">
-                            <div className="text-lg font-bold">{planReviewStats.approved}</div>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                            <CardTitle className="text-xs font-medium">Pendientes</CardTitle>
-                            <History className="h-4 w-4 text-gray-500" />
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0">
-                            <div className="text-lg font-bold">{planReviewStats.pending}</div>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                            <CardTitle className="text-xs font-medium">Con Cambios</CardTitle>
-                            <Undo2 className="h-4 w-4 text-yellow-500" />
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0">
-                            <div className="text-lg font-bold">{planReviewStats.changesRequired}</div>
-                        </CardContent>
-                    </Card>
+                <div className="space-y-6">
+                    <div className="space-y-6 pt-4">
+                        <div className="flex justify-between items-center">
+                            <h4 className="text-lg font-bold">Tu Rango: <span className="text-primary">{rank}</span></h4>
+                            <div className="text-right">
+                                <p className="text-2xl font-bold">{completedPoints}</p>
+                                <p className="text-xs text-muted-foreground">Puntos Aprobados</p>
+                            </div>
+                        </div>
+
+                        <div className="w-full pt-10 pb-4">
+                            <div className="relative h-2.5 w-full bg-muted rounded-full">
+                                <div
+                                    className="absolute h-full bg-primary rounded-full transition-all duration-500"
+                                    style={{ width: `${Math.min((completedPoints / 20) * 100, 100)}%` }}
+                                />
+                                <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2" style={{ left: '50%' }}>
+                                    <div className={`h-5 w-5 rounded-full border-2 bg-background flex items-center justify-center transition-colors duration-500 ${completedPoints >= 10 ? 'border-primary' : 'border-border'}`}>
+                                        {completedPoints >= 10 && <div className="h-2.5 w-2.5 bg-primary rounded-full" />}
+                                    </div>
+                                </div>
+                                <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2" style={{ left: '100%' }}>
+                                    <div className={`h-5 w-5 rounded-full border-2 bg-background flex items-center justify-center transition-colors duration-500 ${completedPoints >= 20 ? 'border-primary' : 'border-border'}`}>
+                                        {completedPoints >= 20 && <div className="h-2.5 w-2.5 bg-primary rounded-full" />}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="relative w-full flex mt-2 text-xs text-muted-foreground">
+                                <div className="flex flex-col absolute" style={{ left: '0%' }}>
+                                    <span className={`font-bold ${completedPoints >= 0 ? 'text-primary' : ''}`}>Aprendiz</span>
+                                    <span>0 pts</span>
+                                </div>
+                                <div className="flex flex-col items-center absolute" style={{ left: '50%', transform: 'translateX(-50%)' }}>
+                                    <span className={`font-bold ${completedPoints >= 10 ? 'text-primary' : ''}`}>Estratega</span>
+                                    <span>10 pts</span>
+                                </div>
+                                <div className="flex flex-col items-end absolute" style={{ left: '100%', transform: 'translateX(-100%)' }}>
+                                    <span className={`font-bold ${completedPoints >= 20 ? 'text-primary' : ''}`}>Maestro</span>
+                                    <span>20+ pts</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="grid gap-4 grid-cols-1 md:grid-cols-3 pt-6 border-t">
+                        <Card className="bg-muted/50">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                                <CardTitle className="text-xs font-medium">Aprobadas</CardTitle>
+                                <ThumbsUp className="h-4 w-4 text-green-500" />
+                            </CardHeader>
+                            <CardContent className="p-3 pt-0">
+                                <div className="text-lg font-bold">{planReviewStats.approved}</div>
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-muted/50">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                                <CardTitle className="text-xs font-medium">Pendientes</CardTitle>
+                                <History className="h-4 w-4 text-gray-500" />
+                            </CardHeader>
+                            <CardContent className="p-3 pt-0">
+                                <div className="text-lg font-bold">{planReviewStats.pending}</div>
+                            </CardContent>
+                        </Card>
+                        <Card className="bg-muted/50">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                                <CardTitle className="text-xs font-medium">Con Cambios</CardTitle>
+                                <Undo2 className="h-4 w-4 text-yellow-500" />
+                            </CardHeader>
+                            <CardContent className="p-3 pt-0">
+                                <div className="text-lg font-bold">{planReviewStats.changesRequired}</div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t">
+                        <div className="p-4 rounded-lg bg-muted/50 mt-4">
+                            <h4 className="text-sm font-medium text-muted-foreground mb-3 text-center">Actividades Aprobadas por Red Social</h4>
+                            <div className="grid grid-cols-4 gap-4 text-center">
+                                <div>
+                                    <TiktokIcon className="mx-auto h-6 w-6 text-foreground mb-1" />
+                                    <p className="text-xl font-bold">{socialMediaStats.tiktok}</p>
+                                    <p className="text-xs font-medium text-muted-foreground">TikTok</p>
+                                </div>
+                                <div>
+                                    <InstagramIcon className="mx-auto h-6 w-6 text-pink-500 mb-1" />
+                                    <p className="text-xl font-bold">{socialMediaStats.instagram}</p>
+                                    <p className="text-xs font-medium text-muted-foreground">Instagram</p>
+                                </div>
+                                <div>
+                                    <FacebookIcon className="mx-auto h-6 w-6 text-blue-600 mb-1" />
+                                    <p className="text-xl font-bold">{socialMediaStats.facebook}</p>
+                                    <p className="text-xs font-medium text-muted-foreground">Facebook</p>
+                                </div>
+                                <div>
+                                    <LinkedinIcon className="mx-auto h-6 w-6 text-sky-700 mb-1" />
+                                    <p className="text-xl font-bold">{socialMediaStats.linkedin}</p>
+                                    <p className="text-xs font-medium text-muted-foreground">LinkedIn</p>
+                                </div>
+                            </div>
+                        </div>
+                   </div>
                 </div>
             )}
-             <div className="pt-4 mt-4 border-t">
-                  <div className="p-4 rounded-lg bg-muted/50 mt-4">
-                      <h4 className="text-sm font-medium text-muted-foreground mb-3 text-center">Actividades Aprobadas por Red Social</h4>
-                      <div className="grid grid-cols-4 gap-4 text-center">
-                          <div>
-                              <TiktokIcon className="mx-auto h-6 w-6 text-foreground mb-1" />
-                              <p className="text-xl font-bold">{socialMediaStats.tiktok}</p>
-                              <p className="text-xs font-medium text-muted-foreground">TikTok</p>
-                          </div>
-                          <div>
-                              <InstagramIcon className="mx-auto h-6 w-6 text-pink-500 mb-1" />
-                              <p className="text-xl font-bold">{socialMediaStats.instagram}</p>
-                              <p className="text-xs font-medium text-muted-foreground">Instagram</p>
-                          </div>
-                          <div>
-                              <FacebookIcon className="mx-auto h-6 w-6 text-blue-600 mb-1" />
-                              <p className="text-xl font-bold">{socialMediaStats.facebook}</p>
-                              <p className="text-xs font-medium text-muted-foreground">Facebook</p>
-                          </div>
-                          <div>
-                              <LinkedinIcon className="mx-auto h-6 w-6 text-sky-700 mb-1" />
-                              <p className="text-xl font-bold">{socialMediaStats.linkedin}</p>
-                              <p className="text-xs font-medium text-muted-foreground">LinkedIn</p>
-                          </div>
-                      </div>
-                  </div>
-            </div>
             </CardContent>
         </Card>
 
