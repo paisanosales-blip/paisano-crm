@@ -88,7 +88,7 @@ export default function ClientDetailPage() {
         const events: TimelineEvent[] = [];
 
         // 1. Lead Creation
-        if (lead) {
+        if (lead && lead.createdDate) {
             events.push({
                 id: `lead-created-${lead.id}`, date: new Date(lead.createdDate), Icon: Users,
                 title: 'Prospecto Registrado', description: `Se registró a ${lead.clientName} como un nuevo prospecto.`, data: lead
@@ -97,10 +97,12 @@ export default function ClientDetailPage() {
         
         // 2. Opportunity Stage Changes
         opportunities?.forEach(opp => {
-            events.push({
-                id: `opp-created-${opp.id}`, date: new Date(opp.createdDate!), Icon: Briefcase,
-                title: 'Oportunidad Creada', description: `Se creó la oportunidad "${opp.name}".`, data: opp
-            });
+            if (opp.createdDate) {
+                events.push({
+                    id: `opp-created-${opp.id}`, date: new Date(opp.createdDate), Icon: Briefcase,
+                    title: 'Oportunidad Creada', description: `Se creó la oportunidad "${opp.name}".`, data: opp
+                });
+            }
             if (opp.infoSentDate) {
                 events.push({
                 id: `opp-info-${opp.id}`, date: new Date(opp.infoSentDate), Icon: stageIconMap['Envió de Información'],
@@ -135,21 +137,25 @@ export default function ClientDetailPage() {
 
         // 3. Quotations
         quotations?.forEach(quot => {
-            events.push({
-                id: `quot-${quot.id}`, date: new Date(quot.createdAt), Icon: FileText,
-                title: `Cotización v${quot.version} Enviada`,
-                description: `Valor: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: quot.currency }).format(quot.value)}`,
-                data: quot
-            });
+            if(quot.createdAt) {
+                events.push({
+                    id: `quot-${quot.id}`, date: new Date(quot.createdAt), Icon: FileText,
+                    title: `Cotización v${quot.version} Enviada`,
+                    description: `Valor: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: quot.currency }).format(quot.value)}`,
+                    data: quot
+                });
+            }
         });
 
         // 4. Activities
         activities?.forEach(act => {
-            const ActivityIcon = activityIconMap[act.type] || StickyNote;
-            events.push({
-                id: `act-created-${act.id}`, date: new Date(act.createdDate), Icon: ActivityIcon,
-                title: `Seguimiento: ${act.type}`, description: act.description || 'Sin descripción.', data: act
-            });
+            if (act.createdDate) {
+                const ActivityIcon = activityIconMap[act.type] || StickyNote;
+                events.push({
+                    id: `act-created-${act.id}`, date: new Date(act.createdDate), Icon: ActivityIcon,
+                    title: `Seguimiento: ${act.type}`, description: act.description || 'Sin descripción.', data: act
+                });
+            }
             if (act.completed && act.completedDate) {
                 events.push({
                 id: `act-completed-${act.id}`, date: new Date(act.completedDate), Icon: CheckCircle2,
@@ -165,7 +171,10 @@ export default function ClientDetailPage() {
     
     const latestOpportunity = useMemo(() => {
         if (!opportunities || opportunities.length === 0) return null;
-        return opportunities.sort((a, b) => new Date(b.createdDate!).getTime() - new Date(a.createdDate!).getTime())[0];
+        return opportunities.sort((a, b) => {
+            if (!a.createdDate || !b.createdDate) return 0;
+            return new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()
+        })[0];
     }, [opportunities]);
 
     const isLoading = isLeadLoading || areOppsLoading || areActivitiesLoading || areQuotsLoading;

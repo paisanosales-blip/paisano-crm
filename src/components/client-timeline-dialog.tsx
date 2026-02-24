@@ -99,7 +99,7 @@ export function ClientTimelineDialog({ open, onOpenChange, leadId }: ClientTimel
 
         const events: TimelineEvent[] = [];
 
-        if (lead) {
+        if (lead && lead.createdDate) {
             events.push({
                 id: `lead-created-${lead.id}`, date: new Date(lead.createdDate), Icon: Users,
                 title: 'Prospecto Registrado', description: `Se registró a ${lead.clientName} como un nuevo prospecto.`, data: lead
@@ -107,10 +107,12 @@ export function ClientTimelineDialog({ open, onOpenChange, leadId }: ClientTimel
         }
         
         opportunities?.forEach(opp => {
-            events.push({
-                id: `opp-created-${opp.id}`, date: new Date(opp.createdDate!), Icon: Briefcase,
-                title: 'Oportunidad Creada', description: `Se creó la oportunidad "${opp.name}".`, data: opp
-            });
+            if (opp.createdDate) {
+                events.push({
+                    id: `opp-created-${opp.id}`, date: new Date(opp.createdDate), Icon: Briefcase,
+                    title: 'Oportunidad Creada', description: `Se creó la oportunidad "${opp.name}".`, data: opp
+                });
+            }
             if (opp.infoSentDate) {
                 events.push({
                 id: `opp-info-${opp.id}`, date: new Date(opp.infoSentDate), Icon: stageIconMap['Envió de Información'],
@@ -144,20 +146,24 @@ export function ClientTimelineDialog({ open, onOpenChange, leadId }: ClientTimel
         });
 
         quotations?.forEach(quot => {
-            events.push({
-                id: `quot-${quot.id}`, date: new Date(quot.createdAt), Icon: FileText,
-                title: `Cotización v${quot.version} Enviada`,
-                description: `Valor: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: quot.currency }).format(quot.value)}`,
-                data: quot
-            });
+            if (quot.createdAt) {
+                events.push({
+                    id: `quot-${quot.id}`, date: new Date(quot.createdAt), Icon: FileText,
+                    title: `Cotización v${quot.version} Enviada`,
+                    description: `Valor: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: quot.currency }).format(quot.value)}`,
+                    data: quot
+                });
+            }
         });
 
         activities?.forEach(act => {
-            const ActivityIcon = activityIconMap[act.type] || StickyNote;
-            events.push({
-                id: `act-created-${act.id}`, date: new Date(act.createdDate), Icon: ActivityIcon,
-                title: `Seguimiento: ${act.type}`, description: act.description || 'Sin descripción.', data: act
-            });
+            if (act.createdDate) {
+                const ActivityIcon = activityIconMap[act.type] || StickyNote;
+                events.push({
+                    id: `act-created-${act.id}`, date: new Date(act.createdDate), Icon: ActivityIcon,
+                    title: `Seguimiento: ${act.type}`, description: act.description || 'Sin descripción.', data: act
+                });
+            }
             if (act.completed && act.completedDate) {
                 events.push({
                 id: `act-completed-${act.id}`, date: new Date(act.completedDate), Icon: CheckCircle2,
