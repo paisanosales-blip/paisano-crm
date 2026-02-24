@@ -136,9 +136,9 @@ export default function MarketingPage() {
     
     let currentRank: 'Aprendiz' | 'Estratega' | 'Maestro' = 'Aprendiz';
     
-    if (completed >= 20) {
+    if (completed >= 25) {
         currentRank = 'Maestro';
-    } else if (completed >= 10) {
+    } else if (completed >= 15) {
         currentRank = 'Estratega';
     }
 
@@ -148,6 +148,20 @@ export default function MarketingPage() {
     };
   }, [plan, completedTasks]);
   
+  const userScores = useMemo(() => {
+    if (!completedTasks) return [];
+
+    const scores = (completedTasks as CompletedMarketingTask[])
+      .filter(task => task.reviewStatus === 'Aprobado')
+      .reduce((acc, task) => {
+          acc[task.userId] = acc[task.userId] || { userName: task.userName, points: 0 };
+          acc[task.userId].points += task.points;
+          return acc;
+      }, {} as Record<string, { userName: string, points: number }>);
+    
+    return Object.values(scores).sort((a, b) => b.points - a.points);
+  }, [completedTasks]);
+
   const planReviewStats = useMemo(() => {
     if (!completedTasks) {
       return { pending: 0, changesRequired: 0, approved: 0 };
@@ -397,6 +411,12 @@ export default function MarketingPage() {
     setIsDeleteTaskDialogOpen(false);
     setTaskToDelete(null);
   };
+  
+  const trophyColors = [
+    'text-yellow-500', // Gold
+    'text-slate-400', // Silver
+    'text-orange-500' // Bronze
+  ];
 
   const isLoading = isUserLoading || isProfileLoading || arePlansLoading || areTasksLoading;
 
@@ -437,147 +457,182 @@ export default function MarketingPage() {
           </Alert>
         )}
         
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                    <CardTitle>Progreso del Plan Semanal</CardTitle>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <CardTitle>Progreso del Plan Semanal</CardTitle>
+                        <CardDescription>
+                            Resumen de tu avance en las metas de marketing de la semana.
+                        </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {plan?.code && <Badge variant="outline" className="text-lg py-1 px-3">{plan.code}</Badge>}
+                        <Select onValueChange={setSelectedPlanId} value={selectedPlanId || ''} disabled={sortedMarketingPlans.length === 0}>
+                            <SelectTrigger className="w-[280px]">
+                                <SelectValue placeholder="Seleccionar un plan..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {sortedMarketingPlans.map(p => (
+                                    <SelectItem key={p.id} value={p.id}>
+                                        {p.code} - {format(new Date(p.createdAt), "dd MMM yyyy", { locale: es })}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {userProfile?.role === 'manager' && plan && (
+                          <Button variant="outline" size="icon" onClick={() => { setPlanToDelete(plan); setIsDeletePlanDialogOpen(true); }} disabled={isGenerating}>
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Eliminar Plan</span>
+                          </Button>
+                        )}
+                    </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                    <Skeleton className="h-40 w-full" />
+                ) : (
+                    <div className="space-y-6">
+                        <div className="space-y-6 pt-4">
+                            <div className="flex justify-between items-center">
+                                <h4 className="text-lg font-bold">Tu Rango: <span className="text-primary">{rank}</span></h4>
+                                <div className="text-right">
+                                    <p className="text-2xl font-bold">{completedPoints}</p>
+                                    <p className="text-xs text-muted-foreground">Puntos Aprobados</p>
+                                </div>
+                            </div>
+
+                            <div className="w-full pt-10 pb-4">
+                                <div className="relative h-2.5 w-full bg-muted rounded-full">
+                                    <div
+                                        className="absolute h-full bg-primary rounded-full transition-all duration-500"
+                                        style={{ width: `${Math.min((completedPoints / 25) * 100, 100)}%` }}
+                                    />
+                                    <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2" style={{ left: '60%' }}>
+                                        <div className={`h-5 w-5 rounded-full border-2 bg-background flex items-center justify-center transition-colors duration-500 ${completedPoints >= 15 ? 'border-primary' : 'border-border'}`}>
+                                            {completedPoints >= 15 && <div className="h-2.5 w-2.5 bg-primary rounded-full" />}
+                                        </div>
+                                    </div>
+                                    <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2" style={{ left: '100%' }}>
+                                        <div className={`h-5 w-5 rounded-full border-2 bg-background flex items-center justify-center transition-colors duration-500 ${completedPoints >= 25 ? 'border-primary' : 'border-border'}`}>
+                                            {completedPoints >= 25 && <div className="h-2.5 w-2.5 bg-primary rounded-full" />}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="relative w-full flex mt-2 text-xs text-muted-foreground">
+                                    <div className="flex flex-col absolute" style={{ left: '0%' }}>
+                                        <span className={`font-bold ${completedPoints >= 0 ? 'text-primary' : ''}`}>Aprendiz</span>
+                                        <span>0 pts</span>
+                                    </div>
+                                    <div className="flex flex-col items-center absolute" style={{ left: '60%', transform: 'translateX(-50%)' }}>
+                                        <span className={`font-bold ${completedPoints >= 15 ? 'text-primary' : ''}`}>Estratega</span>
+                                        <span>15 pts</span>
+                                    </div>
+                                    <div className="flex flex-col items-end absolute" style={{ left: '100%', transform: 'translateX(-100%)' }}>
+                                        <span className={`font-bold ${completedPoints >= 25 ? 'text-primary' : ''}`}>Maestro</span>
+                                        <span>25+ pts</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="grid gap-4 grid-cols-1 md:grid-cols-3 pt-6 border-t">
+                            <Card className="bg-muted/50">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                                    <CardTitle className="text-xs font-medium">Aprobadas</CardTitle>
+                                    <ThumbsUp className="h-4 w-4 text-green-500" />
+                                </CardHeader>
+                                <CardContent className="p-3 pt-0">
+                                    <div className="text-lg font-bold">{planReviewStats.approved}</div>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-muted/50">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                                    <CardTitle className="text-xs font-medium">Pendientes</CardTitle>
+                                    <History className="h-4 w-4 text-gray-500" />
+                                </CardHeader>
+                                <CardContent className="p-3 pt-0">
+                                    <div className="text-lg font-bold">{planReviewStats.pending}</div>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-muted/50">
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                                    <CardTitle className="text-xs font-medium">Con Cambios</CardTitle>
+                                    <Undo2 className="h-4 w-4 text-yellow-500" />
+                                </CardHeader>
+                                <CardContent className="p-3 pt-0">
+                                    <div className="text-lg font-bold">{planReviewStats.changesRequired}</div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <div className="pt-4 mt-4 border-t">
+                            <div className="p-4 rounded-lg bg-muted/50 mt-4">
+                                <h4 className="text-sm font-medium text-muted-foreground mb-3 text-center">Actividades Aprobadas por Red Social</h4>
+                                <div className="grid grid-cols-4 gap-4 text-center">
+                                    <div>
+                                        <TiktokIcon className="mx-auto h-6 w-6 text-foreground mb-1" />
+                                        <p className="text-xl font-bold">{socialMediaStats.tiktok}</p>
+                                        <p className="text-xs font-medium text-muted-foreground">TikTok</p>
+                                    </div>
+                                    <div>
+                                        <InstagramIcon className="mx-auto h-6 w-6 text-pink-500 mb-1" />
+                                        <p className="text-xl font-bold">{socialMediaStats.instagram}</p>
+                                        <p className="text-xs font-medium text-muted-foreground">Instagram</p>
+                                    </div>
+                                    <div>
+                                        <FacebookIcon className="mx-auto h-6 w-6 text-blue-600 mb-1" />
+                                        <p className="text-xl font-bold">{socialMediaStats.facebook}</p>
+                                        <p className="text-xs font-medium text-muted-foreground">Facebook</p>
+                                    </div>
+                                    <div>
+                                        <LinkedinIcon className="mx-auto h-6 w-6 text-sky-700 mb-1" />
+                                        <p className="text-xl font-bold">{socialMediaStats.linkedin}</p>
+                                        <p className="text-xs font-medium text-muted-foreground">LinkedIn</p>
+                                    </div>
+                                </div>
+                            </div>
+                       </div>
+                    </div>
+                )}
+                </CardContent>
+            </Card>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle>Ranking de la Semana</CardTitle>
                     <CardDescription>
-                        Resumen de tu avance en las metas de marketing de la semana.
+                        Tabla de posiciones de los participantes para el plan actual.
                     </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                    {plan?.code && <Badge variant="outline" className="text-lg py-1 px-3">{plan.code}</Badge>}
-                    <Select onValueChange={setSelectedPlanId} value={selectedPlanId || ''} disabled={sortedMarketingPlans.length === 0}>
-                        <SelectTrigger className="w-[280px]">
-                            <SelectValue placeholder="Seleccionar un plan..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {sortedMarketingPlans.map(p => (
-                                <SelectItem key={p.id} value={p.id}>
-                                    {p.code} - {format(new Date(p.createdAt), "dd MMM yyyy", { locale: es })}
-                                </SelectItem>
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? (
+                        <Skeleton className="h-40 w-full" />
+                    ) : userScores.length > 0 ? (
+                        <div className="space-y-4">
+                            {userScores.map((score, index) => (
+                                <div key={score.userName} className="flex items-center gap-4 p-2 rounded-md hover:bg-muted/50">
+                                    <span className="font-bold text-lg text-muted-foreground w-6 text-center">{index + 1}</span>
+                                    <div className="flex-1">
+                                        <p className="font-semibold">{score.userName}</p>
+                                        <p className="text-sm text-muted-foreground">{score.points} puntos</p>
+                                    </div>
+                                    {index < 3 && (
+                                        <Award className={cn("h-8 w-8", trophyColors[index])} />
+                                    )}
+                                </div>
                             ))}
-                        </SelectContent>
-                    </Select>
-                    {userProfile?.role === 'manager' && plan && (
-                      <Button variant="outline" size="icon" onClick={() => { setPlanToDelete(plan); setIsDeletePlanDialogOpen(true); }} disabled={isGenerating}>
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Eliminar Plan</span>
-                      </Button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">
+                            Nadie ha completado tareas para este plan aún.
+                        </div>
                     )}
-                </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-                <Skeleton className="h-40 w-full" />
-            ) : (
-                <div className="space-y-6">
-                    <div className="space-y-6 pt-4">
-                        <div className="flex justify-between items-center">
-                            <h4 className="text-lg font-bold">Tu Rango: <span className="text-primary">{rank}</span></h4>
-                            <div className="text-right">
-                                <p className="text-2xl font-bold">{completedPoints}</p>
-                                <p className="text-xs text-muted-foreground">Puntos Aprobados</p>
-                            </div>
-                        </div>
-
-                        <div className="w-full pt-10 pb-4">
-                            <div className="relative h-2.5 w-full bg-muted rounded-full">
-                                <div
-                                    className="absolute h-full bg-primary rounded-full transition-all duration-500"
-                                    style={{ width: `${Math.min((completedPoints / 20) * 100, 100)}%` }}
-                                />
-                                <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2" style={{ left: '50%' }}>
-                                    <div className={`h-5 w-5 rounded-full border-2 bg-background flex items-center justify-center transition-colors duration-500 ${completedPoints >= 10 ? 'border-primary' : 'border-border'}`}>
-                                        {completedPoints >= 10 && <div className="h-2.5 w-2.5 bg-primary rounded-full" />}
-                                    </div>
-                                </div>
-                                <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2" style={{ left: '100%' }}>
-                                    <div className={`h-5 w-5 rounded-full border-2 bg-background flex items-center justify-center transition-colors duration-500 ${completedPoints >= 20 ? 'border-primary' : 'border-border'}`}>
-                                        {completedPoints >= 20 && <div className="h-2.5 w-2.5 bg-primary rounded-full" />}
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="relative w-full flex mt-2 text-xs text-muted-foreground">
-                                <div className="flex flex-col absolute" style={{ left: '0%' }}>
-                                    <span className={`font-bold ${completedPoints >= 0 ? 'text-primary' : ''}`}>Aprendiz</span>
-                                    <span>0 pts</span>
-                                </div>
-                                <div className="flex flex-col items-center absolute" style={{ left: '50%', transform: 'translateX(-50%)' }}>
-                                    <span className={`font-bold ${completedPoints >= 10 ? 'text-primary' : ''}`}>Estratega</span>
-                                    <span>10 pts</span>
-                                </div>
-                                <div className="flex flex-col items-end absolute" style={{ left: '100%', transform: 'translateX(-100%)' }}>
-                                    <span className={`font-bold ${completedPoints >= 20 ? 'text-primary' : ''}`}>Maestro</span>
-                                    <span>20+ pts</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="grid gap-4 grid-cols-1 md:grid-cols-3 pt-6 border-t">
-                        <Card className="bg-muted/50">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                                <CardTitle className="text-xs font-medium">Aprobadas</CardTitle>
-                                <ThumbsUp className="h-4 w-4 text-green-500" />
-                            </CardHeader>
-                            <CardContent className="p-3 pt-0">
-                                <div className="text-lg font-bold">{planReviewStats.approved}</div>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-muted/50">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                                <CardTitle className="text-xs font-medium">Pendientes</CardTitle>
-                                <History className="h-4 w-4 text-gray-500" />
-                            </CardHeader>
-                            <CardContent className="p-3 pt-0">
-                                <div className="text-lg font-bold">{planReviewStats.pending}</div>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-muted/50">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                                <CardTitle className="text-xs font-medium">Con Cambios</CardTitle>
-                                <Undo2 className="h-4 w-4 text-yellow-500" />
-                            </CardHeader>
-                            <CardContent className="p-3 pt-0">
-                                <div className="text-lg font-bold">{planReviewStats.changesRequired}</div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    <div className="pt-4 mt-4 border-t">
-                        <div className="p-4 rounded-lg bg-muted/50 mt-4">
-                            <h4 className="text-sm font-medium text-muted-foreground mb-3 text-center">Actividades Aprobadas por Red Social</h4>
-                            <div className="grid grid-cols-4 gap-4 text-center">
-                                <div>
-                                    <TiktokIcon className="mx-auto h-6 w-6 text-foreground mb-1" />
-                                    <p className="text-xl font-bold">{socialMediaStats.tiktok}</p>
-                                    <p className="text-xs font-medium text-muted-foreground">TikTok</p>
-                                </div>
-                                <div>
-                                    <InstagramIcon className="mx-auto h-6 w-6 text-pink-500 mb-1" />
-                                    <p className="text-xl font-bold">{socialMediaStats.instagram}</p>
-                                    <p className="text-xs font-medium text-muted-foreground">Instagram</p>
-                                </div>
-                                <div>
-                                    <FacebookIcon className="mx-auto h-6 w-6 text-blue-600 mb-1" />
-                                    <p className="text-xl font-bold">{socialMediaStats.facebook}</p>
-                                    <p className="text-xs font-medium text-muted-foreground">Facebook</p>
-                                </div>
-                                <div>
-                                    <LinkedinIcon className="mx-auto h-6 w-6 text-sky-700 mb-1" />
-                                    <p className="text-xl font-bold">{socialMediaStats.linkedin}</p>
-                                    <p className="text-xs font-medium text-muted-foreground">LinkedIn</p>
-                                </div>
-                            </div>
-                        </div>
-                   </div>
-                </div>
-            )}
-            </CardContent>
-        </Card>
+                </CardContent>
+            </Card>
+        </div>
 
         <Card>
           <CardHeader>
