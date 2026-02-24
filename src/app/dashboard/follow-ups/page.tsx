@@ -583,7 +583,7 @@ export default function FollowUpsPage() {
         dueDate: nextContactDate ? nextContactDate.toISOString() : null,
         completed: payload.id ? currentActivity.completed : false,
         createdDate: payload.id ? currentActivity.createdDate : new Date().toISOString(),
-        quotationId: payload.id ? currentActivity.quotationId : null,
+        quotationId: payload.id ? (currentActivity.quotationId || null) : null,
     };
 
     if (payload.id) {
