@@ -175,32 +175,31 @@ export default function MarketingPage() {
     };
   }, [plan, completedTasks]);
   
-  const monthlyUserPerformance = useMemo(() => {
-    if (!user || !marketingPlans || areMonthTasksLoading) return [];
+  const monthlyGroupPerformance = useMemo(() => {
+    if (!marketingPlans || areMonthTasksLoading) return [];
 
     const now = new Date();
     const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
     
     const currentWeekOfMonth = getWeek(now, { weekStartsOn: 1 }) - getWeek(startOfMonth(now), { weekStartsOn: 1 }) + 1;
 
     const pointsPerWeekOfMonth: Record<number, number> = {};
 
-    const plansThisMonth = marketingPlans.filter(p => isWithinInterval(new Date(p.createdAt), { start: monthStart, end: monthEnd }));
+    const plansThisMonth = marketingPlans.filter(p => isWithinInterval(new Date(p.createdAt), { start: monthStart, end: now }));
 
     plansThisMonth.forEach(plan => {
         const planDate = new Date(plan.createdAt);
         const weekOfMonth = getWeek(planDate, { weekStartsOn: 1 }) - getWeek(startOfMonth(planDate), { weekStartsOn: 1 }) + 1;
         
         const tasksForThisPlan = allTasksForMonth[plan.id] || [];
-        const userPoints = tasksForThisPlan
-            .filter(task => task.userId === user.uid && task.reviewStatus === 'Aprobado')
+        const totalPoints = tasksForThisPlan
+            .filter(task => task.reviewStatus === 'Aprobado')
             .reduce((acc, task) => acc + task.points, 0);
 
         if (!pointsPerWeekOfMonth[weekOfMonth]) {
             pointsPerWeekOfMonth[weekOfMonth] = 0;
         }
-        pointsPerWeekOfMonth[weekOfMonth] += userPoints;
+        pointsPerWeekOfMonth[weekOfMonth] += totalPoints;
     });
     
     const result = [];
@@ -228,7 +227,7 @@ export default function MarketingPage() {
 
     return result;
 
-  }, [user, marketingPlans, allTasksForMonth, areMonthTasksLoading]);
+  }, [marketingPlans, allTasksForMonth, areMonthTasksLoading]);
   
 
   const planReviewStats = useMemo(() => {
@@ -665,17 +664,17 @@ export default function MarketingPage() {
 
              <Card>
                 <CardHeader>
-                    <CardTitle>Resumen de Planes del Mes</CardTitle>
+                    <CardTitle>Resumen Grupal del Mes</CardTitle>
                     <CardDescription>
-                        Tu historial de rangos obtenidos en los planes de este mes.
+                        Historial de puntos totales y rangos del equipo este mes.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
                         <Skeleton className="h-40 w-full" />
-                    ) : monthlyUserPerformance.length > 0 ? (
+                    ) : monthlyGroupPerformance.length > 0 ? (
                         <div className="space-y-4">
-                            {monthlyUserPerformance.map((performance) => (
+                            {monthlyGroupPerformance.map((performance) => (
                                 <div key={performance.weekNumber} className="flex items-center gap-4 p-2 rounded-md hover:bg-muted/50">
                                     <div className="text-center w-24">
                                         <p className="font-bold text-muted-foreground">SEMANA</p>
@@ -683,7 +682,7 @@ export default function MarketingPage() {
                                     </div>
                                     <div className="flex-1">
                                         <p className="font-semibold">{performance.rank}</p>
-                                        <p className="text-sm text-muted-foreground">{performance.points} puntos</p>
+                                        <p className="text-sm text-muted-foreground">{performance.points} puntos totales</p>
                                     </div>
                                     <Award className={cn("h-8 w-8", {
                                         'text-yellow-400': performance.trophy === 'gold',
