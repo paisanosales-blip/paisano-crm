@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
-import { getWeek, format } from 'date-fns';
+import { getWeek, format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   useUser,
@@ -89,6 +89,9 @@ export default function MarketingPage() {
 
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [taskToReview, setTaskToReview] = useState<CompletedMarketingTask | null>(null);
+  
+  const [allTasksForMonth, setAllTasksForMonth] = useState<Record<string, CompletedMarketingTask[]>>({});
+  const [areMonthTasksLoading, setAreMonthTasksLoading] = useState(true);
 
   const marketingPlansQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -100,6 +103,30 @@ export default function MarketingPage() {
     if (!marketingPlans) return [];
     return [...marketingPlans].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [marketingPlans]);
+  
+  useEffect(() => {
+    if (marketingPlans && firestore) {
+        const fetchAllTasks = async () => {
+            setAreMonthTasksLoading(true);
+            const now = new Date();
+            const monthStart = startOfMonth(now);
+            const monthEnd = endOfMonth(now);
+
+            const plansThisMonth = marketingPlans.filter(p => isWithinInterval(new Date(p.createdAt), { start: monthStart, end: monthEnd }));
+            
+            const tasksByPlan: Record<string, CompletedMarketingTask[]> = {};
+            for (const plan of plansThisMonth) {
+                const tasksSnapshot = await getDocs(collection(firestore, 'marketingPlans', plan.id, 'completedTasks'));
+                tasksByPlan[plan.id] = tasksSnapshot.docs.map(d => d.data() as CompletedMarketingTask);
+            }
+            setAllTasksForMonth(tasksByPlan);
+            setAreMonthTasksLoading(false);
+        }
+        fetchAllTasks();
+    } else if (!arePlansLoading) {
+      setAreMonthTasksLoading(false);
+    }
+  }, [marketingPlans, firestore, arePlansLoading]);
 
   // Effect to select the latest plan by default
   useEffect(() => {
@@ -148,19 +175,42 @@ export default function MarketingPage() {
     };
   }, [plan, completedTasks]);
   
-  const userScores = useMemo(() => {
-    if (!completedTasks) return [];
+  const monthlyUserPerformance = useMemo(() => {
+    if (!user || !marketingPlans || Object.keys(allTasksForMonth).length === 0) return [];
 
-    const scores = (completedTasks as CompletedMarketingTask[])
-      .filter(task => task.reviewStatus === 'Aprobado')
-      .reduce((acc, task) => {
-          acc[task.userId] = acc[task.userId] || { userName: task.userName, points: 0 };
-          acc[task.userId].points += task.points;
-          return acc;
-      }, {} as Record<string, { userName: string, points: number }>);
-    
-    return Object.values(scores).sort((a, b) => b.points - a.points);
-  }, [completedTasks]);
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    const plansThisMonth = marketingPlans.filter(p => isWithinInterval(new Date(p.createdAt), { start: monthStart, end: monthEnd }));
+
+    return plansThisMonth.map(plan => {
+        const tasksForThisPlan = allTasksForMonth[plan.id] || [];
+        const userPoints = tasksForThisPlan
+            .filter(task => task.userId === user.uid && task.reviewStatus === 'Aprobado')
+            .reduce((acc, task) => acc + task.points, 0);
+
+        let rank = 'Aprendiz';
+        let trophy = 'bronze';
+        if (userPoints >= 25) {
+            rank = 'Maestro';
+            trophy = 'gold';
+        } else if (userPoints >= 15) {
+            rank = 'Estratega';
+            trophy = 'silver';
+        }
+        
+        return {
+            planId: plan.id,
+            planCode: plan.code,
+            weekNumber: plan.weekNumber,
+            points: userPoints,
+            rank,
+            trophy
+        };
+    }).sort((a,b) => a.weekNumber - b.weekNumber);
+
+  }, [user, marketingPlans, allTasksForMonth]);
+  
 
   const planReviewStats = useMemo(() => {
     if (!completedTasks) {
@@ -412,13 +462,7 @@ export default function MarketingPage() {
     setTaskToDelete(null);
   };
   
-  const trophyColors = [
-    'text-yellow-500', // Gold
-    'text-slate-400', // Silver
-    'text-orange-500' // Bronze
-  ];
-
-  const isLoading = isUserLoading || isProfileLoading || arePlansLoading || areTasksLoading;
+  const isLoading = isUserLoading || isProfileLoading || arePlansLoading || areTasksLoading || areMonthTasksLoading;
 
   return (
     <>
@@ -602,32 +646,37 @@ export default function MarketingPage() {
 
              <Card>
                 <CardHeader>
-                    <CardTitle>Ranking de la Semana</CardTitle>
+                    <CardTitle>Resumen de Planes del Mes</CardTitle>
                     <CardDescription>
-                        Tabla de posiciones de los participantes para el plan actual.
+                        Tu historial de rangos obtenidos en los planes de este mes.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
                         <Skeleton className="h-40 w-full" />
-                    ) : userScores.length > 0 ? (
+                    ) : monthlyUserPerformance.length > 0 ? (
                         <div className="space-y-4">
-                            {userScores.map((score, index) => (
-                                <div key={score.userName} className="flex items-center gap-4 p-2 rounded-md hover:bg-muted/50">
-                                    <span className="font-bold text-lg text-muted-foreground w-6 text-center">{index + 1}</span>
-                                    <div className="flex-1">
-                                        <p className="font-semibold">{score.userName}</p>
-                                        <p className="text-sm text-muted-foreground">{score.points} puntos</p>
+                            {monthlyUserPerformance.map((performance) => (
+                                <div key={performance.planId} className="flex items-center gap-4 p-2 rounded-md hover:bg-muted/50">
+                                    <div className="text-center w-24">
+                                        <p className="font-bold text-muted-foreground">SEMANA</p>
+                                        <p className="font-bold text-2xl">{performance.weekNumber}</p>
                                     </div>
-                                    {index < 3 && (
-                                        <Award className={cn("h-8 w-8", trophyColors[index])} />
-                                    )}
+                                    <div className="flex-1">
+                                        <p className="font-semibold">{performance.rank}</p>
+                                        <p className="text-sm text-muted-foreground">{performance.points} puntos</p>
+                                    </div>
+                                    <Award className={cn("h-8 w-8", {
+                                        'text-yellow-400': performance.trophy === 'gold',
+                                        'text-slate-400': performance.trophy === 'silver',
+                                        'text-orange-500': performance.trophy === 'bronze',
+                                    })} />
                                 </div>
                             ))}
                         </div>
                     ) : (
                         <div className="flex items-center justify-center h-24 text-sm text-muted-foreground">
-                            Nadie ha completado tareas para este plan aún.
+                            Aún no hay planes con tareas aprobadas este mes para mostrar un historial.
                         </div>
                     )}
                 </CardContent>
