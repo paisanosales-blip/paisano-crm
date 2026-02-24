@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
-import { getWeek, format, startOfMonth, endOfMonth, isWithinInterval, getWeeksInMonth } from 'date-fns';
+import { getWeek, format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   useUser,
@@ -181,6 +181,8 @@ export default function MarketingPage() {
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
+    
+    const currentWeekOfMonth = getWeek(now, { weekStartsOn: 1 }) - getWeek(startOfMonth(now), { weekStartsOn: 1 }) + 1;
 
     const pointsPerWeekOfMonth: Record<number, number> = {};
 
@@ -201,10 +203,9 @@ export default function MarketingPage() {
         pointsPerWeekOfMonth[weekOfMonth] += userPoints;
     });
     
-    const weeksInMonth = getWeeksInMonth(now, { weekStartsOn: 1 });
     const result = [];
 
-    for (let i = 1; i <= weeksInMonth; i++) {
+    for (let i = 1; i <= currentWeekOfMonth; i++) {
         const points = pointsPerWeekOfMonth[i] || 0;
         
         let rank = 'Aprendiz';
