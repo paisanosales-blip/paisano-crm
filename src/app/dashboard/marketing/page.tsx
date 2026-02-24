@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
-import { getWeek, format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { getWeek, format, startOfMonth, endOfMonth, isWithinInterval, getWeeksInMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   useUser,
@@ -176,40 +176,58 @@ export default function MarketingPage() {
   }, [plan, completedTasks]);
   
   const monthlyUserPerformance = useMemo(() => {
-    if (!user || !marketingPlans || Object.keys(allTasksForMonth).length === 0) return [];
+    if (!user || !marketingPlans || areMonthTasksLoading) return [];
 
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
+
+    const pointsPerWeekOfMonth: Record<number, number> = {};
+
     const plansThisMonth = marketingPlans.filter(p => isWithinInterval(new Date(p.createdAt), { start: monthStart, end: monthEnd }));
 
-    return plansThisMonth.map(plan => {
+    plansThisMonth.forEach(plan => {
+        const planDate = new Date(plan.createdAt);
+        const weekOfMonth = getWeek(planDate, { weekStartsOn: 1 }) - getWeek(startOfMonth(planDate), { weekStartsOn: 1 }) + 1;
+        
         const tasksForThisPlan = allTasksForMonth[plan.id] || [];
         const userPoints = tasksForThisPlan
             .filter(task => task.userId === user.uid && task.reviewStatus === 'Aprobado')
             .reduce((acc, task) => acc + task.points, 0);
 
+        if (!pointsPerWeekOfMonth[weekOfMonth]) {
+            pointsPerWeekOfMonth[weekOfMonth] = 0;
+        }
+        pointsPerWeekOfMonth[weekOfMonth] += userPoints;
+    });
+    
+    const weeksInMonth = getWeeksInMonth(now, { weekStartsOn: 1 });
+    const result = [];
+
+    for (let i = 1; i <= weeksInMonth; i++) {
+        const points = pointsPerWeekOfMonth[i] || 0;
+        
         let rank = 'Aprendiz';
         let trophy = 'bronze';
-        if (userPoints >= 25) {
+        if (points >= 25) {
             rank = 'Maestro';
             trophy = 'gold';
-        } else if (userPoints >= 15) {
+        } else if (points >= 15) {
             rank = 'Estratega';
             trophy = 'silver';
         }
-        
-        return {
-            planId: plan.id,
-            planCode: plan.code,
-            weekNumber: plan.weekNumber,
-            points: userPoints,
-            rank,
-            trophy
-        };
-    }).sort((a,b) => a.weekNumber - b.weekNumber);
 
-  }, [user, marketingPlans, allTasksForMonth]);
+        result.push({
+            weekNumber: i,
+            points,
+            rank,
+            trophy,
+        });
+    }
+
+    return result;
+
+  }, [user, marketingPlans, allTasksForMonth, areMonthTasksLoading]);
   
 
   const planReviewStats = useMemo(() => {
@@ -657,7 +675,7 @@ export default function MarketingPage() {
                     ) : monthlyUserPerformance.length > 0 ? (
                         <div className="space-y-4">
                             {monthlyUserPerformance.map((performance) => (
-                                <div key={performance.planId} className="flex items-center gap-4 p-2 rounded-md hover:bg-muted/50">
+                                <div key={performance.weekNumber} className="flex items-center gap-4 p-2 rounded-md hover:bg-muted/50">
                                     <div className="text-center w-24">
                                         <p className="font-bold text-muted-foreground">SEMANA</p>
                                         <p className="font-bold text-2xl">{performance.weekNumber}</p>
