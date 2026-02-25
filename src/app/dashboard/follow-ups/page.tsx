@@ -12,7 +12,7 @@ import {
   deleteDocumentNonBlocking,
   addDocumentNonBlocking,
 } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
 import {
   format,
   isToday,
@@ -61,6 +61,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ResponseRateChart } from '@/components/response-rate-chart';
 import { ClientTimelineDialog } from '@/components/client-timeline-dialog';
 import { getUSHolidays } from '@/lib/holidays';
+import { InformationSentDialog, type InfoSentConfirmPayload } from '@/components/information-sent-dialog';
 
 const groupStyleKeys = {
     destructive: {
@@ -108,6 +109,7 @@ export default function FollowUpsPage() {
   
   const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
   const [activityToComplete, setActivityToComplete] = useState<any | null>(null);
+  const [isInfoSentDialogOpen, setIsInfoSentDialogOpen] = useState(false);
 
   const [assistantSummary, setAssistantSummary] = useState('');
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
@@ -480,11 +482,15 @@ export default function FollowUpsPage() {
     if (!firestore) return;
 
     if (completed) {
-      // Open the completion dialog
-      setActivityToComplete(activity);
-      setIsCompleteDialogOpen(true);
+      if (activity.description === 'PENDIENTE ENVIAR INFORMACIÓN') {
+        setCurrentProspect(activity.prospect);
+        setActivityToComplete(activity);
+        setIsInfoSentDialogOpen(true);
+      } else {
+        setActivityToComplete(activity);
+        setIsCompleteDialogOpen(true);
+      }
     } else {
-      // If un-checking, just update the status without a dialog
       const activityRef = doc(firestore, 'activities', activity.id);
       updateDocumentNonBlocking(activityRef, { 
         completed: false, 
@@ -505,7 +511,6 @@ export default function FollowUpsPage() {
     setIsSubmitting(true);
     const { activityId, clientResponded, completionNotes, scheduleNext, nextFollowUp } = payload;
     
-    // 1. Update the completed activity
     const activityRef = doc(firestore, 'activities', activityId);
     updateDocumentNonBlocking(activityRef, {
       completed: true,
@@ -514,12 +519,12 @@ export default function FollowUpsPage() {
       completionNotes,
     });
 
-    // 2. Update the lead's tag based on response
-    const leadRef = doc(firestore, 'leads', activityToComplete.leadId);
-    const newTag = clientResponded ? 'success' : 'danger';
-    updateDocumentNonBlocking(leadRef, { tag: newTag });
+    if (clientResponded !== undefined) {
+      const leadRef = doc(firestore, 'leads', activityToComplete.leadId);
+      const newTag = clientResponded ? 'success' : 'danger';
+      updateDocumentNonBlocking(leadRef, { tag: newTag });
+    }
 
-    // 3. Create new activity if scheduled
     if (scheduleNext && nextFollowUp) {
         addDocumentNonBlocking(collection(firestore, 'activities'), {
             leadId: activityToComplete.leadId,
@@ -538,6 +543,67 @@ export default function FollowUpsPage() {
     setIsSubmitting(false);
     setIsCompleteDialogOpen(false);
     setActivityToComplete(null);
+  };
+  
+  const handleInfoSentConfirm = (payload: InfoSentConfirmPayload) => {
+    if (!currentProspect || !activityToComplete || !firestore || !user || !userProfile) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
+        return;
+    }
+
+    setIsSubmitting(true);
+    
+    const { checklist, notes, contactChannels, scheduleNext, nextFollowUp } = payload;
+    const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
+    
+    const usedChannels = Object.entries(contactChannels).filter(([, value]) => value).map(([key]) => key);
+
+    const updateData: any = { 
+        ...checklist,
+        infoSentNotes: notes || '',
+        infoSentContactChannels: usedChannels,
+    };
+
+    const isStageChange = currentProspect.opportunity.stage === 'Primer contacto';
+    if (isStageChange) {
+      updateData.stage = 'Envió de Información';
+      updateData.infoSentDate = new Date().toISOString();
+    }
+
+    updateDocumentNonBlocking(opportunityRef, updateData);
+    
+    const activityRef = doc(firestore, 'activities', activityToComplete.id);
+    updateDocumentNonBlocking(activityRef, {
+      completed: true,
+      completedDate: new Date().toISOString(),
+      clientResponded: true,
+      completionNotes: 'Información enviada según checklist.',
+    });
+
+    if (scheduleNext && nextFollowUp) {
+        addDocumentNonBlocking(collection(firestore, 'activities'), {
+            leadId: currentProspect.id,
+            sellerId: user.uid,
+            sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+            type: nextFollowUp.type,
+            description: nextFollowUp.description,
+            dueDate: nextFollowUp.dueDate ? nextFollowUp.dueDate.toISOString() : null,
+            completed: false,
+            createdDate: new Date().toISOString(),
+        });
+    }
+    
+    toast({ 
+      title: 'Éxito', 
+      description: isStageChange 
+        ? `Prospecto movido a: Envió de Información` 
+        : 'Resumen de información actualizado.'
+    });
+
+    setIsInfoSentDialogOpen(false);
+    setCurrentProspect(null);
+    setActivityToComplete(null);
+    setIsSubmitting(false);
   };
 
 
@@ -583,7 +649,7 @@ export default function FollowUpsPage() {
         dueDate: nextContactDate ? nextContactDate.toISOString() : null,
         completed: payload.id ? currentActivity.completed : false,
         createdDate: payload.id ? currentActivity.createdDate : new Date().toISOString(),
-        quotationId: payload.id ? (currentActivity.quotationId || null) : null,
+        quotationId: payload.id ? (currentActivity.quotationId || null) : (currentActivity?.quotationId || null),
     };
 
     if (payload.id) {
@@ -972,6 +1038,19 @@ export default function FollowUpsPage() {
             onConfirm={handleCompletionConfirm}
             isSubmitting={isSubmitting}
             activity={activityToComplete}
+        />
+        <InformationSentDialog
+            open={isInfoSentDialogOpen}
+            onOpenChange={(isOpen) => {
+                if (!isOpen) {
+                    setCurrentProspect(null);
+                    setActivityToComplete(null);
+                }
+                setIsInfoSentDialogOpen(isOpen);
+            }}
+            onConfirm={handleInfoSentConfirm}
+            opportunity={currentProspect?.opportunity}
+            isSubmitting={isSubmitting}
         />
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

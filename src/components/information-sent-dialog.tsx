@@ -15,6 +15,13 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Opportunity } from '@/lib/types';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const checklistItems = [
   { id: 'sentPrices', label: '¿SE ENVIARON PRECIOS?' },
@@ -38,6 +45,12 @@ export interface InfoSentConfirmPayload {
   checklist: ChecklistState;
   notes: string;
   contactChannels: { [key: string]: boolean };
+  scheduleNext: boolean;
+  nextFollowUp?: {
+    type: string;
+    description: string;
+    dueDate?: Date;
+  };
 }
 
 interface InformationSentDialogProps {
@@ -70,6 +83,15 @@ export function InformationSentDialog({
   const [notes, setNotes] = useState('');
   const [contactChannels, setContactChannels] = useState(initialChannelsState);
 
+  const [scheduleNext, setScheduleNext] = useState(true);
+  const [nextFollowUpType, setNextFollowUpType] = useState('Llamada');
+  const [nextFollowUpDate, setNextFollowUpDate] = useState<Date | undefined>(() => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return tomorrow;
+  });
+  const [nextFollowUpDescription, setNextFollowUpDescription] = useState('');
+
   const isEditing = opportunity?.stage !== 'Primer contacto';
 
   useEffect(() => {
@@ -93,6 +115,13 @@ export function InformationSentDialog({
         setNotes('');
         setContactChannels(initialChannelsState);
       }
+      // Reset follow-up state
+      setScheduleNext(true);
+      setNextFollowUpType('Llamada');
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      setNextFollowUpDate(tomorrow);
+      setNextFollowUpDescription('');
     }
   }, [open, opportunity]);
 
@@ -106,13 +135,21 @@ export function InformationSentDialog({
   };
 
   const handleConfirm = () => {
-    onConfirm({ checklist, notes, contactChannels });
+    const payload: InfoSentConfirmPayload = { checklist, notes, contactChannels, scheduleNext };
+    if (scheduleNext) {
+        payload.nextFollowUp = {
+            type: nextFollowUpType,
+            description: nextFollowUpDescription,
+            dueDate: nextFollowUpDate
+        }
+    }
+    onConfirm(payload);
   };
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="sm:max-w-lg"
+        className="sm:max-w-lg max-h-[80vh] flex flex-col"
         onPointerDownOutside={(e) => {
             if (e.target instanceof HTMLElement && e.target.closest('[data-radix-popper-content-wrapper]')) {
                 e.preventDefault();
@@ -122,10 +159,10 @@ export function InformationSentDialog({
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar' : 'Confirmar'} Envío de Información</DialogTitle>
           <DialogDescription>
-             Para {isEditing ? 'actualizar la información de' : 'mover a'} "{opportunity.name}" a la siguiente etapa, confirme qué información se ha enviado y registre la interacción.
+             Para {isEditing ? 'actualizar la información de' : 'mover a'} "{opportunity?.name}" a la siguiente etapa, confirme qué información se ha enviado y registre la interacción.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-6 py-4">
+        <div className="grid gap-6 py-4 flex-grow overflow-y-auto pr-4 -mr-2">
             <div className="space-y-4 rounded-lg border p-4">
               <h4 className="font-medium text-sm text-foreground">CHECKLIST DE ENVÍO</h4>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -178,9 +215,55 @@ export function InformationSentDialog({
                     />
                 </div>
             </div>
+            
+            <div className="space-y-4 rounded-lg border p-4">
+                <div className="flex items-center space-x-2">
+                    <Checkbox id="schedule-next-info-sent" checked={scheduleNext} onCheckedChange={(checked) => setScheduleNext(!!checked)} />
+                    <Label htmlFor="schedule-next-info-sent" className="font-medium">Agendar Próximo Seguimiento</Label>
+                </div>
 
+                {scheduleNext && (
+                    <div className="grid gap-4 pt-4 border-t">
+                        <div className="grid grid-cols-2 gap-4">
+                            <Popover modal={true}>
+                                <PopoverTrigger asChild>
+                                <Button variant="outline" className={cn('justify-start text-left font-normal', !nextFollowUpDate && 'text-muted-foreground')}>
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {nextFollowUpDate ? format(nextFollowUpDate, 'PPP', { locale: es }) : <span>Elegir fecha</span>}
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                <Calendar mode="single" selected={nextFollowUpDate} onSelect={setNextFollowUpDate} initialFocus />
+                                </PopoverContent>
+                            </Popover>
+                            <Select onValueChange={setNextFollowUpType} value={nextFollowUpType}>
+                                <SelectTrigger>
+                                <SelectValue placeholder="Tipo de contacto" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                <SelectItem value="Llamada">LLAMADA</SelectItem>
+                                <SelectItem value="Mensaje">MENSAJE</SelectItem>
+                                <SelectItem value="Mensaje de Texto">MENSAJE DE TEXTO</SelectItem>
+                                <SelectItem value="Correo">CORREO</SelectItem>
+                                <SelectItem value="Reunión">REUNIÓN</SelectItem>
+                                <SelectItem value="Nota">NOTA</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div>
+                            <Label htmlFor="next-follow-up-desc-info-sent">Descripción del Próximo Seguimiento</Label>
+                            <Textarea
+                                id="next-follow-up-desc-info-sent"
+                                placeholder="Ej: Llamar para confirmar recepción de información..."
+                                value={nextFollowUpDescription}
+                                onChange={(e) => setNextFollowUpDescription(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="flex-shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancelar
           </Button>
@@ -192,7 +275,3 @@ export function InformationSentDialog({
     </Dialog>
   );
 }
-
-    
-
-    
