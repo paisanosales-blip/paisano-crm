@@ -146,9 +146,9 @@ export function ClientTimelineDialog({ open, onOpenChange, leadId }: ClientTimel
         });
 
         quotations?.forEach(quot => {
-            if (quot.createdAt) {
+            if (quot.createdDate) {
                 events.push({
-                    id: `quot-${quot.id}`, date: new Date(quot.createdAt), Icon: FileText,
+                    id: `quot-${quot.id}`, date: new Date(quot.createdDate), Icon: FileText,
                     title: `Cotización v${quot.version} Enviada`,
                     description: `Valor: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: quot.currency }).format(quot.value)}`,
                     data: quot

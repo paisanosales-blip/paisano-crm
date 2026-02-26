@@ -90,14 +90,14 @@ export type Opportunity = {
 export type Quotation = {
   id: string;
   opportunityId: string;
-  clientId: string;
   sellerId: string;
+  sellerName: string;
   value: number;
   currency: 'USD' | 'MXN';
   status: 'Borrador' | 'Enviada' | 'Aceptada' | 'Rechazada';
-  version: number;
-  pdfUrl?: string;
-  createdAt: string;
+  version: string;
+  pdfUrl: string;
+  createdDate: string;
   vins?: string;
 };
 
