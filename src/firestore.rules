@@ -1,0 +1,122 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =====================================================================
+    // Helper Functions
+    // =====================================================================
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // NOTE: This function uses get() and can ONLY be used in rules for single-document
+    // operations like 'get', 'update', 'delete'. It CANNOT be used to validate 'list' queries.
+    function isManager() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role.lower() == 'manager';
+    }
+
+    // =====================================================================
+    // App Settings
+    // =====================================================================
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isManager();
+    }
+
+    // =====================================================================
+    // User Profiles & External Sellers
+    // =====================================================================
+    match /users/{userId} {
+      allow get: if isManager() || request.auth.uid == userId;
+      allow list: if isSignedIn();
+      allow create: if request.auth.uid == userId || isManager();
+      allow update: if isManager() || request.auth.uid == userId;
+      allow delete: if isManager() && request.auth.uid != userId;
+    }
+
+    match /externalSellers/{sellerId} {
+      allow read: if isSignedIn();
+      allow write: if isManager();
+    }
+
+    // =====================================================================
+    // Business Data Collections (Leads, Opportunities, etc.)
+    // =====================================================================
+    match /leads/{leadId} {
+      allow list: if isSignedIn();
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && (!('sellerId' in request.resource.data) || request.resource.data.sellerId == resource.data.sellerId));
+    }
+    
+    match /opportunities/{opportunityId} {
+      allow list: if isSignedIn();
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && (!('sellerId' in request.resource.data) || request.resource.data.sellerId == resource.data.sellerId));
+    }
+
+    match /quotations/{quotationId} {
+      allow list: if isSignedIn();
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && (!('sellerId' in request.resource.data) || request.resource.data.sellerId == resource.data.sellerId));
+    }
+
+    match /activities/{activityId} {
+      allow list: if isSignedIn();
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && (!('sellerId' in request.resource.data) || request.resource.data.sellerId == resource.data.sellerId));
+    }
+
+    match /products/{productId} {
+      allow list: if isSignedIn();
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && (!('sellerId' in request.resource.data) || request.resource.data.sellerId == resource.data.sellerId));
+    }
+
+    match /templates/{templateId} {
+      allow list: if isSignedIn();
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && (!('sellerId' in request.resource.data) || request.resource.data.sellerId == resource.data.sellerId));
+    }
+
+    // =====================================================================
+    // Marketing
+    // =====================================================================
+    match /marketingPlans/{planId} {
+      allow read, write: if isSignedIn();
+      
+      match /completedTasks/{taskId} {
+        allow read, write, delete: if isSignedIn();
+      }
+    }
+
+    // =====================================================================
+    // Shared Files
+    // =====================================================================
+    match /sharedFiles/{fileId} {
+      allow read: if true;
+      allow create: if request.resource.data.uploadedByUserId == request.auth.uid;
+      allow update, delete: if isManager() || resource.data.uploadedByUserId == request.auth.uid;
+    }
+
+    // =====================================================================
+    // Customer Service
+    // =====================================================================
+    match /serviceTickets/{ticketId} {
+      allow list: if isSignedIn();
+      allow get: if isManager() || resource.data.assignedAgentId == request.auth.uid;
+      allow create: if isSignedIn();
+      allow update: if isManager() || resource.data.assignedAgentId == request.auth.uid;
+      allow delete: if isManager();
+
+      match /interactions/{interactionId} {
+        allow read, write: if isManager() || get(/databases/$(database)/documents/serviceTickets/$(ticketId)).data.assignedAgentId == request.auth.uid;
+      }
+    }
+  }
+}

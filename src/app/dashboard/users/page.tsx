@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, query, doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, User as UserIcon } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +30,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { EditUserDialog } from '@/components/edit-user-dialog';
+import { Badge } from '@/components/ui/badge';
+import type { User, ExternalSeller } from '@/lib/types';
+import { ExternalSellerDialog } from '@/components/external-seller-dialog';
+
 
 const ROLES = ['seller', 'manager'];
 
@@ -41,18 +45,34 @@ export default function UsersPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = useState(false);
   const [userToEdit, setUserToEdit] = useState<any | null>(null);
-
+  
+  const [isExternalSellerDialogOpen, setIsExternalSellerDialogOpen] = useState(false);
+  const [externalSellerToEdit, setExternalSellerToEdit] = useState<any | null>(null);
 
   const usersQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'users'));
   }, [firestore]);
+  const { data: users, isLoading: areUsersLoading } = useCollection<User>(usersQuery);
   
-  const { data: users, isLoading: areUsersLoading } = useCollection(usersQuery);
+  const externalSellersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'externalSellers');
+  }, [firestore]);
+  const { data: externalSellers, isLoading: areExternalSellersLoading } = useCollection<ExternalSeller>(externalSellersQuery);
 
-  const isLoading = isUserAuthLoading || areUsersLoading;
+
+  const isLoading = isUserAuthLoading || areUsersLoading || areExternalSellersLoading;
+
+  const displayUsers = useMemo(() => {
+    const internal = users ? users.map(u => ({ ...u, isExternal: false })) : [];
+    const external = externalSellers ? externalSellers.map(s => ({ ...s, isExternal: true, role: 'vendedor_externo' })) : [];
+    return [...internal, ...external].sort((a, b) => (a.firstName || '').localeCompare(b.firstName || ''));
+  }, [users, externalSellers]);
+
 
   const handleRoleChange = (userId: string, newRole: string) => {
     if (!firestore) return;
@@ -70,8 +90,18 @@ export default function UsersPage() {
   };
 
   const handleEditClick = (user: any) => {
-    setUserToEdit(user);
-    setIsEditDialogOpen(true);
+    if (user.isExternal) {
+        setExternalSellerToEdit(user);
+        setIsExternalSellerDialogOpen(true);
+    } else {
+        setUserToEdit(user);
+        setIsEditUserDialogOpen(true);
+    }
+  };
+  
+  const handleNewExternalClick = () => {
+    setExternalSellerToEdit(null);
+    setIsExternalSellerDialogOpen(true);
   };
 
   const handleDeleteClick = (user: any) => {
@@ -81,31 +111,24 @@ export default function UsersPage() {
   
   const handleDeleteConfirm = async () => {
     if (!userToDelete || !firestore) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo encontrar el usuario a eliminar.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el registro a eliminar.' });
       return;
     }
 
     setIsDeleting(true);
 
     try {
-      deleteDocumentNonBlocking(doc(firestore, 'users', userToDelete.id));
+      const collectionName = userToDelete.isExternal ? 'externalSellers' : 'users';
+      deleteDocumentNonBlocking(doc(firestore, collectionName, userToDelete.id));
 
       toast({
         title: 'Eliminación Iniciada',
-        description: `El usuario ${userToDelete.firstName} ${userToDelete.lastName} se está eliminando.`,
+        description: `El registro de ${userToDelete.firstName} ${userToDelete.lastName} se está eliminando.`,
       });
 
     } catch (error) {
-      console.error("Error deleting user:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al eliminar',
-        description: 'Ocurrió un problema al eliminar el usuario.',
-      });
+      console.error("Error deleting record:", error);
+      toast({ variant: 'destructive', title: 'Error al eliminar', description: 'Ocurrió un problema al eliminar el registro.' });
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);
@@ -116,9 +139,6 @@ export default function UsersPage() {
 
   // This check should be handled by routing/layout, but as a fallback:
   if (!isLoading && currentUser) {
-      // A client-side check to prevent non-managers from seeing the page content
-      // In a real-world scenario, you would have a `useRole` hook or similar
-      // but for now, we'll just check if the current user is in the fetched list and has the manager role.
       const currentUserProfile = users?.find((u: any) => u.id === currentUser.id);
       if (currentUserProfile && currentUserProfile.role.toLowerCase() !== 'manager') {
          return (
@@ -139,14 +159,15 @@ export default function UsersPage() {
   return (
     <>
       <div className="grid gap-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <h1 className="text-2xl font-headline font-bold">Administración de Usuarios</h1>
+          <Button onClick={handleNewExternalClick}><PlusCircle className="mr-2 h-4 w-4"/>Nuevo Vendedor Externo</Button>
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Usuarios</CardTitle>
+            <CardTitle>Lista de Usuarios y Vendedores</CardTitle>
             <CardDescription>
-              Administra los roles y permisos de los usuarios del sistema.
+              Administra los roles y permisos de los usuarios del sistema y los datos de los vendedores externos.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -169,40 +190,50 @@ export default function UsersPage() {
                       </TableCell>
                     </TableRow>
                   ))
-                ) : users && users.length > 0 ? (
-                  users.map((user: any) => (
+                ) : displayUsers && displayUsers.length > 0 ? (
+                  displayUsers.map((user: any) => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9">
-                            <AvatarImage src={user.avatarUrl} alt={user.firstName} />
-                            <AvatarFallback>{getInitials(user.firstName, user.lastName)}</AvatarFallback>
+                            {user.isExternal ? (
+                                <AvatarFallback><UserIcon className="h-5 w-5"/></AvatarFallback>
+                            ) : (
+                                <>
+                                <AvatarImage src={user.avatarUrl} alt={user.firstName} />
+                                <AvatarFallback>{getInitials(user.firstName, user.lastName)}</AvatarFallback>
+                                </>
+                            )}
                           </Avatar>
                           <div className="font-medium">{user.firstName} {user.lastName}</div>
                         </div>
                       </TableCell>
-                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.email || 'N/A'}</TableCell>
                       <TableCell>{user.phone || 'N/A'}</TableCell>
                       <TableCell>
-                        <Select
-                          value={user.role}
-                          onValueChange={(newRole) => handleRoleChange(user.id, newRole)}
-                          disabled={user.id === currentUser?.id}
-                        >
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Seleccionar rol" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ROLES.map(role => (
-                              <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {user.isExternal ? (
+                            <Badge variant="secondary">Vendedor Externo</Badge>
+                        ) : (
+                            <Select
+                            value={user.role}
+                            onValueChange={(newRole) => handleRoleChange(user.id, newRole)}
+                            disabled={user.id === currentUser?.id}
+                            >
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Seleccionar rol" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {ROLES.map(role => (
+                                <SelectItem key={role} value={role} className="capitalize">{role}</SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button aria-haspopup="true" size="icon" variant="ghost" disabled={user.id === currentUser?.id}>
+                            <Button aria-haspopup="true" size="icon" variant="ghost" disabled={!user.isExternal && user.id === currentUser?.id}>
                               <MoreHorizontal className="h-4 w-4" />
                               <span className="sr-only">Toggle menu</span>
                             </Button>
@@ -215,7 +246,7 @@ export default function UsersPage() {
                             <DropdownMenuItem
                               className="text-destructive"
                               onSelect={() => handleDeleteClick(user)}
-                              disabled={user.id === currentUser?.id}
+                              disabled={!user.isExternal && user.id === currentUser?.id}
                             >
                               Eliminar
                             </DropdownMenuItem>
@@ -241,24 +272,32 @@ export default function UsersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Se eliminará permanentemente el perfil de usuario, pero la cuenta de autenticación permanecerá. El usuario ya no podrá acceder a los datos de la aplicación.
+              {userToDelete?.isExternal 
+                ? "Esta acción eliminará permanentemente al vendedor externo." 
+                : "Esta acción eliminará permanentemente el perfil de usuario, pero la cuenta de autenticación permanecerá. El usuario ya no podrá acceder a los datos de la aplicación."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteConfirm} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-              {isDeleting ? 'Eliminando...' : 'Eliminar Perfil'}
+              {isDeleting ? 'Eliminando...' : 'Eliminar Registro'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       {userToEdit && (
         <EditUserDialog
-            open={isEditDialogOpen}
-            onOpenChange={setIsEditDialogOpen}
+            open={isEditUserDialogOpen}
+            onOpenChange={setIsEditUserDialogOpen}
             user={userToEdit}
         />
       )}
+      <ExternalSellerDialog 
+        key={externalSellerToEdit?.id || 'new'}
+        open={isExternalSellerDialogOpen}
+        onOpenChange={setIsExternalSellerDialogOpen}
+        seller={externalSellerToEdit}
+      />
     </>
   );
 }

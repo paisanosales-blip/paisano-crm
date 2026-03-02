@@ -33,7 +33,7 @@
         },
         "role": {
           "type": "string",
-          "description": "The user's role (Manager, Seller). Manager has administrative privileges."
+          "description": "The user's role (Manager, Seller, Vendedor Externo). Manager has administrative privileges."
         },
         "avatarUrl": {
           "type": "string",
@@ -43,12 +43,31 @@
       },
       "required": [
         "id",
-        "firebaseUid",
         "firstName",
         "lastName",
-        "email",
         "role"
       ]
+    },
+    "ExternalSeller": {
+      "title": "External Seller",
+      "type": "object",
+      "description": "Represents an external seller who is not a registered user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the external seller."
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "firstName", "lastName"]
     },
     "Lead": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -723,6 +742,15 @@
               "description": "The Firebase Auth UID of the user."
             }
           ]
+        }
+      },
+      {
+        "path": "/externalSellers/{sellerId}",
+        "definition": {
+          "entityName": "ExternalSeller",
+          "schema": { "$ref": "#/backend/entities/ExternalSeller" },
+          "description": "Stores information for external, non-user sellers.",
+          "params": [{ "name": "sellerId", "description": "Unique ID for the external seller."}]
         }
       },
       {

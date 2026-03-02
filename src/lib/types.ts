@@ -7,6 +7,13 @@ export type User = {
   role: 'manager' | 'seller';
 };
 
+export type ExternalSeller = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+};
+
 export type Client = {
   id: string;
   numeroDeCliente: string;

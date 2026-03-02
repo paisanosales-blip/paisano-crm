@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { doc } from 'firebase/firestore';
+import { doc, collection } from 'firebase/firestore';
 
 import {
   useFirestore,
@@ -12,9 +12,11 @@ import {
   useUser,
   useDoc,
   useMemoFirebase,
+  useCollection,
 } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { countries, states, cities } from '@/lib/geography';
+import type { ExternalSeller } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -59,7 +61,7 @@ const prospectSchema = z
     secondContactName: z.string().optional(),
     secondContactPhone: z.string().optional(),
     isExternal: z.boolean().default(false),
-    externalSellerName: z.string().optional(),
+    externalSellerId: z.string().optional(),
     country: z.string().min(1, 'El país es requerido.'),
     state: z.string().optional(),
     city: z.string().optional(),
@@ -97,10 +99,10 @@ const prospectSchema = z
             message: 'El nombre del segundo contacto es requerido si la opción está activada.',
         });
     }
-    if (data.isExternal && !data.externalSellerName) {
+    if (data.isExternal && !data.externalSellerId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['externalSellerName'],
+        path: ['externalSellerId'],
         message: 'Debe seleccionar un vendedor externo.',
       });
     }
@@ -124,24 +126,36 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
   }, [firestore, user]);
   const { data: userProfile } = useDoc(userProfileRef);
 
+  const externalSellersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'externalSellers');
+  }, [firestore]);
+  const { data: externalSellers } = useCollection<ExternalSeller>(externalSellersQuery);
+
   const form = useForm<ProspectFormValues>({
     resolver: zodResolver(prospectSchema),
     defaultValues: {
-      contactPerson: '', clientName: '', secondContact: false, secondContactName: '', secondContactPhone: '', isExternal: false, externalSellerName: '',
+      contactPerson: '', clientName: '', secondContact: false, secondContactName: '', secondContactPhone: '', isExternal: false, externalSellerId: '',
       country: '', state: '', city: '', contactMethod: '', language: '', clientType: '', website: '', phone: '', email: '',
     },
   });
+
+  const externalSellerForClient = useMemo(() => {
+    if (!client?.isExternal || !externalSellers) return null;
+    return externalSellers.find(s => `${s.firstName} ${s.lastName}` === client.sellerName);
+  }, [client, externalSellers]);
+
 
   useEffect(() => {
     if (client) {
       form.reset({
         ...client,
         isExternal: client.isExternal || false,
-        externalSellerName: client.isExternal ? client.sellerName : '',
+        externalSellerId: client.isExternal ? externalSellerForClient?.id : '',
         secondContact: !!client.secondContactName,
       });
     }
-  }, [client, form]);
+  }, [client, externalSellerForClient, form]);
 
   const selectedCountry = form.watch('country');
   const selectedState = form.watch('state');
@@ -156,13 +170,20 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     }
     const leadRef = doc(firestore, 'leads', client.id);
 
-    const { secondContact, externalSellerName, ...dataToUpdate } = values;
+    const { secondContact, externalSellerId, ...dataToUpdate } = values;
 
-    let finalSellerName = client.sellerName;
-    if (values.isExternal) {
-        finalSellerName = externalSellerName;
-    } else if (client.isExternal) { // Was external, now internal
+    let finalSellerName;
+    if (values.isExternal && externalSellerId) {
+        const selectedSeller = externalSellers?.find(s => s.id === externalSellerId);
+        if (selectedSeller) {
+            finalSellerName = `${selectedSeller.firstName} ${selectedSeller.lastName}`;
+        } else {
+            finalSellerName = client.sellerName; // Keep old name if new one not found
+        }
+    } else if (!values.isExternal && client.isExternal) { // Was external, now internal
         finalSellerName = `${userProfile.firstName} ${userProfile.lastName}`;
+    } else {
+        finalSellerName = client.sellerName; // No change
     }
 
     const finalData: any = {
@@ -298,7 +319,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
              {form.watch('isExternal') && (
                 <FormField
                     control={form.control}
-                    name="externalSellerName"
+                    name="externalSellerId"
                     render={({ field }) => (
                     <FormItem className="col-span-6 sm:col-span-3">
                         <FormLabel>Vendedor Externo</FormLabel>
@@ -309,8 +330,9 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="Vanessa Estrada">Vanessa Estrada</SelectItem>
-                            <SelectItem value="Ever Estrada">Ever Estrada</SelectItem>
+                            {externalSellers?.map(seller => (
+                                <SelectItem key={seller.id} value={seller.id}>{seller.firstName} {seller.lastName}</SelectItem>
+                            ))}
                         </SelectContent>
                         </Select>
                         <FormMessage />

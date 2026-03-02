@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,9 +14,11 @@ import {
   useMemoFirebase,
   errorEmitter,
   FirestorePermissionError,
+  useCollection,
 } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { countries, states, cities } from '@/lib/geography';
+import type { ExternalSeller } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -62,7 +64,7 @@ const prospectSchema = z
     secondContactName: z.string().optional(),
     secondContactPhone: z.string().optional(),
     isExternal: z.boolean().default(false),
-    externalSellerName: z.string().optional(),
+    externalSellerId: z.string().optional(),
     country: z.string().min(1, 'El país es requerido.'),
     state: z.string().optional(),
     city: z.string().optional(),
@@ -100,10 +102,10 @@ const prospectSchema = z
             message: 'El nombre del segundo contacto es requerido si la opción está activada.',
         });
     }
-    if (data.isExternal && !data.externalSellerName) {
+    if (data.isExternal && !data.externalSellerId) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ['externalSellerName'],
+            path: ['externalSellerId'],
             message: 'Debe seleccionar un vendedor externo.',
         });
     }
@@ -127,6 +129,12 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
   }, [firestore, user]);
   const { data: userProfile } = useDoc(userProfileRef);
 
+  const externalSellersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'externalSellers');
+  }, [firestore]);
+  const { data: externalSellers } = useCollection<ExternalSeller>(externalSellersQuery);
+
   const form = useForm<ProspectFormValues>({
     resolver: zodResolver(prospectSchema),
     defaultValues: {
@@ -136,7 +144,7 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
       secondContactName: '',
       secondContactPhone: '',
       isExternal: false,
-      externalSellerName: '',
+      externalSellerId: '',
       country: '',
       state: '',
       city: '',
@@ -167,11 +175,15 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
     
     form.clearErrors();
     
-    const { secondContact, externalSellerName, ...dataToSubmit } = values;
+    const { secondContact, externalSellerId, ...dataToSubmit } = values;
 
-    const sellerName = values.isExternal
-        ? externalSellerName
-        : `${userProfile.firstName} ${userProfile.lastName}`;
+    let sellerName;
+    if (values.isExternal) {
+        const selectedExternalSeller = externalSellers?.find(s => s.id === externalSellerId);
+        sellerName = selectedExternalSeller ? `${selectedExternalSeller.firstName} ${selectedExternalSeller.lastName}` : 'Vendedor Externo';
+    } else {
+        sellerName = `${userProfile.firstName} ${userProfile.lastName}`;
+    }
 
     const leadData: any = {
       ...dataToSubmit,
@@ -327,10 +339,10 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
              {form.watch('isExternal') && (
                 <FormField
                     control={form.control}
-                    name="externalSellerName"
+                    name="externalSellerId"
                     render={({ field }) => (
                     <FormItem className="col-span-6 sm:col-span-3">
-                        <FormLabel>VENDEDOR EXTERNO</FormLabel>
+                        <FormLabel>Vendedor Externo</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                             <SelectTrigger>
@@ -338,8 +350,9 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="Vanessa Estrada">Vanessa Estrada</SelectItem>
-                            <SelectItem value="Ever Estrada">Ever Estrada</SelectItem>
+                            {externalSellers?.map(seller => (
+                                <SelectItem key={seller.id} value={seller.id}>{seller.firstName} {seller.lastName}</SelectItem>
+                            ))}
                         </SelectContent>
                         </Select>
                         <FormMessage />
