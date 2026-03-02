@@ -62,6 +62,7 @@ const prospectSchema = z
     secondContactName: z.string().optional(),
     secondContactPhone: z.string().optional(),
     isExternal: z.boolean().default(false),
+    externalSellerName: z.string().optional(),
     country: z.string().min(1, 'El país es requerido.'),
     state: z.string().optional(),
     city: z.string().optional(),
@@ -99,6 +100,13 @@ const prospectSchema = z
             message: 'El nombre del segundo contacto es requerido si la opción está activada.',
         });
     }
+    if (data.isExternal && !data.externalSellerName) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['externalSellerName'],
+            message: 'Debe seleccionar un vendedor externo.',
+        });
+    }
   });
 
 type ProspectFormValues = z.infer<typeof prospectSchema>;
@@ -128,6 +136,7 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
       secondContactName: '',
       secondContactPhone: '',
       isExternal: false,
+      externalSellerName: '',
       country: '',
       state: '',
       city: '',
@@ -158,18 +167,26 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
     
     form.clearErrors();
     
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { secondContact, ...leadValues } = values;
+    const { secondContact, externalSellerName, ...dataToSubmit } = values;
 
-    const leadData = {
-      ...leadValues,
+    const sellerName = values.isExternal
+        ? externalSellerName
+        : `${userProfile.firstName} ${userProfile.lastName}`;
+
+    const leadData: any = {
+      ...dataToSubmit,
       sellerId: user.uid,
-      sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+      sellerName,
       status: 'New',
       createdDate: new Date().toISOString(),
       clienteNumber: '',
       region: '',
     };
+    
+    if (!secondContact) {
+        leadData.secondContactName = '';
+        leadData.secondContactPhone = '';
+    }
     
     try {
       const leadRef = await addDoc(collection(firestore, 'leads'), leadData);
@@ -306,6 +323,30 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
                 )}
               />
             </div>
+
+             {form.watch('isExternal') && (
+                <FormField
+                    control={form.control}
+                    name="externalSellerName"
+                    render={({ field }) => (
+                    <FormItem className="col-span-6 sm:col-span-3">
+                        <FormLabel>VENDEDOR EXTERNO</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="Seleccione un vendedor externo" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="Vanessa Estrada">Vanessa Estrada</SelectItem>
+                            <SelectItem value="Ever Estrada">Ever Estrada</SelectItem>
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            )}
 
             <FormField
               control={form.control}

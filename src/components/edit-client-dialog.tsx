@@ -9,6 +9,9 @@ import { doc } from 'firebase/firestore';
 import {
   useFirestore,
   updateDocumentNonBlocking,
+  useUser,
+  useDoc,
+  useMemoFirebase,
 } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { countries, states, cities } from '@/lib/geography';
@@ -56,6 +59,7 @@ const prospectSchema = z
     secondContactName: z.string().optional(),
     secondContactPhone: z.string().optional(),
     isExternal: z.boolean().default(false),
+    externalSellerName: z.string().optional(),
     country: z.string().min(1, 'El país es requerido.'),
     state: z.string().optional(),
     city: z.string().optional(),
@@ -93,6 +97,13 @@ const prospectSchema = z
             message: 'El nombre del segundo contacto es requerido si la opción está activada.',
         });
     }
+    if (data.isExternal && !data.externalSellerName) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['externalSellerName'],
+        message: 'Debe seleccionar un vendedor externo.',
+      });
+    }
   });
 
 type ProspectFormValues = z.infer<typeof prospectSchema>;
@@ -106,25 +117,18 @@ interface EditClientDialogProps {
 export function EditClientDialog({ open, onOpenChange, client }: EditClientDialogProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [firestore, user]);
+  const { data: userProfile } = useDoc(userProfileRef);
 
   const form = useForm<ProspectFormValues>({
     resolver: zodResolver(prospectSchema),
     defaultValues: {
-      contactPerson: '',
-      clientName: '',
-      secondContact: false,
-      secondContactName: '',
-      secondContactPhone: '',
-      isExternal: false,
-      country: '',
-      state: '',
-      city: '',
-      contactMethod: '',
-      language: '',
-      clientType: '',
-      website: '',
-      phone: '',
-      email: '',
+      contactPerson: '', clientName: '', secondContact: false, secondContactName: '', secondContactPhone: '', isExternal: false, externalSellerName: '',
+      country: '', state: '', city: '', contactMethod: '', language: '', clientType: '', website: '', phone: '', email: '',
     },
   });
 
@@ -132,6 +136,8 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     if (client) {
       form.reset({
         ...client,
+        isExternal: client.isExternal || false,
+        externalSellerName: client.isExternal ? client.sellerName : '',
         secondContact: !!client.secondContactName,
       });
     }
@@ -144,24 +150,32 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
   const availableCities = selectedState ? cities[selectedState] || [] : [];
 
   function onSubmit(values: ProspectFormValues) {
-    if (!firestore || !client?.id) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo encontrar el cliente para actualizar.',
-      });
+    if (!firestore || !client?.id || !userProfile) {
+      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el cliente para actualizar.' });
       return;
     }
-    
     const leadRef = doc(firestore, 'leads', client.id);
 
-    const { secondContact, ...dataToUpdate } = values;
-    if (!secondContact) {
-      (dataToUpdate as any).secondContactName = '';
-      (dataToUpdate as any).secondContactPhone = '';
+    const { secondContact, externalSellerName, ...dataToUpdate } = values;
+
+    let finalSellerName = client.sellerName;
+    if (values.isExternal) {
+        finalSellerName = externalSellerName;
+    } else if (client.isExternal) { // Was external, now internal
+        finalSellerName = `${userProfile.firstName} ${userProfile.lastName}`;
     }
 
-    updateDocumentNonBlocking(leadRef, dataToUpdate);
+    const finalData: any = {
+        ...dataToUpdate,
+        sellerName: finalSellerName
+    };
+    
+    if (!secondContact) {
+      finalData.secondContactName = '';
+      finalData.secondContactPhone = '';
+    }
+
+    updateDocumentNonBlocking(leadRef, finalData);
     
     toast({
       title: '¡Cliente Actualizado!',
@@ -280,6 +294,30 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                 )}
               />
             </div>
+            
+             {form.watch('isExternal') && (
+                <FormField
+                    control={form.control}
+                    name="externalSellerName"
+                    render={({ field }) => (
+                    <FormItem className="col-span-6 sm:col-span-3">
+                        <FormLabel>Vendedor Externo</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="Seleccione un vendedor externo" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value="Vanessa Estrada">Vanessa Estrada</SelectItem>
+                            <SelectItem value="Ever Estrada">Ever Estrada</SelectItem>
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+            )}
 
             <FormField
               control={form.control}

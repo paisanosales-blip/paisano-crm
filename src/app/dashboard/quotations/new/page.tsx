@@ -49,6 +49,7 @@ type Client = {
   country: string;
   state: string;
   city: string;
+  isExternal?: boolean;
 };
 
 const newTerms = 'All applicable tariffs and taxes included in this quotation or invoice correspond exclusively to those in effect as of the date of issuance of this document, as of today. The Customer agrees to accept delivery of the products described herein and to pay the total amount stated in full. The quoted price is valid only on the date this document is issued. The Customer shall be solely and exclusively responsible for the payment of any and all additional taxes, tariffs, duties, fees, charges, or other governmental assessments of any nature whatsoever, whether local, state, or federal, including, without limitation, any increase, adjustment, or new charge imposed by the United States federal government or by any state or local authority after the date of issuance of this quotation or invoice.';
@@ -68,6 +69,7 @@ const customClientSchema = z
     secondContactName: z.string().optional(),
     secondContactPhone: z.string().optional(),
     isExternal: z.boolean().default(false),
+    externalSellerName: z.string().optional(),
     country: z.string().min(1, 'El país es requerido.'),
     state: z.string().optional(),
     city: z.string().optional(),
@@ -98,6 +100,13 @@ const customClientSchema = z
             code: z.ZodIssueCode.custom,
             path: ['secondContactName'],
             message: 'El nombre del segundo contacto es requerido si la opción está activada.',
+        });
+    }
+    if (data.isExternal && !data.externalSellerName) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['externalSellerName'],
+            message: 'Debe seleccionar un vendedor externo.',
         });
     }
   });
@@ -155,7 +164,7 @@ export default function NewQuotationPage() {
     resolver: zodResolver(customClientSchema),
     defaultValues: {
       contactPerson: '', clientName: '', secondContact: false, secondContactName: '', secondContactPhone: '', isExternal: false, country: '', state: '', city: '',
-      contactMethod: '', language: 'Español', clientType: '', website: '', phone: '', email: '',
+      contactMethod: '', language: 'Español', clientType: '', website: '', phone: '', email: '', externalSellerName: '',
     },
   });
 
@@ -271,7 +280,6 @@ export default function NewQuotationPage() {
     try {
       let clientDataForPdf: any;
       let opportunityId: string;
-      const sellerName = assignToCompany ? 'Paisano Trailer' : `${userProfile.firstName} ${userProfile.lastName}`;
 
       if (clientMode === 'custom') {
         const isValid = await customClientForm.trigger();
@@ -281,6 +289,10 @@ export default function NewQuotationPage() {
           return;
         }
         const customClientValues = customClientForm.getValues();
+        const sellerName = customClientValues.isExternal
+            ? customClientValues.externalSellerName
+            : `${userProfile.firstName} ${userProfile.lastName}`;
+
         const leadData = {
           ...customClientValues,
           sellerId: user.uid, sellerName, status: 'New', createdDate: new Date().toISOString(),
@@ -311,7 +323,7 @@ export default function NewQuotationPage() {
         
         if (oppsSnapshot.empty) {
           const opportunityData = {
-            leadId: selectedClient.id, sellerId: user.uid, sellerName, stage: 'Envió de Cotización' as const,
+            leadId: selectedClient.id, sellerId: user.uid, sellerName: selectedClient.sellerName, stage: 'Envió de Cotización' as const,
             name: `Oportunidad para ${selectedClient.clientName.toUpperCase()}`, value: total, currency, probability: 10,
             createdDate: new Date().toISOString(),
             expectedCloseDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
@@ -328,7 +340,6 @@ export default function NewQuotationPage() {
       const currentNumber = parseInt(currentNumberStr, 10);
   
       const docPdf = new jsPDF() as jsPDFWithAutoTable;
-      // ... (Rest of PDF generation code, identical to before, using clientDataForPdf)
       const pageHeight = docPdf.internal.pageSize.height || docPdf.internal.pageSize.getHeight();
       const docWidth = docPdf.internal.pageSize.width || docPdf.internal.pageSize.getWidth();
       const margin = 15;
@@ -338,12 +349,10 @@ export default function NewQuotationPage() {
       const BLACK = '#000000';
       const LIGHT_GRAY = '#F5F5F5';
 
-      // PDF Header Coordinates
       const headerConfig = {
           lineHeight: 5, logoX: 15, logoY: 0, logoWidth: 65, textX: docWidth - margin, textY: 11
       };
 
-      // Draw logo first
       if (logoUrl) {
         try {
           const response = await fetch(logoUrl);
@@ -362,7 +371,6 @@ export default function NewQuotationPage() {
         } catch (e) { console.error("Error adding logo image to PDF:", e); }
       }
 
-      // Header background
       docPdf.setFillColor(RED);
       docPdf.rect(0, 0, docPdf.internal.pageSize.getWidth(), headerConfig.lineHeight, 'F');
       docPdf.setFont('helvetica', 'bold');
@@ -418,14 +426,17 @@ export default function NewQuotationPage() {
       docPdf.setFont('helvetica', 'normal');
       docPdf.setFontSize(9);
       docPdf.setTextColor(BLACK);
+
       if (assignToCompany) {
         docPdf.text('PAISANO TRAILER', margin + 3, contentStartY + 4);
         docPdf.text('paisanosales@gmail.com', margin + 3, contentStartY + 9);
         docPdf.text('915 408 7478', margin + 3, contentStartY + 14);
-      } else if (userProfile) {
-          docPdf.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, contentStartY + 4);
-          if (userProfile.email) docPdf.text(userProfile.email.toLowerCase(), margin + 3, contentStartY + 9);
-          if (userProfile.phone) docPdf.text(userProfile.phone, margin + 3, contentStartY + 14);
+      } else {
+        docPdf.text(clientDataForPdf.sellerName.toUpperCase(), margin + 3, contentStartY + 4);
+        if (!clientDataForPdf.isExternal && userProfile) {
+            if (userProfile.email) docPdf.text(userProfile.email.toLowerCase(), margin + 3, contentStartY + 9);
+            if (userProfile.phone) docPdf.text(userProfile.phone, margin + 3, contentStartY + 14);
+        }
       }
 
       docPdf.setFillColor(RED);
@@ -656,7 +667,7 @@ export default function NewQuotationPage() {
       const newVersion = String(quotesSnapshot.size + 1);
 
       const quotationData = {
-        opportunityId, sellerId: user.uid, sellerName, pdfUrl: downloadURL,
+        opportunityId, sellerId: user.uid, sellerName: clientDataForPdf.sellerName, pdfUrl: downloadURL,
         value: total, currency, version: newVersion, status: 'Enviada' as const,
         createdDate: new Date().toISOString(),
         vins: vins,
@@ -761,6 +772,30 @@ export default function NewQuotationPage() {
                                             )} />
                                         </div>
                                         
+                                        {customClientForm.watch('isExternal') && (
+                                            <FormField
+                                                control={customClientForm.control}
+                                                name="externalSellerName"
+                                                render={({ field }) => (
+                                                <FormItem className="col-span-6 sm:col-span-3">
+                                                    <FormLabel>VENDEDOR EXTERNO</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                        <SelectValue placeholder="Seleccione un vendedor externo" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="Vanessa Estrada">Vanessa Estrada</SelectItem>
+                                                        <SelectItem value="Ever Estrada">Ever Estrada</SelectItem>
+                                                    </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                                )}
+                                            />
+                                        )}
+
                                         <FormField control={customClientForm.control} name="country" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>PAÍS</FormLabel><Select onValueChange={(value) => { field.onChange(value); customClientForm.setValue('state', ''); customClientForm.setValue('city', ''); }} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un país" /></SelectTrigger></FormControl><SelectContent>{countries.map((country) => (<SelectItem key={country.code} value={country.code}>{country.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
                                         <FormField control={customClientForm.control} name="state" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>ESTADO</FormLabel><Select onValueChange={(value) => { field.onChange(value); customClientForm.setValue('city', ''); }} value={field.value} disabled={!selectedCountry}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un estado" /></SelectTrigger></FormControl><SelectContent>{availableStates.map((state) => (<SelectItem key={state.code} value={state.code}>{state.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
                                         <FormField control={customClientForm.control} name="city" render={({ field }) => ( <FormItem key={selectedState} className="col-span-6 sm:col-span-2"><FormLabel>CIUDAD</FormLabel>{selectedState && availableCities.length > 0 ? (<Select onValueChange={field.onChange} value={field.value} ><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una ciudad" /></SelectTrigger></FormControl><SelectContent>{availableCities.map(city => (<SelectItem key={city} value={city}>{city}</SelectItem>))}</SelectContent></Select>) : (<FormControl><Input placeholder="Ciudad" {...field} value={field.value || ''} disabled={!selectedState} /></FormControl>)}<FormMessage /></FormItem> )} />
