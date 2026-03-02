@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { EditUserDialog } from '@/components/edit-user-dialog';
 
 const ROLES = ['seller', 'manager'];
 
@@ -40,6 +41,8 @@ export default function UsersPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<any | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<any | null>(null);
 
 
   const usersQuery = useMemoFirebase(() => {
@@ -64,6 +67,11 @@ export default function UsersPage() {
   const getInitials = (firstName?: string, lastName?: string) => {
     if (!firstName) return 'U';
     return `${firstName.charAt(0)}${lastName ? lastName.charAt(0) : ''}`.toUpperCase();
+  };
+
+  const handleEditClick = (user: any) => {
+    setUserToEdit(user);
+    setIsEditDialogOpen(true);
   };
 
   const handleDeleteClick = (user: any) => {
@@ -147,6 +155,7 @@ export default function UsersPage() {
                 <TableRow>
                   <TableHead>Usuario</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Teléfono</TableHead>
                   <TableHead>Rol</TableHead>
                   <TableHead><span className="sr-only">Acciones</span></TableHead>
                 </TableRow>
@@ -155,7 +164,7 @@ export default function UsersPage() {
                 {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={4}>
+                      <TableCell colSpan={5}>
                         <Skeleton className="h-12 w-full" />
                       </TableCell>
                     </TableRow>
@@ -173,6 +182,7 @@ export default function UsersPage() {
                         </div>
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.phone || 'N/A'}</TableCell>
                       <TableCell>
                         <Select
                           value={user.role}
@@ -199,6 +209,9 @@ export default function UsersPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                             <DropdownMenuItem onSelect={() => handleEditClick(user)}>
+                                Editar
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-destructive"
                               onSelect={() => handleDeleteClick(user)}
@@ -213,7 +226,7 @@ export default function UsersPage() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
+                    <TableCell colSpan={5} className="h-24 text-center">
                       No se encontraron usuarios.
                     </TableCell>
                   </TableRow>
@@ -239,8 +252,13 @@ export default function UsersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {userToEdit && (
+        <EditUserDialog
+            open={isEditDialogOpen}
+            onOpenChange={setIsEditDialogOpen}
+            user={userToEdit}
+        />
+      )}
     </>
   );
 }
-
-    
