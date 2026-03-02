@@ -141,6 +141,10 @@
         "tag": {
           "type": "string",
           "description": "A descriptive tag for quick visual identification in the UI (e.g., danger, warning, success)."
+        },
+        "isExternal": {
+            "type": "boolean",
+            "description": "Indicates if the lead is from an external seller and should not be counted as a personal client."
         }
       },
       "required": [

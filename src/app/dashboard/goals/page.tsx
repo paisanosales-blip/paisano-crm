@@ -107,10 +107,16 @@ export default function GoalsPage() {
 
   // --- Goal Calculations ---
   const newProspectsProgress = React.useMemo(() => {
-    if (!allOpportunities) return { count: 0, percentage: 0, goal: reportType === 'weekly' ? WEEKLY_GOAL : MONTHLY_PROSPECTS_GOAL };
+    if (!allOpportunities || !allLeads) return { count: 0, percentage: 0, goal: reportType === 'weekly' ? WEEKLY_GOAL : MONTHLY_PROSPECTS_GOAL };
+    
+    const leadsMap = new Map((allLeads as any[]).map(l => [l.id, l]));
 
     const prospectsInPeriod = allOpportunities.filter(opp => {
       if (!opp.createdDate) return false;
+      
+      const lead = leadsMap.get(opp.leadId);
+      if (lead?.isExternal) return false;
+
       const createdDate = new Date(opp.createdDate);
       return isWithinInterval(createdDate, { start, end });
     });
@@ -120,10 +126,12 @@ export default function GoalsPage() {
     const percentage = goal > 0 ? Math.min((count / goal) * 100, 100) : 0;
 
     return { count, percentage, goal };
-  }, [allOpportunities, start, end, reportType]);
+  }, [allOpportunities, allLeads, start, end, reportType]);
 
   const potentialClientsProgress = React.useMemo(() => {
-    if (!allOpportunities) return { count: 0, percentage: 0, goal: reportType === 'weekly' ? WEEKLY_POTENTIAL_CLIENTS_GOAL : MONTHLY_POTENTIAL_CLIENTS_GOAL };
+    if (!allOpportunities || !allLeads) return { count: 0, percentage: 0, goal: reportType === 'weekly' ? WEEKLY_POTENTIAL_CLIENTS_GOAL : MONTHLY_POTENTIAL_CLIENTS_GOAL };
+    
+    const leadsMap = new Map((allLeads as any[]).map(l => [l.id, l]));
     
     const opportunitiesInPeriod = (allOpportunities || []).filter(item => {
         if (!item.createdDate) return false;
@@ -132,6 +140,10 @@ export default function GoalsPage() {
     });
 
     const potentialClientsInPeriod = opportunitiesInPeriod.filter(opp => {
+        const lead = leadsMap.get(opp.leadId);
+        if (lead?.isExternal) {
+            return false;
+        }
         const classification = getClassification(opp.stage);
         return classification === 'CLIENTE POTENCIAL';
     });
@@ -141,21 +153,26 @@ export default function GoalsPage() {
     const percentage = goal > 0 ? Math.min((count / goal) * 100, 100) : 0;
 
     return { count, percentage, goal };
-  }, [allOpportunities, start, end, reportType]);
+  }, [allOpportunities, allLeads, start, end, reportType]);
   
   // --- Stats for Coach (Monthly only) ---
    const currentWeeklyProgress = React.useMemo(() => {
-    if (!allOpportunities) return { count: 0 };
+    if (!allOpportunities || !allLeads) return { count: 0 };
+    const leadsMap = new Map((allLeads as any[]).map(l => [l.id, l]));
     const today = new Date();
     const weekStart = startOfWeek(today, { weekStartsOn: 1 });
     const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
     const prospectsThisWeek = allOpportunities.filter(opp => {
       if (!opp.createdDate) return false;
+      
+      const lead = leadsMap.get(opp.leadId);
+      if (lead?.isExternal) return false;
+      
       const createdDate = new Date(opp.createdDate);
       return isWithinInterval(createdDate, { start: weekStart, end: weekEnd });
     });
     return { count: prospectsThisWeek.length };
-  }, [allOpportunities]);
+  }, [allOpportunities, allLeads]);
 
   const monthlyStats = useMemo(() => {
     if (!allOpportunities || !allLeads || !allQuotations || reportType !== 'monthly') {
@@ -167,17 +184,22 @@ export default function GoalsPage() {
             ingresosTotales: 0,
         };
     }
+    const leadsMap = new Map((allLeads as any[]).map(l => [l.id, l]));
     const monthStart = startOfMonth(currentDate);
     const monthEnd = endOfMonth(currentDate);
 
     const opportunitiesCreatedInMonth = allOpportunities.filter(item => {
         if (!item.createdDate) return false;
+        const lead = leadsMap.get(item.leadId);
+        if (lead?.isExternal) return false;
         const itemDate = new Date(item.createdDate);
         return isWithinInterval(itemDate, { start: monthStart, end: monthEnd });
     });
 
     const opportunitiesClosedInMonth = allOpportunities.filter(item => {
         if (!item.closingDate || item.stage !== 'Cierre de venta') return false;
+        const lead = leadsMap.get(item.leadId);
+        if (lead?.isExternal) return false;
         const itemDate = new Date(item.closingDate);
         return isWithinInterval(itemDate, { start: monthStart, end: monthEnd });
     });
