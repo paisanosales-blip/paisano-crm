@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -160,9 +161,10 @@ export default function PipelinePage() {
   const { data: userProfile, isLoading: isProfileLoading } = useDoc(userProfileRef);
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore || userProfile?.role !== 'manager') return null;
+    if (!firestore) return null;
+    // Only fetch all users if the current user is a manager
     return query(collection(firestore, 'users'));
-  }, [firestore, userProfile]);
+  }, [firestore]);
   const { data: allUsers, isLoading: areUsersLoading } = useCollection(usersQuery);
 
   const leadsQuery = useMemoFirebase(() => {
@@ -396,7 +398,7 @@ export default function PipelinePage() {
 
 
   const handleInfoSentConfirm = async (payload: InfoSentConfirmPayload) => {
-    if (!currentProspect || !firestore) {
+    if (!currentProspect || !firestore || !user) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
     }
@@ -404,7 +406,7 @@ export default function PipelinePage() {
     setIsSubmitting(true);
     
     try {
-      const { checklist, notes, contactChannels } = payload;
+      const { checklist, notes, contactChannels, scheduleNext, nextFollowUp } = payload;
       const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
       
       const usedChannels = Object.entries(contactChannels).filter(([, value]) => value).map(([key]) => key);
@@ -422,6 +424,20 @@ export default function PipelinePage() {
       }
 
       await updateDoc(opportunityRef, updateData);
+      
+       if (scheduleNext && nextFollowUp && userProfile) {
+        const activityData = {
+            leadId: currentProspect.id,
+            sellerId: user.uid,
+            sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+            type: nextFollowUp.type,
+            description: nextFollowUp.description,
+            dueDate: nextFollowUp.dueDate ? nextFollowUp.dueDate.toISOString() : null,
+            completed: false,
+            createdDate: new Date().toISOString(),
+        };
+        addDocumentNonBlocking(collection(firestore, 'activities'), activityData);
+      }
       
       toast({ 
         title: 'Éxito', 
@@ -484,7 +500,7 @@ export default function PipelinePage() {
                 vins: values.vins,
                 version: '1',
                 status: 'Enviada' as const,
-                createdAt: new Date().toISOString(),
+                createdDate: new Date().toISOString(),
             };
             
             const existingQuotesQuery = query(collection(firestore, 'quotations'), where('opportunityId', '==', currentProspect.opportunity.id));
@@ -961,6 +977,8 @@ export default function PipelinePage() {
       // External filter
       if (showExternal) {
         if (!prospect.isExternal) return false;
+      } else {
+        if (prospect.isExternal) return false;
       }
 
       // Search query filter
@@ -1276,7 +1294,7 @@ export default function PipelinePage() {
                                       </p>
                                       {latestActivity && (
                                           <p className="text-xs text-muted-foreground pt-1 pointer-events-none">
-                                              {format(new Date(latestActivity.createdAt), "dd MMM, yyyy", { locale: es })}
+                                              {format(new Date(latestActivity.createdDate), "dd MMM, yyyy", { locale: es })}
                                           </p>
                                       )}
                                   </div>
@@ -1517,7 +1535,7 @@ export default function PipelinePage() {
                                                 <AccordionTrigger className="p-0 flex-1 justify-between">
                                                     <div className={cn("grid gap-0.5 text-left", act.completed && "line-through text-muted-foreground")}>
                                                         <span className="font-bold text-foreground text-xs">{act.type} {act.dueDate ? `- ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
-                                                        <span className="text-xs text-muted-foreground">Creado: {format(new Date(act.createdAt), "dd/MM/yy")}</span>
+                                                        <span className="text-xs text-muted-foreground">Creado: {format(new Date(act.createdDate), "dd/MM/yy")}</span>
                                                     </div>
                                                 </AccordionTrigger>
                                             </div>
@@ -2008,3 +2026,5 @@ export default function PipelinePage() {
     </>
   );
 }
+
+    
