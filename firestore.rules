@@ -24,14 +24,19 @@ service cloud.firestore {
     }
 
     // =====================================================================
-    // User Profiles
+    // User Profiles & External Sellers
     // =====================================================================
     match /users/{userId} {
       allow get: if isManager() || request.auth.uid == userId;
       allow list: if isSignedIn();
-      allow create: if request.auth.uid == userId;
+      allow create: if request.auth.uid == userId || isManager();
       allow update: if isManager() || request.auth.uid == userId;
       allow delete: if isManager() && request.auth.uid != userId;
+    }
+
+    match /externalSellers/{sellerId} {
+      allow read: if isSignedIn();
+      allow write: if isManager();
     }
 
     // =====================================================================
