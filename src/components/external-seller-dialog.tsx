@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { doc, collection } from 'firebase/firestore';
 
-import { useFirestore, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { useFirestore, updateDocumentNonBlocking, addDocumentNonBlocking, useUser } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,7 @@ interface ExternalSellerDialogProps {
 export function ExternalSellerDialog({ open, onOpenChange, seller }: ExternalSellerDialogProps) {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user } = useUser();
   const isEditing = !!seller;
 
   const form = useForm<ExternalSellerFormValues>({
@@ -79,8 +80,8 @@ export function ExternalSellerDialog({ open, onOpenChange, seller }: ExternalSel
   };
 
   function onSubmit(values: ExternalSellerFormValues) {
-    if (!firestore) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo conectar a la base de datos.' });
+    if (!firestore || !user) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Debe iniciar sesión para realizar esta acción.' });
       return;
     }
 
@@ -92,7 +93,11 @@ export function ExternalSellerDialog({ open, onOpenChange, seller }: ExternalSel
         description: `Los datos de ${values.firstName} ${values.lastName} han sido actualizados.`,
       });
     } else {
-      addDocumentNonBlocking(collection(firestore, 'externalSellers'), values);
+      const sellerData = {
+        ...values,
+        creatorId: user.uid,
+      };
+      addDocumentNonBlocking(collection(firestore, 'externalSellers'), sellerData);
       toast({
         title: '¡Vendedor Creado!',
         description: `${values.firstName} ${values.lastName} ha sido agregado como vendedor externo.`,
@@ -148,7 +153,7 @@ export function ExternalSellerDialog({ open, onOpenChange, seller }: ExternalSel
                 <FormItem>
                   <FormLabel>Teléfono</FormLabel>
                   <FormControl>
-                    <Input placeholder="+1 (555) 123-4567" {...field} />
+                    <Input placeholder="+1 (555) 123-4567" {...field} value={field.value || ''}/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

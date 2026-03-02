@@ -57,6 +57,10 @@
           "type": "string",
           "description": "Unique identifier for the external seller."
         },
+        "creatorId": {
+          "type": "string",
+          "description": "The UID of the user who created this record."
+        },
         "firstName": {
           "type": "string"
         },
@@ -67,7 +71,7 @@
           "type": "string"
         }
       },
-      "required": ["id", "firstName", "lastName"]
+      "required": ["id", "firstName", "lastName", "creatorId"]
     },
     "Lead": {
       "$schema": "http://json-schema.org/draft-07/schema#",
