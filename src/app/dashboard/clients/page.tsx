@@ -37,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Mail, Phone, Search } from 'lucide-react';
+import { MoreHorizontal, Mail, Phone, Search, HardHat } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -316,7 +316,15 @@ export default function ProspectsPage() {
                   filteredData.map((client: any) => (
                     <TableRow key={client.id}>
                       <TableCell className="font-semibold">
-                        {client.clientName}
+                        <div className="flex items-center gap-2">
+                          <span>{client.clientName}</span>
+                          {client.isExternal && (
+                            <Badge variant="secondary" className="text-xs">
+                              <HardHat className="h-3 w-3 mr-1" />
+                              Externo
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>{client.clientType || 'N/A'}</TableCell>
                       <TableCell>

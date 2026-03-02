@@ -7,7 +7,7 @@ import { collection, doc, query, where, getDocs, orderBy } from 'firebase/firest
 import { format, formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
-  Briefcase, Send, FileText, Handshake, Award, ArchiveX, Landmark, Phone, Mail, MessageSquare, StickyNote, Users, ArrowLeft, CheckCircle2, FileDown, Globe
+  Briefcase, Send, FileText, Handshake, Award, ArchiveX, Landmark, Phone, Mail, MessageSquare, StickyNote, Users, ArrowLeft, CheckCircle2, FileDown, Globe, HardHat
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -214,7 +214,15 @@ export default function ClientDetailPage() {
                 <CardHeader>
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                         <div>
-                            <CardTitle className="text-2xl font-bold">{lead.clientName}</CardTitle>
+                            <div className="flex items-center gap-3">
+                                <CardTitle className="text-2xl font-bold">{lead.clientName}</CardTitle>
+                                {lead.isExternal && (
+                                    <Badge variant="secondary" className="text-base mt-1">
+                                    <HardHat className="h-4 w-4 mr-1.5" />
+                                    Vendedor Externo
+                                    </Badge>
+                                )}
+                            </div>
                             <CardDescription className="text-base">{lead.contactPerson}</CardDescription>
                         </div>
                         {classification && (

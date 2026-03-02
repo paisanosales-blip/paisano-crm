@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, MessageCircle, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2, LayoutGrid, List, CalendarCheck } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, MessageCircle, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2, LayoutGrid, List, CalendarCheck, HardHat } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -484,7 +484,7 @@ export default function PipelinePage() {
                 vins: values.vins,
                 version: '1',
                 status: 'Enviada' as const,
-                createdDate: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
             };
             
             const existingQuotesQuery = query(collection(firestore, 'quotations'), where('opportunityId', '==', currentProspect.opportunity.id));
@@ -1204,7 +1204,15 @@ export default function PipelinePage() {
                                           <Link href={`/dashboard/clients/${prospect.id}`} className="hover:underline">
                                               <CardTitle className="text-lg font-bold">{prospect.clientName.toUpperCase()}</CardTitle>
                                           </Link>
-                                          <CardDescription>{prospect.contactPerson.toUpperCase()}</CardDescription>
+                                           <div className="flex items-center gap-2">
+                                                <CardDescription>{prospect.contactPerson.toUpperCase()}</CardDescription>
+                                                {prospect.isExternal && (
+                                                    <Badge variant="secondary" className="text-xs h-5">
+                                                    <HardHat className="h-3 w-3 mr-1" />
+                                                    Externo
+                                                    </Badge>
+                                                )}
+                                            </div>
                                       </div>
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-7 w-7 flex-shrink-0"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
@@ -1268,7 +1276,7 @@ export default function PipelinePage() {
                                       </p>
                                       {latestActivity && (
                                           <p className="text-xs text-muted-foreground pt-1 pointer-events-none">
-                                              {format(new Date(latestActivity.createdDate), "dd MMM, yyyy", { locale: es })}
+                                              {format(new Date(latestActivity.createdAt), "dd MMM, yyyy", { locale: es })}
                                           </p>
                                       )}
                                   </div>
@@ -1329,7 +1337,15 @@ export default function PipelinePage() {
                     <CardHeader className="flex flex-row items-start justify-between p-2 pb-0">
                       <div>
                         <Link href={`/dashboard/clients/${prospect.id}`}>
-                            <CardTitle className="text-base hover:underline cursor-pointer">{prospect.clientName.toUpperCase()}</CardTitle>
+                            <CardTitle className="text-base hover:underline cursor-pointer flex items-center gap-2">
+                                <span>{prospect.clientName.toUpperCase()}</span>
+                                {prospect.isExternal && (
+                                    <Badge variant="secondary" className="text-xs">
+                                    <HardHat className="h-3 w-3 mr-1" />
+                                    Externo
+                                    </Badge>
+                                )}
+                            </CardTitle>
                         </Link>
                         <CardDescription className="text-xs">{prospect.contactPerson.toUpperCase()}</CardDescription>
                       </div>
@@ -1501,7 +1517,7 @@ export default function PipelinePage() {
                                                 <AccordionTrigger className="p-0 flex-1 justify-between">
                                                     <div className={cn("grid gap-0.5 text-left", act.completed && "line-through text-muted-foreground")}>
                                                         <span className="font-bold text-foreground text-xs">{act.type} {act.dueDate ? `- ${format(new Date(act.dueDate), "PP", { locale: es })}` : ''}</span>
-                                                        <span className="text-xs text-muted-foreground">Creado: {format(new Date(act.createdDate), "dd/MM/yy")}</span>
+                                                        <span className="text-xs text-muted-foreground">Creado: {format(new Date(act.createdAt), "dd/MM/yy")}</span>
                                                     </div>
                                                 </AccordionTrigger>
                                             </div>
