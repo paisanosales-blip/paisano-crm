@@ -27,6 +27,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { countries, states, cities } from '@/lib/geography';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
@@ -73,7 +74,7 @@ const customClientSchema = z
     country: z.string().min(1, 'El país es requerido.'),
     state: z.string().optional(),
     city: z.string().optional(),
-    contactMethod: z.string().min(1, 'La forma de contacto es requerida.'),
+    contactMethod: z.string().optional(),
     language: z.string().min(1, 'El idioma es requerido.'),
     clientType: z.string().min(1, 'El tipo de cliente es requerido.'),
     website: z.preprocess(
@@ -108,6 +109,13 @@ const customClientSchema = z
             path: ['externalSellerName'],
             message: 'Debe seleccionar un vendedor externo.',
         });
+    }
+    if (!data.isExternal && !data.contactMethod) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contactMethod'],
+        message: 'La forma de contacto es requerida.',
+      });
     }
   });
 
@@ -168,8 +176,10 @@ export default function NewQuotationPage() {
     },
   });
 
-  const selectedCountry = customClientForm.watch('country');
-  const selectedState = customClientForm.watch('state');
+  const { watch } = customClientForm;
+  const selectedCountry = watch('country');
+  const selectedState = watch('state');
+  const isExternal = watch('isExternal');
   const availableStates = selectedCountry ? states[selectedCountry] || [] : [];
   const availableCities = selectedState ? cities[selectedState] || [] : [];
 
@@ -293,11 +303,16 @@ export default function NewQuotationPage() {
             ? customClientValues.externalSellerName
             : `${userProfile.firstName} ${userProfile.lastName}`;
 
-        const leadData = {
+        const leadData: any = {
           ...customClientValues,
           sellerId: user.uid, sellerName, status: 'New', createdDate: new Date().toISOString(),
           clienteNumber: '', region: '',
         };
+        
+        if (customClientValues.isExternal) {
+          leadData.contactMethod = '';
+        }
+        
         const newLeadRef = await addDoc(collection(firestore, 'leads'), leadData);
         clientDataForPdf = { ...leadData, id: newLeadRef.id };
         
@@ -799,9 +814,11 @@ export default function NewQuotationPage() {
                                         <FormField control={customClientForm.control} name="country" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>PAÍS</FormLabel><Select onValueChange={(value) => { field.onChange(value); customClientForm.setValue('state', ''); customClientForm.setValue('city', ''); }} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un país" /></SelectTrigger></FormControl><SelectContent>{countries.map((country) => (<SelectItem key={country.code} value={country.code}>{country.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
                                         <FormField control={customClientForm.control} name="state" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>ESTADO</FormLabel><Select onValueChange={(value) => { field.onChange(value); customClientForm.setValue('city', ''); }} value={field.value} disabled={!selectedCountry}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un estado" /></SelectTrigger></FormControl><SelectContent>{availableStates.map((state) => (<SelectItem key={state.code} value={state.code}>{state.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
                                         <FormField control={customClientForm.control} name="city" render={({ field }) => ( <FormItem key={selectedState} className="col-span-6 sm:col-span-2"><FormLabel>CIUDAD</FormLabel>{selectedState && availableCities.length > 0 ? (<Select onValueChange={field.onChange} value={field.value} ><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una ciudad" /></SelectTrigger></FormControl><SelectContent>{availableCities.map(city => (<SelectItem key={city} value={city}>{city}</SelectItem>))}</SelectContent></Select>) : (<FormControl><Input placeholder="Ciudad" {...field} value={field.value || ''} disabled={!selectedState} /></FormControl>)}<FormMessage /></FormItem> )} />
-                                        <FormField control={customClientForm.control} name="contactMethod" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>FORMA DE CONTACTO</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una opción" /></SelectTrigger></FormControl><SelectContent>{contactMethods.map((method) => (<SelectItem key={method} value={method}>{method}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
-                                        <FormField control={customClientForm.control} name="language" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>IDIOMA</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un idioma" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Español">ESPAÑOL</SelectItem><SelectItem value="Inglés">INGLÉS</SelectItem><SelectItem value="Bilingüe">BILINGÜE</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
-                                        <FormField control={customClientForm.control} name="clientType" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>TIPO DE CLIENTE</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un tipo" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Dealer">Dealer</SelectItem><SelectItem value="EMPRESA DE TRANSPORTE">EMPRESA DE TRANSPORTE</SelectItem><SelectItem value="Sand Industry">Sand Industry</SelectItem><SelectItem value="USUARIO FINAL">USUARIO FINAL</SelectItem><SelectItem value="De construccion">De construccion</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
+                                        {!isExternal && (
+                                            <FormField control={customClientForm.control} name="contactMethod" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>FORMA DE CONTACTO</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una opción" /></SelectTrigger></FormControl><SelectContent>{contactMethods.map((method) => (<SelectItem key={method} value={method}>{method}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
+                                        )}
+                                        <FormField control={customClientForm.control} name="language" render={({ field }) => ( <FormItem className={cn("col-span-6", isExternal ? "sm:col-span-3" : "sm:col-span-2")}><FormLabel>IDIOMA</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un idioma" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Español">ESPAÑOL</SelectItem><SelectItem value="Inglés">INGLÉS</SelectItem><SelectItem value="Bilingüe">BILINGÜE</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
+                                        <FormField control={customClientForm.control} name="clientType" render={({ field }) => ( <FormItem className={cn("col-span-6", isExternal ? "sm:col-span-3" : "sm:col-span-2")}><FormLabel>TIPO DE CLIENTE</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un tipo" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Dealer">Dealer</SelectItem><SelectItem value="EMPRESA DE TRANSPORTE">EMPRESA DE TRANSPORTE</SelectItem><SelectItem value="Sand Industry">Sand Industry</SelectItem><SelectItem value="USUARIO FINAL">USUARIO FINAL</SelectItem><SelectItem value="De construccion">De construccion</SelectItem></SelectContent></Select><FormMessage /></FormItem> )} />
                                         <FormField control={customClientForm.control} name="website" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>PÁGINA WEB</FormLabel><FormControl><Input placeholder="ejemplo.com" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                         <FormField control={customClientForm.control} name="phone" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>TELÉFONO</FormLabel><FormControl><Input placeholder="+1 (555) 123-4567" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                         <FormField control={customClientForm.control} name="email" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>EMAIL</FormLabel><FormControl><Input placeholder="contacto@ejemplo.com" {...field} /></FormControl><FormMessage /></FormItem> )} />

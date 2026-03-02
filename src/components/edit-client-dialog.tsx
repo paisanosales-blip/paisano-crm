@@ -17,6 +17,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { countries, states, cities } from '@/lib/geography';
 import type { ExternalSeller } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -65,7 +66,7 @@ const prospectSchema = z
     country: z.string().min(1, 'El país es requerido.'),
     state: z.string().optional(),
     city: z.string().optional(),
-    contactMethod: z.string().min(1, 'La forma de contacto es requerida.'),
+    contactMethod: z.string().optional(),
     language: z.string().min(1, 'El idioma es requerido.'),
     clientType: z.string().min(1, 'El tipo de cliente es requerido.'),
     website: z.preprocess(
@@ -104,6 +105,13 @@ const prospectSchema = z
         code: z.ZodIssueCode.custom,
         path: ['externalSellerId'],
         message: 'Debe seleccionar un vendedor externo.',
+      });
+    }
+    if (!data.isExternal && !data.contactMethod) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contactMethod'],
+        message: 'La forma de contacto es requerida.',
       });
     }
   });
@@ -157,8 +165,10 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     }
   }, [client, externalSellerForClient, form]);
 
-  const selectedCountry = form.watch('country');
-  const selectedState = form.watch('state');
+  const { watch } = form;
+  const selectedCountry = watch('country');
+  const selectedState = watch('state');
+  const isExternal = watch('isExternal');
 
   const availableStates = selectedCountry ? states[selectedCountry] || [] : [];
   const availableCities = selectedState ? cities[selectedState] || [] : [];
@@ -194,6 +204,10 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     if (!secondContact) {
       finalData.secondContactName = '';
       finalData.secondContactPhone = '';
+    }
+    
+    if (values.isExternal) {
+      finalData.contactMethod = '';
     }
 
     updateDocumentNonBlocking(leadRef, finalData);
@@ -425,33 +439,35 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                 )}
               />
             
-            <FormField
-              control={form.control}
-              name="contactMethod"
-              render={({ field }) => (
-                <FormItem className="col-span-6 sm:col-span-2">
-                  <FormLabel>FORMA DE CONTACTO</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione una opción" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {contactMethods.map((method) => (
-                        <SelectItem key={method} value={method}>{method}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {!isExternal && (
+              <FormField
+                control={form.control}
+                name="contactMethod"
+                render={({ field }) => (
+                  <FormItem className="col-span-6 sm:col-span-2">
+                    <FormLabel>FORMA DE CONTACTO</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione una opción" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {contactMethods.map((method) => (
+                          <SelectItem key={method} value={method}>{method}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
               <FormField
               control={form.control}
               name="language"
               render={({ field }) => (
-                <FormItem className="col-span-6 sm:col-span-2">
+                <FormItem className={cn("col-span-6", isExternal ? "sm:col-span-3" : "sm:col-span-2")}>
                   <FormLabel>IDIOMA</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
@@ -473,7 +489,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
               control={form.control}
               name="clientType"
               render={({ field }) => (
-                <FormItem className="col-span-6 sm:col-span-2">
+                <FormItem className={cn("col-span-6", isExternal ? "sm:col-span-3" : "sm:col-span-2")}>
                   <FormLabel>TIPO DE CLIENTE</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
