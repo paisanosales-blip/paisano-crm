@@ -67,6 +67,7 @@ const customClientSchema = z
     secondContact: z.boolean().default(false),
     secondContactName: z.string().optional(),
     secondContactPhone: z.string().optional(),
+    isExternal: z.boolean().default(false),
     country: z.string().min(1, 'El país es requerido.'),
     state: z.string().optional(),
     city: z.string().optional(),
@@ -153,7 +154,7 @@ export default function NewQuotationPage() {
   const customClientForm = useForm<CustomClientFormValues>({
     resolver: zodResolver(customClientSchema),
     defaultValues: {
-      contactPerson: '', clientName: '', country: '', state: '', city: '',
+      contactPerson: '', clientName: '', secondContact: false, secondContactName: '', secondContactPhone: '', isExternal: false, country: '', state: '', city: '',
       contactMethod: '', language: 'Español', clientType: '', website: '', phone: '', email: '',
     },
   });
@@ -734,6 +735,32 @@ export default function NewQuotationPage() {
                                     <form className="grid grid-cols-6 gap-x-4 gap-y-6">
                                         <FormField control={customClientForm.control} name="contactPerson" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-3"><FormLabel>NOMBRE DEL CLIENTE</FormLabel><FormControl><Input placeholder="Juan Pérez" {...field} /></FormControl><FormMessage /></FormItem> )} />
                                         <FormField control={customClientForm.control} name="clientName" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-3"><FormLabel>NOMBRE DE EMPRESA</FormLabel><FormControl><Input placeholder="Constructora Acme" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                                        
+                                        <div className="col-span-6">
+                                            <FormField control={customClientForm.control} name="secondContact" render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center space-x-2 space-y-0 pt-2">
+                                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                                    <FormLabel>Añadir Segundo Contacto</FormLabel>
+                                                </FormItem>
+                                            )} />
+                                        </div>
+
+                                        {customClientForm.watch('secondContact') && (
+                                            <>
+                                                <FormField control={customClientForm.control} name="secondContactName" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-3"><FormLabel>NOMBRE SEGUNDO CONTACTO</FormLabel><FormControl><Input placeholder="Jane Doe" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem> )} />
+                                                <FormField control={customClientForm.control} name="secondContactPhone" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-3"><FormLabel>TELÉFONO SEGUNDO CONTACTO</FormLabel><FormControl><Input placeholder="+1 (555) 987-6543" {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem> )} />
+                                            </>
+                                        )}
+
+                                        <div className="col-span-6">
+                                            <FormField control={customClientForm.control} name="isExternal" render={({ field }) => (
+                                                <FormItem className="flex flex-row items-center space-x-2 space-y-0 pt-2">
+                                                    <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                                                    <FormLabel>Vendedor Externo (No cuenta como cliente propio)</FormLabel>
+                                                </FormItem>
+                                            )} />
+                                        </div>
+                                        
                                         <FormField control={customClientForm.control} name="country" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>PAÍS</FormLabel><Select onValueChange={(value) => { field.onChange(value); customClientForm.setValue('state', ''); customClientForm.setValue('city', ''); }} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un país" /></SelectTrigger></FormControl><SelectContent>{countries.map((country) => (<SelectItem key={country.code} value={country.code}>{country.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
                                         <FormField control={customClientForm.control} name="state" render={({ field }) => ( <FormItem className="col-span-6 sm:col-span-2"><FormLabel>ESTADO</FormLabel><Select onValueChange={(value) => { field.onChange(value); customClientForm.setValue('city', ''); }} value={field.value} disabled={!selectedCountry}><FormControl><SelectTrigger><SelectValue placeholder="Seleccione un estado" /></SelectTrigger></FormControl><SelectContent>{availableStates.map((state) => (<SelectItem key={state.code} value={state.code}>{state.name}</SelectItem>))}</SelectContent></Select><FormMessage /></FormItem> )} />
                                         <FormField control={customClientForm.control} name="city" render={({ field }) => ( <FormItem key={selectedState} className="col-span-6 sm:col-span-2"><FormLabel>CIUDAD</FormLabel>{selectedState && availableCities.length > 0 ? (<Select onValueChange={field.onChange} value={field.value} ><FormControl><SelectTrigger><SelectValue placeholder="Seleccione una ciudad" /></SelectTrigger></FormControl><SelectContent>{availableCities.map(city => (<SelectItem key={city} value={city}>{city}</SelectItem>))}</SelectContent></Select>) : (<FormControl><Input placeholder="Ciudad" {...field} value={field.value || ''} disabled={!selectedState} /></FormControl>)}<FormMessage /></FormItem> )} />
