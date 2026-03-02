@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { useState } from 'react';
@@ -963,10 +961,7 @@ export default function PipelinePage() {
       // External filter
       if (showExternal) {
         if (!prospect.isExternal) return false;
-      } else {
-        if (prospect.isExternal) return false;
       }
-
 
       // Search query filter
       if (searchQuery) {
