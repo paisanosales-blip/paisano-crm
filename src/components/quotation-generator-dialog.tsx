@@ -15,7 +15,7 @@ import { QuotationDetailsDialog, type QuotationDetails } from '@/components/quot
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { Product } from '@/lib/types';
+import type { Product, ExternalSeller } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { type QuotationFormValues } from './quotation-upload-dialog';
@@ -54,6 +54,12 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     return doc(firestore, 'users', user.uid);
   }, [firestore, user]);
   const { data: userProfile } = useDoc(userProfileRef);
+  
+  const externalSellersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'externalSellers');
+  }, [firestore]);
+  const { data: externalSellers } = useCollection<ExternalSeller>(externalSellersQuery);
 
   const productsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -284,7 +290,13 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(BLACK);
-    if (userProfile) {
+    if (prospect.isExternal) {
+        doc.text(prospect.sellerName.toUpperCase(), margin + 3, contentStartY + 4);
+        const seller = externalSellers?.find(s => `${s.firstName} ${s.lastName}` === prospect.sellerName);
+        if (seller?.phone) {
+            doc.text(seller.phone, margin + 3, contentStartY + 9);
+        }
+    } else if (userProfile) {
         doc.text(`${userProfile.firstName.toUpperCase()} ${userProfile.lastName.toUpperCase()}`, margin + 3, contentStartY + 4);
         if (userProfile.email) doc.text(userProfile.email.toLowerCase(), margin + 3, contentStartY + 9);
         if (userProfile.phone) doc.text(userProfile.phone, margin + 3, contentStartY + 14);

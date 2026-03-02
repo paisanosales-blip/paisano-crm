@@ -19,7 +19,7 @@ import { QuotationDetailsDialog, type QuotationDetails } from '@/components/quot
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { Product } from '@/lib/types';
+import type { Product, ExternalSeller } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'qrcode';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -70,7 +70,7 @@ const customClientSchema = z
     secondContactName: z.string().optional(),
     secondContactPhone: z.string().optional(),
     isExternal: z.boolean().default(false),
-    externalSellerName: z.string().optional(),
+    externalSellerId: z.string().optional(),
     country: z.string().min(1, 'El país es requerido.'),
     state: z.string().optional(),
     city: z.string().optional(),
@@ -103,10 +103,10 @@ const customClientSchema = z
             message: 'El nombre del segundo contacto es requerido si la opción está activada.',
         });
     }
-    if (data.isExternal && !data.externalSellerName) {
+    if (data.isExternal && !data.externalSellerId) {
         ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            path: ['externalSellerName'],
+            path: ['externalSellerId'],
             message: 'Debe seleccionar un vendedor externo.',
         });
     }
@@ -147,6 +147,12 @@ export default function NewQuotationPage() {
   }, [firestore]);
   const { data: allProducts, isLoading: areProductsLoading } = useCollection<Product>(productsQuery);
   
+  const externalSellersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'externalSellers');
+  }, [firestore]);
+  const { data: externalSellers } = useCollection<ExternalSeller>(externalSellersQuery);
+
   const [clientMode, setClientMode] = useState<'registered' | 'custom'>('registered');
   const [selectedClientId, setSelectedClientId] = useState<string>('');
   const [items, setItems] = useState<QuotationItem[]>([
@@ -172,7 +178,7 @@ export default function NewQuotationPage() {
     resolver: zodResolver(customClientSchema),
     defaultValues: {
       contactPerson: '', clientName: '', secondContact: false, secondContactName: '', secondContactPhone: '', isExternal: false, country: '', state: '', city: '',
-      contactMethod: '', language: 'Español', clientType: '', website: '', phone: '', email: '', externalSellerName: '',
+      contactMethod: '', language: 'Español', clientType: '', website: '', phone: '', email: '', externalSellerId: '',
     },
   });
 
@@ -299,9 +305,13 @@ export default function NewQuotationPage() {
           return;
         }
         const customClientValues = customClientForm.getValues();
-        const sellerName = customClientValues.isExternal
-            ? customClientValues.externalSellerName
-            : `${userProfile.firstName} ${userProfile.lastName}`;
+        const selectedExternalSeller = customClientValues.isExternal && customClientValues.externalSellerId
+          ? externalSellers?.find(s => s.id === customClientValues.externalSellerId)
+          : undefined;
+
+        const sellerName = selectedExternalSeller
+          ? `${selectedExternalSeller.firstName} ${selectedExternalSeller.lastName}`
+          : `${userProfile.firstName} ${userProfile.lastName}`;
 
         const leadData: any = {
           ...customClientValues,
@@ -451,6 +461,11 @@ export default function NewQuotationPage() {
         if (!clientDataForPdf.isExternal && userProfile) {
             if (userProfile.email) docPdf.text(userProfile.email.toLowerCase(), margin + 3, contentStartY + 9);
             if (userProfile.phone) docPdf.text(userProfile.phone, margin + 3, contentStartY + 14);
+        } else if (clientDataForPdf.isExternal) {
+            const seller = externalSellers?.find(s => `${s.firstName} ${s.lastName}` === clientDataForPdf.sellerName);
+            if (seller?.phone) {
+                docPdf.text(seller.phone, margin + 3, contentStartY + 9);
+            }
         }
       }
 
@@ -790,19 +805,20 @@ export default function NewQuotationPage() {
                                         {customClientForm.watch('isExternal') && (
                                             <FormField
                                                 control={customClientForm.control}
-                                                name="externalSellerName"
+                                                name="externalSellerId"
                                                 render={({ field }) => (
                                                 <FormItem className="col-span-6 sm:col-span-3">
                                                     <FormLabel>VENDEDOR EXTERNO</FormLabel>
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <Select onValueChange={field.onChange} value={field.value || ''}>
                                                     <FormControl>
                                                         <SelectTrigger>
                                                         <SelectValue placeholder="Seleccione un vendedor externo" />
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent>
-                                                        <SelectItem value="Vanessa Estrada">Vanessa Estrada</SelectItem>
-                                                        <SelectItem value="Ever Estrada">Ever Estrada</SelectItem>
+                                                        {externalSellers?.map(seller => (
+                                                            <SelectItem key={seller.id} value={seller.id}>{seller.firstName} {seller.lastName}</SelectItem>
+                                                        ))}
                                                     </SelectContent>
                                                     </Select>
                                                     <FormMessage />
