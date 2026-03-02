@@ -55,6 +55,7 @@ const prospectSchema = z
     secondContact: z.boolean().default(false),
     secondContactName: z.string().optional(),
     secondContactPhone: z.string().optional(),
+    isExternal: z.boolean().default(false),
     country: z.string().min(1, 'El país es requerido.'),
     state: z.string().optional(),
     city: z.string().optional(),
@@ -114,6 +115,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
       secondContact: false,
       secondContactName: '',
       secondContactPhone: '',
+      isExternal: false,
       country: '',
       state: '',
       city: '',
@@ -260,6 +262,24 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                 />
               </>
             )}
+
+            <div className="col-span-6">
+              <FormField
+                control={form.control}
+                name="isExternal"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-2 space-y-0 pt-2">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel>Vendedor Externo (No cuenta como cliente propio)</FormLabel>
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
@@ -467,5 +487,3 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     </Dialog>
   );
 }
-
-    
