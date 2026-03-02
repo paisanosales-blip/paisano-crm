@@ -112,6 +112,7 @@ export default function PipelinePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string>('me');
   const [sortBy, setSortBy] = useState('createdDate_desc');
+  const [showExternal, setShowExternal] = useState(false);
   const [infoSentDialogOpen, setInfoSentDialogOpen] = useState(false);
   const [quotationChoiceOpen, setQuotationChoiceOpen] = useState(false);
   const [quotationUploadOpen, setQuotationUploadOpen] = useState(false);
@@ -958,6 +959,14 @@ export default function PipelinePage() {
       if (!stageMatch) {
         return false;
       }
+      
+      // External filter
+      if (showExternal) {
+        if (!prospect.isExternal) return false;
+      } else {
+        if (prospect.isExternal) return false;
+      }
+
 
       // Search query filter
       if (searchQuery) {
@@ -1010,7 +1019,7 @@ export default function PipelinePage() {
       return 0;
     });
 
-  }, [clientProspects, filterStage, searchQuery, sortBy]);
+  }, [clientProspects, filterStage, searchQuery, sortBy, showExternal]);
   
   const allStagesForFilter: Array<OpportunityStage | 'Todos'> = ['Todos', ...stages, 'COTIZACION FINANCIAMIENTO EXTERNO', 'Financiamiento Externo', 'Descartado'];
 
@@ -1136,7 +1145,7 @@ export default function PipelinePage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex w-full md:w-auto items-center gap-2">
+        <div className="flex w-full md:w-auto items-center gap-2 flex-wrap justify-end">
             <Select value={filterStage} onValueChange={(value) => setFilterStage(value as OpportunityStage | 'Todos')}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filtrar por etapa" />
@@ -1162,6 +1171,10 @@ export default function PipelinePage() {
                     <SelectItem value="clientName_asc">Nombre Cliente (A-Z)</SelectItem>
                 </SelectContent>
             </Select>
+             <div className="flex items-center space-x-2">
+                <Checkbox id="show-external" checked={showExternal} onCheckedChange={(checked) => setShowExternal(!!checked)} />
+                <Label htmlFor="show-external">Solo Externos</Label>
+            </div>
             <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
                 <Button variant={viewMode === 'card' ? 'default' : 'ghost'} size="icon" className="h-8 w-8" onClick={() => setViewMode('card')}>
                     <LayoutGrid className="h-4 w-4" />
@@ -1638,9 +1651,11 @@ export default function PipelinePage() {
                                           <div className="flex items-center justify-between">
                                               <div>
                                                   <p className="font-bold text-foreground">RESUMEN: COTIZACIÓN</p>
+                                                  {prospect.quotation.createdDate && (
                                                   <p className="text-xs text-muted-foreground">
                                                       Registrado el: {format(new Date(prospect.quotation.createdDate), "dd 'de' MMMM, yyyy", { locale: es })}
                                                   </p>
+                                                  )}
                                               </div>
                                               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditQuotation(prospect)}>
                                                   <Pencil className="h-3 w-3 text-muted-foreground" />
