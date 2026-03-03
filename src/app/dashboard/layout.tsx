@@ -60,10 +60,10 @@ export default function DashboardLayout({
   const { data: activities, isLoading: areActivitiesLoading } = useCollection(activitiesQuery);
 
   const marketingPlansQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return collection(firestore, 'marketingPlans');
-  }, [firestore]);
-  const { data: marketingPlans, isLoading: arePlansLoading } = useCollection(marketingPlansQuery);
+  }, [firestore, user]);
+  const { data: marketingPlans, isLoading: arePlansLoading } = useCollection<MarketingPlan>(marketingPlansQuery);
   
   useEffect(() => {
     if (user) {
