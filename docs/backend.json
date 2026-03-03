@@ -143,13 +143,13 @@
         },
         "clientType": {
           "type": "string",
-          "description": "Type of the client (e.g., Dealer, EMPRESA DE TRANSPORTE, Sand Industry, USUARIO FINAL).",
+          "description": "Type of the client (e.g., DEALER, EMPRESA DE TRANSPORTE, SAND INDUSTRY, OWNER OPERATOR).",
           "enum": [
-            "Dealer",
+            "DEALER",
             "EMPRESA DE TRANSPORTE",
-            "Sand Industry",
-            "USUARIO FINAL",
-            "De construccion"
+            "SAND INDUSTRY",
+            "OWNER OPERATOR",
+            "CONSTRUCTORA"
           ]
         },
         "status": {

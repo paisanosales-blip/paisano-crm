@@ -659,11 +659,11 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Dealer">Dealer</SelectItem>
+                      <SelectItem value="DEALER">DEALER</SelectItem>
                       <SelectItem value="EMPRESA DE TRANSPORTE">EMPRESA DE TRANSPORTE</SelectItem>
-                      <SelectItem value="Sand Industry">Sand Industry</SelectItem>
-                      <SelectItem value="USUARIO FINAL">USUARIO FINAL</SelectItem>
-                      <SelectItem value="De construccion">De construccion</SelectItem>
+                      <SelectItem value="SAND INDUSTRY">SAND INDUSTRY</SelectItem>
+                      <SelectItem value="OWNER OPERATOR">OWNER OPERATOR</SelectItem>
+                      <SelectItem value="CONSTRUCTORA">CONSTRUCTORA</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
