@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Landmark } from 'lucide-react';
 import { collection, doc, addDoc } from 'firebase/firestore';
 
 import {
@@ -49,13 +49,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from './ui/checkbox';
+import { FinancingDialog, type FinancingConfirmPayload } from './financing-dialog';
 
-const contactMethods = [
-  'REDES SOCIALES',
-  'PUBLICIDAD',
-  'BUSQUEDA EN GOOGLE',
-  'BUSQUEDA EN MAPS',
-];
 
 const prospectSchema = z
   .object({
@@ -130,6 +125,10 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
   const firestore = useFirestore();
   const { user } = useUser();
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showFinancingDialog, setShowFinancingDialog] = useState(false);
+  const [newlyCreatedLead, setNewlyCreatedLead] = useState<any>(null);
+
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -183,7 +182,83 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
       return;
     }
     
-    form.clearErrors();
+    setIsSubmitting(true);
+    
+    const { secondContact, externalSellerId, ...dataToSubmit } = values;
+
+    let sellerName;
+    if (values.isExternal) {
+        const selectedExternalSeller = externalSellers?.find(s => s.id === externalSellerId);
+        sellerName = selectedExternalSeller ? `${selectedExternalSeller.firstName} ${selectedExternalSeller.lastName}` : 'Vendedor Externo';
+    } else {
+        sellerName = `${userProfile.firstName} ${userProfile.lastName}`;
+    }
+
+    const leadData: any = {
+      ...dataToSubmit,
+      sellerId: user.uid,
+      sellerName,
+      status: 'New',
+      createdDate: new Date().toISOString(),
+      clienteNumber: '',
+      region: '',
+    };
+    
+    if (!secondContact) {
+        leadData.secondContactName = '';
+        leadData.secondContactPhone = '';
+    }
+
+    if (values.isExternal) {
+      leadData.contactMethod = '';
+    }
+    
+    try {
+      const leadRef = await addDoc(collection(firestore, 'leads'), leadData);
+
+      toast({
+        title: '¡Prospecto Creado!',
+        description: `${values.clientName.toUpperCase()} ha sido agregado. Ahora registre el primer contacto.`,
+      });
+      onSuccess({ ...leadData, id: leadRef.id });
+      setOpen(false);
+      form.reset();
+    } catch (error) {
+        const permissionError = new FirestorePermissionError({
+          path: 'leads',
+          operation: 'create',
+          requestResourceData: leadData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error al crear prospecto',
+          description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+  }
+
+  const handleFinancingClick = async () => {
+    const isValid = await form.trigger();
+    if (!isValid) {
+        toast({
+            variant: "destructive",
+            title: "Datos inválidos",
+            description: "Por favor revise los campos marcados en rojo.",
+        });
+        return;
+    }
+
+    const values = form.getValues();
+    
+    if (!firestore || !user || !userProfile) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Debe iniciar sesión para crear un prospecto.' });
+      return;
+    }
+    
+    setIsSubmitting(true);
     
     const { secondContact, externalSellerId, ...dataToSubmit } = values;
 
@@ -213,18 +288,13 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
     if (values.isExternal) {
       leadData.contactMethod = '';
     }
-    
-    try {
-      const leadRef = await addDoc(collection(firestore, 'leads'), leadData);
 
-      toast({
-        title: '¡Prospecto Creado!',
-        description: `${values.clientName.toUpperCase()} ha sido agregado. Ahora registre el primer contacto.`,
-      });
-      onSuccess({ ...leadData, id: leadRef.id });
-      setOpen(false);
-      form.reset();
-    } catch (error) {
+    try {
+        const leadRef = await addDoc(collection(firestore, 'leads'), leadData);
+        const newLead = { ...leadData, id: leadRef.id };
+        setNewlyCreatedLead(newLead);
+        setShowFinancingDialog(true);
+    } catch(error) {
         const permissionError = new FirestorePermissionError({
           path: 'leads',
           operation: 'create',
@@ -236,10 +306,57 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
           title: 'Error al crear prospecto',
           description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
         });
+        setIsSubmitting(false);
+    } 
+  };
+  
+  async function handleFinancingConfirm(payload: FinancingConfirmPayload) {
+    if (!newlyCreatedLead || !firestore || !user || !userProfile) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
+        setIsSubmitting(false);
+        return;
     }
-  }
+
+    try {
+        const opportunityData = {
+            leadId: newlyCreatedLead.id,
+            sellerId: user.uid,
+            sellerName: newlyCreatedLead.sellerName,
+            stage: 'Financiamiento Externo' as const,
+            name: `Oportunidad para ${newlyCreatedLead.clientName.toUpperCase()}`,
+            value: 0, // No value at this point
+            currency: 'USD',
+            probability: 50, // Or some default
+            createdDate: new Date().toISOString(),
+            expectedCloseDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(),
+            ...payload,
+            financiamientoExternoDate: new Date().toISOString(),
+        };
+        await addDoc(collection(firestore, 'opportunities'), opportunityData);
+        toast({ title: 'Éxito', description: `Prospecto movido a: Financiamiento Externo` });
+        
+        setShowFinancingDialog(false);
+        setOpen(false);
+        form.reset();
+    } catch (error) {
+         const permissionError = new FirestorePermissionError({
+          path: 'opportunities',
+          operation: 'create',
+          requestResourceData: {},
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        toast({
+          variant: 'destructive',
+          title: 'Error al crear oportunidad',
+          description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
+        });
+    } finally {
+        setIsSubmitting(false);
+    }
+}
 
   return (
+    <>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
@@ -569,17 +686,37 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
                 </FormItem>
               )}
             />
-            <DialogFooter className="col-span-6 pt-4">
+            <DialogFooter className="col-span-6 pt-4 gap-2 sm:justify-end">
                 <DialogClose asChild>
-                    <Button type="button" variant="secondary">CANCELAR</Button>
+                    <Button type="button" variant="secondary" disabled={isSubmitting}>CANCELAR</Button>
                 </DialogClose>
-                <Button type="submit" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? 'GUARDANDO...' : 'GUARDAR PROSPECTO'}
+                 <Button type="button" variant="outline" onClick={handleFinancingClick} disabled={isSubmitting}>
+                    <Landmark className="mr-2 h-4 w-4" />
+                    {isSubmitting ? 'GUARDANDO...' : 'GUARDAR Y MOVER A FINANCIAMIENTO'}
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'GUARDANDO...' : 'GUARDAR PROSPECTO'}
                 </Button>
             </DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+    {newlyCreatedLead && (
+        <FinancingDialog
+          open={showFinancingDialog}
+          onOpenChange={(isOpen) => {
+            if (!isOpen) {
+              setNewlyCreatedLead(null);
+              setIsSubmitting(false); // Reset submitting state when financing dialog closes
+            }
+            setShowFinancingDialog(isOpen);
+          }}
+          onConfirm={handleFinancingConfirm}
+          prospectName={newlyCreatedLead.clientName.toUpperCase()}
+          isSubmitting={isSubmitting}
+        />
+      )}
+    </>
   );
 }
