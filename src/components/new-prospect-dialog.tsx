@@ -313,6 +313,7 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
           title: 'Error al crear prospecto',
           description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
         });
+    } finally {
         setIsSubmitting(false);
     } 
   };
@@ -320,9 +321,10 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
   async function handleFinancingConfirm(payload: FinancingConfirmPayload) {
     if (!newlyCreatedLead || !firestore || !user || !userProfile) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
-        setIsSubmitting(false);
         return;
     }
+    
+    setIsSubmitting(true);
 
     try {
         const opportunityData = {
