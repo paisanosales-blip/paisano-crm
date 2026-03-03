@@ -52,6 +52,13 @@ import { Checkbox } from './ui/checkbox';
 import { FinancingDialog, type FinancingConfirmPayload } from './financing-dialog';
 
 
+const contactMethods = [
+  'REDES SOCIALES',
+  'PUBLICIDAD',
+  'BUSQUEDA EN GOOGLE',
+  'BUSQUEDA EN MAPS',
+];
+
 const prospectSchema = z
   .object({
     contactPerson: z.string().min(1, 'El nombre del cliente es requerido.'),
