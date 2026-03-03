@@ -67,8 +67,8 @@ const prospectSchema = z
     isExternal: z.boolean().default(false),
     externalSellerId: z.string().optional(),
     country: z.string().min(1, 'El país es requerido.'),
-    state: z.string().optional(),
-    city: z.string().optional(),
+    state: z.string().optional().nullable(),
+    city: z.string().optional().nullable(),
     contactMethod: z.string().optional(),
     language: z.string().min(1, 'El idioma es requerido.'),
     clientType: z.string().min(1, 'El tipo de cliente es requerido.'),
@@ -412,7 +412,7 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
                   <Select onValueChange={(value) => {
                       field.onChange(value);
                       form.setValue('city', '');
-                  }} value={field.value} disabled={!selectedCountry}>
+                  }} value={field.value || ''} disabled={!selectedCountry}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Seleccione un estado" />
@@ -437,7 +437,7 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
                   <FormItem key={selectedState} className="col-span-6 sm:col-span-2">
                     <FormLabel>CIUDAD</FormLabel>
                     {selectedState && availableCities.length > 0 ? (
-                      <Select onValueChange={field.onChange} value={field.value} >
+                      <Select onValueChange={field.onChange} value={field.value || ''} >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Seleccione una ciudad" />
