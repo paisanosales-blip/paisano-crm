@@ -15,6 +15,7 @@ import {
   errorEmitter,
   FirestorePermissionError,
   useCollection,
+  addDocumentNonBlocking,
 } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { countries, states, cities } from '@/lib/geography';
@@ -342,6 +343,20 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
             financiamientoExternoDate: new Date().toISOString(),
         };
         await addDoc(collection(firestore, 'opportunities'), opportunityData);
+
+        if (payload.financiamientoExternoNotes) {
+            addDocumentNonBlocking(collection(firestore, 'activities'), {
+              leadId: newlyCreatedLead.id,
+              sellerId: user.uid,
+              sellerName: newlyCreatedLead.sellerName,
+              type: 'Nota',
+              description: `Movido a Financiamiento Externo: ${payload.financiamientoExternoNotes}`,
+              completed: true,
+              createdDate: new Date().toISOString(),
+              completedDate: new Date().toISOString(),
+            });
+        }
+        
         toast({ title: 'Éxito', description: `Prospecto movido a: Financiamiento Externo` });
         
         setShowFinancingDialog(false);

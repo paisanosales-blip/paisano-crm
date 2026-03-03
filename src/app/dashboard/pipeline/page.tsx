@@ -658,7 +658,7 @@ export default function PipelinePage() {
   };
 
   const handleFinancingConfirm = async (payload: FinancingConfirmPayload) => {
-    if (!currentProspect || !firestore) {
+    if (!currentProspect || !firestore || !user || !userProfile) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
       return;
     }
@@ -671,6 +671,20 @@ export default function PipelinePage() {
         financiamientoExternoDate: new Date().toISOString(),
       };
       await updateDoc(opportunityRef, updateData);
+
+      if (payload.financiamientoExternoNotes) {
+        addDocumentNonBlocking(collection(firestore, 'activities'), {
+          leadId: currentProspect.id,
+          sellerId: user.uid,
+          sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+          type: 'Nota',
+          description: `Movido a Financiamiento Externo: ${payload.financiamientoExternoNotes}`,
+          completed: true,
+          createdDate: new Date().toISOString(),
+          completedDate: new Date().toISOString(),
+        });
+      }
+
       toast({ title: 'Éxito', description: `Prospecto movido a: Financiamiento Externo` });
       router.refresh();
     } catch (error) {
@@ -684,7 +698,7 @@ export default function PipelinePage() {
   };
 
   const handleQuotationFinancingConfirm = async (payload: QuotationFinancingConfirmPayload) => {
-    if (!currentProspect || !firestore) {
+    if (!currentProspect || !firestore || !user || !userProfile) {
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
       return;
     }
@@ -697,6 +711,20 @@ export default function PipelinePage() {
         cotizacionFinanciamientoExternoDate: new Date().toISOString(),
       };
       await updateDoc(opportunityRef, updateData);
+
+      if (payload.cotizacionFinanciamientoExternoNotes) {
+        addDocumentNonBlocking(collection(firestore, 'activities'), {
+          leadId: currentProspect.id,
+          sellerId: user.uid,
+          sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
+          type: 'Nota',
+          description: `Movido a Cotización Financiamiento Externo: ${payload.cotizacionFinanciamientoExternoNotes}`,
+          completed: true,
+          createdDate: new Date().toISOString(),
+          completedDate: new Date().toISOString(),
+        });
+      }
+
       toast({ title: 'Éxito', description: `Prospecto movido a: Cotización Financiamiento Externo` });
       router.refresh();
     } catch (error) {
