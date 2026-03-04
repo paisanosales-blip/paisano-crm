@@ -14,7 +14,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { WeeklyProspectsChart } from '@/components/weekly-prospects-chart';
 import { getClassification } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SalesCoachAnalysis } from '@/components/sales-coach-analysis';
 
 
 const WEEKLY_GOAL = 10;
@@ -155,77 +154,6 @@ export default function GoalsPage() {
     return { count, percentage, goal };
   }, [allOpportunities, allLeads, start, end, reportType]);
   
-  // --- Stats for Coach (Monthly only) ---
-   const currentWeeklyProgress = React.useMemo(() => {
-    if (!allOpportunities || !allLeads) return { count: 0 };
-    const leadsMap = new Map((allLeads as any[]).map(l => [l.id, l]));
-    const today = new Date();
-    const weekStart = startOfWeek(today, { weekStartsOn: 1 });
-    const weekEnd = endOfWeek(today, { weekStartsOn: 1 });
-    const prospectsThisWeek = allOpportunities.filter(opp => {
-      if (!opp.createdDate) return false;
-      
-      const lead = leadsMap.get(opp.leadId);
-      if (lead?.isExternal) return false;
-      
-      const createdDate = new Date(opp.createdDate);
-      return isWithinInterval(createdDate, { start: weekStart, end: weekEnd });
-    });
-    return { count: prospectsThisWeek.length };
-  }, [allOpportunities, allLeads]);
-
-  const monthlyStats = useMemo(() => {
-    if (!allOpportunities || !allLeads || !allQuotations || reportType !== 'monthly') {
-        return {
-            prospectosActivos: 0,
-            clientesPotenciales: 0,
-            clientesGanados: 0,
-            tasaDeConversion: 0,
-            ingresosTotales: 0,
-        };
-    }
-    const leadsMap = new Map((allLeads as any[]).map(l => [l.id, l]));
-    const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(currentDate);
-
-    const opportunitiesCreatedInMonth = allOpportunities.filter(item => {
-        if (!item.createdDate) return false;
-        const lead = leadsMap.get(item.leadId);
-        if (lead?.isExternal) return false;
-        const itemDate = new Date(item.createdDate);
-        return isWithinInterval(itemDate, { start: monthStart, end: monthEnd });
-    });
-
-    const opportunitiesClosedInMonth = allOpportunities.filter(item => {
-        if (!item.closingDate || item.stage !== 'Cierre de venta') return false;
-        const lead = leadsMap.get(item.leadId);
-        if (lead?.isExternal) return false;
-        const itemDate = new Date(item.closingDate);
-        return isWithinInterval(itemDate, { start: monthStart, end: monthEnd });
-    });
-    
-    let nuevosClientesPotenciales = 0;
-    opportunitiesCreatedInMonth.forEach((opp: any) => {
-        if (getClassification(opp.stage) === 'CLIENTE POTENCIAL') {
-            nuevosClientesPotenciales++;
-        }
-    });
-
-    const clientesGanados = opportunitiesClosedInMonth.length;
-    const ingresosTotales = opportunitiesClosedInMonth.reduce((acc: number, opp: any) => acc + (opp.value || 0), 0);
-    const totalNewOpportunities = opportunitiesCreatedInMonth.length;
-    const tasaDeConversion = totalNewOpportunities > 0 ? (clientesGanados / totalNewOpportunities) * 100 : 0;
-
-    return {
-        prospectosActivos: totalNewOpportunities,
-        clientesPotenciales: nuevosClientesPotenciales,
-        clientesGanados,
-        tasaDeConversion: parseFloat(tasaDeConversion.toFixed(1)),
-        ingresosTotales,
-    };
-  }, [allOpportunities, allLeads, allQuotations, currentDate, reportType]);
-
-
   const getMotivationalMessage = (progress: { count: number; percentage: number; goal: number }) => {
     if (progress.percentage >= 100) {
       return {
@@ -422,16 +350,6 @@ export default function GoalsPage() {
                 isLoading={isLoading}
             />
        )}
-      
-      {reportType === 'monthly' && !isLoading && selectedUserData && (
-        <SalesCoachAnalysis
-          userName={selectedUserData.firstName}
-          monthlyStats={monthlyStats}
-          weeklyProgress={currentWeeklyProgress}
-          weeklyGoal={WEEKLY_GOAL}
-          monthlyGoal={MONTHLY_POTENTIAL_CLIENTS_GOAL}
-        />
-      )}
     </div>
   );
 }
