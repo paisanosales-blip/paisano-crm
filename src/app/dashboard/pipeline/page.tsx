@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, MessageCircle, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2, LayoutGrid, List, CalendarCheck, HardHat } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, MessageCircle, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2, LayoutGrid, List, CalendarCheck, HardHat, Handshake, Award, Send } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -103,6 +103,15 @@ const filterButtonLabels: Record<OpportunityStage | 'Todos', string> = {
     'COTIZACION FINANCIAMIENTO EXTERNO': 'COT. FINANCIAMIENTO',
     'Financiamiento Externo': 'FINANCIAMIENTO',
     'Descartado': 'DESCARTADOS',
+};
+
+const pipelineStages: OpportunityStage[] = ['Primer contacto', 'Envió de Información', 'Envió de Cotización', 'Negociación', 'Cierre de venta'];
+const stageIcons: Record<string, React.ElementType> = {
+    'Primer contacto': Phone,
+    'Envió de Información': Send,
+    'Envió de Cotización': FileText,
+    'Negociación': Handshake,
+    'Cierre de venta': Award,
 };
 
 export default function PipelinePage() {
@@ -1241,9 +1250,10 @@ export default function PipelinePage() {
                          if (!prospect.opportunity) return null;
                         const classification = getClassification(prospect.opportunity.stage);
                         const latestActivity = prospect.activities && prospect.activities.length > 0 ? prospect.activities[0] : null;
+                        const currentIndex = pipelineStages.indexOf(prospect.opportunity.stage);
 
                         return (
-                          <Card key={prospect.id} className={cn("flex flex-col", getCardClass(classification))}>
+                          <Card key={prospect.id} className={cn("flex flex-col border-2 border-black/80", getCardClass(classification))}>
                               <CardHeader className="pb-2">
                                   <div className="flex justify-between items-start gap-2">
                                       <div className="flex-1">
@@ -1317,28 +1327,50 @@ export default function PipelinePage() {
                                               </div>
                                           )}
                                       </div>
-
-                                      <div className="pt-2">
-                                          <Label className="text-xs font-semibold text-muted-foreground">ÚLTIMA ACTIVIDAD</Label>
-                                          <div 
-                                              className="mt-1 p-3 rounded-md bg-background/50 cursor-pointer hover:bg-accent/50 border min-h-[72px] flex flex-col justify-center"
-                                              onClick={() => handleViewTimeline(prospect.id)}
-                                              title="Ver línea de tiempo"
-                                          >
-                                              {latestActivity ? (
-                                                  <div>
-                                                      <p className="text-sm font-medium text-foreground truncate" title={latestActivity.description}>
-                                                          {latestActivity.description}
-                                                      </p>
-                                                      <p className="text-xs text-muted-foreground capitalize">
-                                                          {latestActivity.type} &bull; {format(new Date(latestActivity.createdDate), "dd MMM yyyy", { locale: es })}
-                                                      </p>
-                                                  </div>
-                                              ) : (
-                                                  <p className="text-sm text-muted-foreground italic">Sin seguimientos registrados.</p>
-                                              )}
-                                          </div>
-                                      </div>
+                                    <div className="pt-2">
+                                        <Label className="text-xs font-semibold text-muted-foreground">PROGRESO</Label>
+                                        <div className="flex items-center pt-2">
+                                            {pipelineStages.map((stage, index) => {
+                                                const isCompleted = currentIndex > index;
+                                                const isCurrent = currentIndex === index;
+                                                const Icon = stageIcons[stage];
+                                                return (
+                                                    <React.Fragment key={stage}>
+                                                        <div
+                                                            className="flex flex-col items-center gap-1"
+                                                            title={stage}
+                                                        >
+                                                            <div className={cn(
+                                                                'flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all',
+                                                                isCompleted || isCurrent ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground',
+                                                                isCurrent && 'scale-110 shadow-lg'
+                                                            )}>
+                                                            {Icon && <Icon className="h-4 w-4" />}
+                                                            </div>
+                                                        </div>
+                                                        {index < pipelineStages.length - 1 && (
+                                                        <div className={cn(
+                                                            "h-1 w-full flex-1 transition-colors",
+                                                            isCompleted ? 'bg-primary' : 'bg-border'
+                                                        )} />
+                                                        )}
+                                                    </React.Fragment>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div className="pt-2">
+                                        <Label className="text-xs font-semibold text-muted-foreground">ÚLTIMA ACTIVIDAD</Label>
+                                        <div className="mt-1 p-3 rounded-md bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-200/80 dark:border-yellow-800/80 min-h-[72px] flex flex-col justify-center">
+                                            {latestActivity ? (
+                                                <p className="text-sm text-yellow-900 dark:text-yellow-100 font-medium truncate" title={latestActivity.description}>
+                                                    {latestActivity.description}
+                                                </p>
+                                            ) : (
+                                                <p className="text-sm text-yellow-800/80 dark:text-yellow-200/80 italic">Sin seguimientos registrados.</p>
+                                            )}
+                                        </div>
+                                    </div>
                                   </div>
                                   
                                   <div className="flex items-center gap-x-5 justify-center pt-3 mt-3 border-t">
@@ -1378,7 +1410,7 @@ export default function PipelinePage() {
                 const classification = getClassification(prospect.opportunity.stage);
                 const isFinancingStage = prospect.opportunity.stage === 'Financiamiento Externo' || prospect.opportunity.stage === 'COTIZACION FINANCIAMIENTO EXTERNO';
                 const isDiscarded = prospect.opportunity.stage === 'Descartado';
-                const currentIndex = isFinancingStage ? -1 : stages.indexOf(prospect.opportunity.stage);
+                const currentIndex = isFinancingStage ? -1 : pipelineStages.indexOf(prospect.opportunity.stage);
                 
                 const summaryTabsConfig = [
                   { key: 'info', name: 'Info. Enviada', stageIndex: 1 },
@@ -1394,7 +1426,7 @@ export default function PipelinePage() {
                 const quotationFollowUp = prospect.activities.find((act: any) => act.quotationId && prospect.quotation && act.quotationId === prospect.quotation.id);
     
                 return (
-                  <Card key={prospect.id} className="border-2 border-black bg-muted/50">
+                  <Card key={prospect.id} className="border-2 border-black/80 bg-muted/50">
                     <CardHeader className="flex flex-row items-start justify-between p-2 pb-0">
                       <div>
                         <Link href={`/dashboard/clients/${prospect.id}`}>
@@ -1620,39 +1652,35 @@ export default function PipelinePage() {
                           <Badge variant="outline" className={`font-bold ${getBadgeClass(classification)}`}>{classification}</Badge>
                         </div>
                         <div className="flex items-center pt-2">
-                            {stages.map((stage, index) => {
+                            {pipelineStages.map((stage, index) => {
                                 const isCompleted = currentIndex > index;
                                 const isCurrent = currentIndex === index;
-                                const isNext = index === currentIndex + 1;
-                                const canMoveTo = isNext || isCompleted || index < currentIndex || isFinancingStage;
+                                const Icon = stageIcons[stage];
     
                                 return (
                                     <React.Fragment key={stage}>
                                         <div
-                                            onClick={() => canMoveTo && requestStageChange(prospect, stage)}
+                                            onClick={() => requestStageChange(prospect, stage)}
                                             className={cn(
-                                                'flex flex-col items-center gap-1.5 text-center transition-all w-24',
-                                                (canMoveTo) ? 'cursor-pointer' : 'cursor-not-allowed',
-                                                !isFinancingStage && !isCompleted && !isCurrent && !isNext && 'opacity-50'
+                                                'flex flex-col items-center gap-1.5 text-center transition-all w-24 cursor-pointer'
                                             )}
-                                            title={canMoveTo ? `Mover a: ${stage}` : stage}
+                                            title={stage}
                                         >
                                             <div className={cn(
                                                 'flex h-8 w-8 items-center justify-center rounded-full border-2 text-primary-foreground transition-all',
                                                 (isCompleted || isCurrent) ? 'border-primary bg-primary' : 'border-border bg-card',
                                                 isCurrent && 'scale-110 shadow-lg',
-                                                !isFinancingStage && canMoveTo && 'hover:border-primary/50'
                                             )}>
-                                                {(isCompleted || isCurrent) ? <Check className="h-5 w-5" /> : <span className={cn('text-sm font-bold', 'text-muted-foreground')}>{index + 1}</span>}
+                                                {(isCompleted || isCurrent) ? <Check className="h-5 w-5" /> : Icon && <Icon className={cn("h-4 w-4", "text-muted-foreground")} />}
                                             </div>
                                             <span className={cn(
                                                 'text-[11px] font-medium leading-tight max-w-full px-1',
                                                 isCurrent ? 'text-primary' : 'text-muted-foreground'
                                             )}>
-                                                {stage}
+                                                {stage.split(' ')[0]}
                                             </span>
                                         </div>
-                                        {index < stages.length - 1 && (
+                                        {index < pipelineStages.length - 1 && (
                                           <div className={cn(
                                               "h-1 w-full flex-1 transition-colors",
                                               isCompleted ? 'bg-primary' : 'bg-border'
