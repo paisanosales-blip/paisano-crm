@@ -1243,7 +1243,7 @@ export default function PipelinePage() {
                         const latestActivity = prospect.activities && prospect.activities.length > 0 ? prospect.activities[0] : null;
 
                         return (
-                          <Card key={prospect.id} className={cn("flex flex-col border-2 border-black", getCardClass(classification))}>
+                          <Card key={prospect.id} className={cn("flex flex-col", getCardClass(classification))}>
                               <CardHeader className="pb-2">
                                   <div className="flex justify-between items-start gap-2">
                                       <div className="flex-1">
@@ -1269,6 +1269,10 @@ export default function PipelinePage() {
                                             <DropdownMenuItem onSelect={() => handleGetSuggestion(prospect)} disabled={isSuggestionLoading}>
                                                 <Sparkles className="mr-2 h-4 w-4" />
                                                 Sugerir Acción (IA)
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={() => handleViewTimeline(prospect.id)}>
+                                                <History className="mr-2 h-4 w-4" />
+                                                Ver Línea de Tiempo
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuSub>
@@ -1299,34 +1303,45 @@ export default function PipelinePage() {
                                       </DropdownMenu>
                                   </div>
                               </CardHeader>
-                              <CardContent className="flex-grow flex flex-col justify-between space-y-3 p-4 pt-0">
-                                  <div className="flex items-center justify-between mt-1 text-xs">
-                                      {classification && (
-                                          <Badge variant="outline" className={cn('font-bold', getBadgeClass(classification))}>
-                                              {prospect.opportunity.stage}
-                                          </Badge>
-                                      )}
-                                      {prospect.opportunity.value > 0 && (
-                                          <div className="font-bold text-primary">
-                                              {new Intl.NumberFormat('en-US', { style: 'currency', currency: prospect.opportunity.currency || 'USD' }).format(prospect.opportunity.value)}
+                              <CardContent className="flex-grow flex flex-col justify-between p-4 pt-2">
+                                  <div className="space-y-3 flex-grow">
+                                      <div className="flex items-center justify-between text-xs">
+                                          {classification && (
+                                              <Badge variant="outline" className={cn('font-bold', getBadgeClass(classification))}>
+                                                  {prospect.opportunity.stage}
+                                              </Badge>
+                                          )}
+                                          {prospect.opportunity.value > 0 && (
+                                              <div className="font-bold text-primary">
+                                                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: prospect.opportunity.currency || 'USD' }).format(prospect.opportunity.value)}
+                                              </div>
+                                          )}
+                                      </div>
+
+                                      <div className="pt-2">
+                                          <Label className="text-xs font-semibold text-muted-foreground">ÚLTIMA ACTIVIDAD</Label>
+                                          <div 
+                                              className="mt-1 p-3 rounded-md bg-background/50 cursor-pointer hover:bg-accent/50 border min-h-[72px] flex flex-col justify-center"
+                                              onClick={() => handleViewTimeline(prospect.id)}
+                                              title="Ver línea de tiempo"
+                                          >
+                                              {latestActivity ? (
+                                                  <div>
+                                                      <p className="text-sm font-medium text-foreground truncate" title={latestActivity.description}>
+                                                          {latestActivity.description}
+                                                      </p>
+                                                      <p className="text-xs text-muted-foreground capitalize">
+                                                          {latestActivity.type} &bull; {format(new Date(latestActivity.createdDate), "dd MMM yyyy", { locale: es })}
+                                                      </p>
+                                                  </div>
+                                              ) : (
+                                                  <p className="text-sm text-muted-foreground italic">Sin seguimientos registrados.</p>
+                                              )}
                                           </div>
-                                      )}
+                                      </div>
                                   </div>
-                                  <div 
-                                      className="p-3 rounded-md bg-yellow-50 dark:bg-yellow-950/40 border border-yellow-200 dark:border-yellow-800/60 space-y-1 text-center flex-grow flex flex-col justify-center cursor-pointer hover:bg-yellow-100"
-                                      onClick={() => router.push(`/dashboard/clients/${prospect.id}`)}
-                                  >
-                                      <Label className="text-xs text-muted-foreground pointer-events-none">ÚLTIMO SEGUIMIENTO</Label>
-                                      <p className="text-sm italic text-foreground truncate pointer-events-none" title={latestActivity ? latestActivity.description : "Sin seguimientos"}>
-                                          {latestActivity ? `"${latestActivity.description}"` : "Sin seguimientos registrados."}
-                                      </p>
-                                      {latestActivity && (
-                                          <p className="text-xs text-muted-foreground pt-1 pointer-events-none">
-                                              {format(new Date(latestActivity.createdDate), "dd MMM, yyyy", { locale: es })}
-                                          </p>
-                                      )}
-                                  </div>
-                                  <div className="flex items-center gap-x-5 justify-center pt-2 border-t">
+                                  
+                                  <div className="flex items-center gap-x-5 justify-center pt-3 mt-3 border-t">
                                       <a href={prospect.phone ? `https://wa.me/${(prospect.country === 'US' ? '1' : '52')}${prospect.phone.replace(/\D/g, '')}` : '#'} target="_blank" rel="noopener noreferrer" onClick={(e) => !prospect.phone && e.preventDefault()} className={cn("transition-colors", prospect.phone ? "text-green-500 hover:text-green-600" : "text-muted-foreground/40 cursor-not-allowed")} title={prospect.phone ? `WhatsApp: ${prospect.phone}` : 'No hay teléfono para WhatsApp'}>
                                           <MessageSquare className="h-5 w-5" />
                                       </a>
@@ -1339,7 +1354,7 @@ export default function PipelinePage() {
                                       <a href={prospect.phone ? `tel:${prospect.phone}` : '#'} onClick={(e) => !prospect.phone && e.preventDefault()} className={cn("transition-colors", prospect.phone ? "text-foreground/80 hover:text-foreground" : "text-muted-foreground/40 cursor-not-allowed")} title={prospect.phone ? `Llamar: ${prospect.phone}` : 'No hay teléfono'}>
                                           <Phone className="h-5 w-5" />
                                       </a>
-                                       <button onClick={() => handleNewFollowUpClick(prospect)} className={cn("transition-colors", "text-foreground/80 hover:text-foreground")} title="Nuevo Seguimiento">
+                                          <button onClick={() => handleNewFollowUpClick(prospect)} className={cn("transition-colors", "text-foreground/80 hover:text-foreground")} title="Nuevo Seguimiento">
                                           <CalendarCheck className="h-5 w-5" />
                                       </button>
                                   </div>
