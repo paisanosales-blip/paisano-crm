@@ -75,6 +75,7 @@ export function CommissionsCalculator() {
 
   const salesQuery = useMemoFirebase(() => {
     if (!user) return null;
+    // Remove orderBy to prevent index requirement error, sorting will be done client-side
     return query(collection(firestore, 'sales'), where('sellerId', '==', user.uid));
   }, [firestore, user]);
   const { data: sales, isLoading: areSalesLoading } = useCollection<Sale>(salesQuery);
@@ -94,6 +95,7 @@ export function CommissionsCalculator() {
   
   const sortedSales = useMemo(() => {
     if (!sales) return [];
+    // Client-side sorting
     return [...sales].sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
   }, [sales]);
 
@@ -276,8 +278,10 @@ export function CommissionsCalculator() {
                 <Calculator className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCommission.usd)}</div>
-                <p className="text-sm text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalCommission.mxn)}</p>
+                 <div className="space-y-1">
+                    <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCommission.usd)} <span className="text-base font-medium text-muted-foreground">USD</span></div>
+                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalCommission.mxn)} <span className="text-sm font-medium">MXN</span></div>
+                </div>
             </CardContent>
         </Card>
          <Card className="bg-muted/50">
@@ -286,8 +290,10 @@ export function CommissionsCalculator() {
                 <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                <div className="text-2xl font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalPaid.usd)}</div>
-                <p className="text-sm text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalPaid.mxn)}</p>
+                <div className="space-y-1">
+                    <div className="text-2xl font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalPaid.usd)} <span className="text-base font-medium text-muted-foreground">USD</span></div>
+                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalPaid.mxn)} <span className="text-sm font-medium">MXN</span></div>
+                </div>
             </CardContent>
         </Card>
          <Card className="bg-muted/50">
@@ -296,8 +302,10 @@ export function CommissionsCalculator() {
                 <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                <div className="text-2xl font-bold text-red-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(balance.usd)}</div>
-                 <p className="text-sm text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(balance.mxn)}</p>
+                <div className="space-y-1">
+                    <div className="text-2xl font-bold text-red-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(balance.usd)} <span className="text-base font-medium text-muted-foreground">USD</span></div>
+                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(balance.mxn)} <span className="text-sm font-medium">MXN</span></div>
+                </div>
             </CardContent>
         </Card>
 
@@ -307,9 +315,11 @@ export function CommissionsCalculator() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                <div className="text-xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.propia.usd.amount)}</div>
-                <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(commissionStats.propia.mxn.amount)}</p>
-                <p className="text-xs text-muted-foreground mt-1">{commissionStats.propia.usd.units + commissionStats.propia.mxn.units} unidades</p>
+                 <div className="space-y-1">
+                    <div className="text-xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.propia.usd.amount)} <span className="text-sm font-medium text-muted-foreground">USD</span></div>
+                    <div className="text-base font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(commissionStats.propia.mxn.amount)} <span className="text-xs font-medium">MXN</span></div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">{commissionStats.propia.usd.units + commissionStats.propia.mxn.units} unidades</p>
             </CardContent>
         </Card>
         <Card className="bg-muted/50">
@@ -318,9 +328,11 @@ export function CommissionsCalculator() {
                 <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                <div className="text-xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.externa.usd.amount)}</div>
-                <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(commissionStats.externa.mxn.amount)}</p>
-                <p className="text-xs text-muted-foreground mt-1">{commissionStats.externa.usd.units + commissionStats.externa.mxn.units} unidades</p>
+                <div className="space-y-1">
+                    <div className="text-xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.externa.usd.amount)} <span className="text-sm font-medium text-muted-foreground">USD</span></div>
+                    <div className="text-base font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(commissionStats.externa.mxn.amount)} <span className="text-xs font-medium">MXN</span></div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">{commissionStats.externa.usd.units + commissionStats.externa.mxn.units} unidades</p>
             </CardContent>
         </Card>
         <Card className="bg-muted/50">
@@ -329,9 +341,11 @@ export function CommissionsCalculator() {
                 <Award className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                <div className="text-xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.financiada.usd.amount)}</div>
-                <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(commissionStats.financiada.mxn.amount)}</p>
-                <p className="text-xs text-muted-foreground mt-1">{commissionStats.financiada.usd.units + commissionStats.financiada.mxn.units} unidades</p>
+                <div className="space-y-1">
+                    <div className="text-xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.financiada.usd.amount)} <span className="text-sm font-medium text-muted-foreground">USD</span></div>
+                    <div className="text-base font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(commissionStats.financiada.mxn.amount)} <span className="text-xs font-medium">MXN</span></div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">{commissionStats.financiada.usd.units + commissionStats.financiada.mxn.units} unidades</p>
             </CardContent>
         </Card>
       </div>
