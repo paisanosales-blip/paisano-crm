@@ -124,15 +124,17 @@ service cloud.firestore {
     // Commissions
     // =====================================================================
     match /sales/{saleId} {
-      allow list, get: if isSignedIn();
-      allow create: if request.auth.uid == request.resource.data.sellerId;
-      allow update, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow list: if isSignedIn();
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && (!('sellerId' in request.resource.data) || request.resource.data.sellerId == resource.data.sellerId));
     }
 
     match /commissionPayments/{paymentId} {
-      allow list, get: if isSignedIn();
-      allow create: if request.auth.uid == request.resource.data.sellerId;
-      allow update, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow list: if isSignedIn();
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && (!('sellerId' in request.resource.data) || request.resource.data.sellerId == resource.data.sellerId));
     }
   }
 }
