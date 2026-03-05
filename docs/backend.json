@@ -741,7 +741,12 @@
         "paid": { "type": "boolean" },
         "paidDate": { "type": "string", "format": "date-time", "description": "Date the sale was marked as paid." },
         "commissionType": { "type": "string", "enum": ["VENTA_PROPIA", "VENTA_EXTERNA", "VENTA_FINANCIADA"] },
-        "commissionAmount": { "type": "number" }
+        "commissionAmount": { "type": "number" },
+        "productType": {
+          "type": "string",
+          "description": "The type of product sold.",
+          "enum": ["DUMP", "TANK WATTER", "SAND HOPPER", "OTHER"]
+        }
       },
       "required": ["id", "leadId", "clientName", "sellerId", "units", "pricePerUnit", "currency", "saleDate", "paid"]
     },

@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Trash2, Calculator, Wallet, Banknote, Award, Target, TrendingUp, FileDown } from 'lucide-react';
+import { PlusCircle, Trash2, Calculator, Wallet, Banknote, Award, Target, TrendingUp, FileDown, Truck, Droplets, Wind, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Checkbox } from './ui/checkbox';
@@ -52,6 +52,7 @@ interface Sale {
     sellerName: string;
     commissionType?: CommissionType;
     commissionAmount?: number;
+    productType?: 'DUMP' | 'TANK WATTER' | 'SAND HOPPER' | 'OTHER';
 }
 
 interface Payment {
@@ -267,6 +268,27 @@ export function CommissionsCalculator() {
     }, stats);
   }, [sales]);
 
+  const productStats = useMemo(() => {
+    const stats = {
+        DUMP: 0,
+        'TANK WATTER': 0,
+        'SAND HOPPER': 0,
+        OTHER: 0,
+    };
+    if (!sales) return stats;
+
+    return sales.reduce((acc, sale) => {
+        const units = sale.units || 0;
+        if (sale.productType && (sale.productType === 'DUMP' || sale.productType === 'TANK WATTER' || sale.productType === 'SAND HOPPER')) {
+            acc[sale.productType] += units;
+        } else {
+            acc.OTHER += units;
+        }
+        return acc;
+    }, stats);
+  }, [sales]);
+
+
   const handleDownloadReport = () => {
     if (!sales || !payments) {
       toast({
@@ -428,6 +450,45 @@ export function CommissionsCalculator() {
         </Card>
       </div>
 
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-muted/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                <CardTitle className="text-xs font-medium">Unidades DUMP Vendidas</CardTitle>
+                <Truck className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+                <div className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-12" /> : productStats.DUMP}</div>
+            </CardContent>
+        </Card>
+        <Card className="bg-muted/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                <CardTitle className="text-xs font-medium">Unidades TANK WATTER Vendidas</CardTitle>
+                <Droplets className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+                <div className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-12" /> : productStats['TANK WATTER']}</div>
+            </CardContent>
+        </Card>
+        <Card className="bg-muted/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                <CardTitle className="text-xs font-medium">Unidades SAND HOPPER Vendidas</CardTitle>
+                <Wind className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+                <div className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-12" /> : productStats['SAND HOPPER']}</div>
+            </CardContent>
+        </Card>
+        <Card className="bg-muted/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                <CardTitle className="text-xs font-medium">Otras Unidades Vendidas</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+                <div className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-12" /> : productStats.OTHER}</div>
+            </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle>Registro de Ventas</CardTitle>
@@ -446,6 +507,7 @@ export function CommissionsCalculator() {
                 <TableHead>Moneda</TableHead>
                 <TableHead>Pagado</TableHead>
                 <TableHead>Fecha Pago</TableHead>
+                <TableHead>Producto</TableHead>
                 <TableHead>Tipo Comisión</TableHead>
                 <TableHead>Monto Comisión</TableHead>
                 <TableHead><span className="sr-only">Actions</span></TableHead>
@@ -454,7 +516,7 @@ export function CommissionsCalculator() {
             <TableBody>
               {isLoading ? (
                   Array.from({length: 3}).map((_, i) => (
-                    <TableRow key={i}><TableCell colSpan={10}><Skeleton className="h-10" /></TableCell></TableRow>
+                    <TableRow key={i}><TableCell colSpan={11}><Skeleton className="h-10" /></TableCell></TableRow>
                   ))
               ) : sortedSales?.map((sale) => (
                 <TableRow key={sale.id}>
@@ -529,6 +591,22 @@ export function CommissionsCalculator() {
                     ) : (
                       'Pendiente'
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                        value={sale.productType || ''}
+                        onValueChange={(value) => handleSaleChange(sale.id, 'productType', value)}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="DUMP">DUMP</SelectItem>
+                            <SelectItem value="TANK WATTER">TANK WATTER</SelectItem>
+                            <SelectItem value="SAND HOPPER">SAND HOPPER</SelectItem>
+                            <SelectItem value="OTHER">OTHER</SelectItem>
+                        </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>
                     <Select
