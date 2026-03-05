@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Trash2, Calculator, Wallet, Banknote, Award, Target, TrendingUp } from 'lucide-react';
+import { PlusCircle, Trash2, Calculator, Wallet, Banknote, Award, Target, TrendingUp, FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Checkbox } from './ui/checkbox';
@@ -75,7 +75,6 @@ export function CommissionsCalculator() {
 
   const salesQuery = useMemoFirebase(() => {
     if (!user) return null;
-    // Remove orderBy to prevent index requirement error, sorting will be done client-side
     return query(collection(firestore, 'sales'), where('sellerId', '==', user.uid));
   }, [firestore, user]);
   const { data: sales, isLoading: areSalesLoading } = useCollection<Sale>(salesQuery);
@@ -95,7 +94,6 @@ export function CommissionsCalculator() {
   
   const sortedSales = useMemo(() => {
     if (!sales) return [];
-    // Client-side sorting
     return [...sales].sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
   }, [sales]);
 
@@ -265,10 +263,86 @@ export function CommissionsCalculator() {
     }, stats);
   }, [sales]);
 
+  const handleDownloadReport = () => {
+    if (!sales || !payments) {
+      toast({
+        title: 'Datos no disponibles',
+        description: 'No se pueden generar reportes si no hay datos.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const EOL = "\r\n";
+    const csvRows = [];
+
+    const formatCell = (value: any) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+    const formatRow = (row: any[]) => row.map(formatCell).join(',');
+
+    csvRows.push(formatRow(['REPORTE DE COMISIONES']));
+    csvRows.push(formatRow(['Generado el:', format(new Date(), 'dd/MM/yyyy HH:mm')]));
+    csvRows.push(''); 
+
+    csvRows.push(formatRow(['RESUMEN DE COMISIONES']));
+    csvRows.push(formatRow(['Métrica', 'USD', 'MXN']));
+    csvRows.push(formatRow(['Total de Comisiones (Ventas Pagadas)', totalCommissionFromPaidSales.usd.toFixed(2), totalCommissionFromPaidSales.mxn.toFixed(2)]));
+    csvRows.push(formatRow(['Total Pagado', totalPaid.usd.toFixed(2), totalPaid.mxn.toFixed(2)]));
+    csvRows.push(formatRow(['Saldo Pendiente', balance.usd.toFixed(2), balance.mxn.toFixed(2)]));
+    csvRows.push(formatRow(['Total Comisiones (Todas las Ventas)', totalCommission.usd.toFixed(2), totalCommission.mxn.toFixed(2)]));
+    csvRows.push('');
+
+    csvRows.push(formatRow(['REGISTRO DE VENTAS']));
+    const salesHeader = ['Cliente', 'Fecha Registro', 'Unidades', 'Precio por Unidad', 'Moneda', 'Pagado', 'Fecha Pago', 'Tipo Comisión', 'Monto Comisión'];
+    csvRows.push(formatRow(salesHeader));
+
+    sortedSales.forEach(sale => {
+      csvRows.push(formatRow([
+        sale.clientName,
+        sale.saleDate ? format(new Date(sale.saleDate), 'yyyy-MM-dd') : 'N/A',
+        sale.units,
+        sale.pricePerUnit,
+        sale.currency,
+        sale.paid ? 'Sí' : 'No',
+        sale.paidDate ? format(new Date(sale.paidDate), 'yyyy-MM-dd') : 'N/A',
+        sale.commissionType || 'N/A',
+        sale.commissionAmount || 0
+      ]));
+    });
+    csvRows.push('');
+
+    csvRows.push(formatRow(['REGISTRO DE PAGOS']));
+    const paymentsHeader = ['Descripción', 'Fecha', 'Monto', 'Moneda'];
+    csvRows.push(formatRow(paymentsHeader));
+
+    (payments || []).forEach(payment => {
+      csvRows.push(formatRow([
+        payment.description,
+        payment.date ? format(new Date(payment.date), 'yyyy-MM-dd') : 'N/A',
+        payment.amount,
+        payment.currency
+      ]));
+    });
+
+    const csvContent = csvRows.join(EOL);
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    const fileName = `Reporte_Comisiones_${user?.displayName || 'usuario'}_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="grid gap-6">
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-headline font-bold">Comisiones de Venta</h1>
+         <Button onClick={handleDownloadReport} variant="outline" disabled={isLoading}>
+          <FileDown className="mr-2 h-4 w-4" />
+          Descargar Reporte
+        </Button>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
