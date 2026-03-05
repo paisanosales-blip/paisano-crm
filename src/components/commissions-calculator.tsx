@@ -188,12 +188,7 @@ export function CommissionsCalculator() {
   
   const totalCommission = useMemo(() => {
     if (!sales) return 0;
-    return sales.reduce((acc, sale) => {
-      if (sale.commissionAmount) {
-        return acc + sale.commissionAmount;
-      }
-      return acc;
-    }, 0);
+    return sales.reduce((acc, sale) => acc + (sale.commissionAmount || 0), 0);
   }, [sales]);
   
   const totalPaid = useMemo(() => {
