@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc } from 'firebase/firestore';
+import { collection, query, where, doc, orderBy } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Trash2, Calculator, Wallet, Banknote } from 'lucide-react';
+import { PlusCircle, Trash2, Calculator, Wallet, Banknote, Award, Target, TrendingUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Checkbox } from './ui/checkbox';
@@ -46,6 +46,7 @@ interface Sale {
     currency: string;
     saleDate: string;
     paid: boolean;
+    paidDate?: string;
     sellerId: string;
     sellerName: string;
     commissionType?: CommissionType;
@@ -73,7 +74,7 @@ export function CommissionsCalculator() {
 
   const salesQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return query(collection(firestore, 'sales'), where('sellerId', '==', user.uid));
+    return query(collection(firestore, 'sales'), where('sellerId', '==', user.uid), orderBy('saleDate', 'desc'));
   }, [firestore, user]);
   const { data: sales, isLoading: areSalesLoading } = useCollection<Sale>(salesQuery);
   
@@ -119,6 +120,8 @@ export function CommissionsCalculator() {
     if (field === 'leadId') {
       const selectedLead = leads?.find(l => l.id === value);
       updatedValues = { leadId: value, clientName: selectedLead?.clientName };
+    } else if (field === 'paid') {
+      updatedValues = { paid: value, paidDate: value ? new Date().toISOString() : undefined };
     } else {
       updatedValues = { [field]: value };
     }
@@ -195,13 +198,48 @@ export function CommissionsCalculator() {
 
   const balance = useMemo(() => totalCommission - totalPaid, [totalCommission, totalPaid]);
 
+  const commissionStats = useMemo(() => {
+    if (!sales) return {
+        propia: { amount: 0, units: 0 },
+        externa: { amount: 0, units: 0 },
+        financiada: { amount: 0, units: 0 },
+    };
+
+    return sales.reduce((acc, sale) => {
+        const units = sale.units || 0;
+        const commissionAmount = sale.commissionAmount || 0;
+
+        if (sale.commissionType === 'VENTA_PROPIA') {
+            acc.propia.units += units;
+            if (sale.paid) {
+                acc.propia.amount += commissionAmount;
+            }
+        } else if (sale.commissionType === 'VENTA_EXTERNA') {
+            acc.externa.units += units;
+            if (sale.paid) {
+                acc.externa.amount += commissionAmount;
+            }
+        } else if (sale.commissionType === 'VENTA_FINANCIADA') {
+            acc.financiada.units += units;
+            if (sale.paid) {
+                acc.financiada.amount += commissionAmount;
+            }
+        }
+        return acc;
+    }, {
+        propia: { amount: 0, units: 0 },
+        externa: { amount: 0, units: 0 },
+        financiada: { amount: 0, units: 0 },
+    });
+  }, [sales]);
+
   return (
     <div className="grid gap-6">
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-headline font-bold">Comisiones de Venta</h1>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="bg-muted/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
                 <CardTitle className="text-xs font-medium">Total Comisión (Pagadas)</CardTitle>
@@ -229,6 +267,37 @@ export function CommissionsCalculator() {
                 <div className="text-2xl font-bold text-red-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(balance)}</div>
             </CardContent>
         </Card>
+
+        <Card className="bg-muted/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                <CardTitle className="text-xs font-medium">Comisión Venta Propia</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+                <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.propia.amount)}</div>
+                <p className="text-xs text-muted-foreground">{commissionStats.propia.units} unidades</p>
+            </CardContent>
+        </Card>
+        <Card className="bg-muted/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                <CardTitle className="text-xs font-medium">Comisión Venta Externa</CardTitle>
+                <Target className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+                <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.externa.amount)}</div>
+                 <p className="text-xs text-muted-foreground">{commissionStats.externa.units} unidades</p>
+            </CardContent>
+        </Card>
+        <Card className="bg-muted/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                <CardTitle className="text-xs font-medium">Comisión Venta Financiada</CardTitle>
+                <Award className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+                <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.financiada.amount)}</div>
+                 <p className="text-xs text-muted-foreground">{commissionStats.financiada.units} unidades</p>
+            </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -242,12 +311,13 @@ export function CommissionsCalculator() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[25%]">Cliente</TableHead>
+                <TableHead className="w-[20%]">Cliente</TableHead>
                 <TableHead>Fecha Venta</TableHead>
                 <TableHead>Unidades</TableHead>
                 <TableHead>Precio por Unidad</TableHead>
                 <TableHead>Moneda</TableHead>
                 <TableHead>Pagado</TableHead>
+                <TableHead>Fecha Pago</TableHead>
                 <TableHead>Tipo Comisión</TableHead>
                 <TableHead>Monto Comisión</TableHead>
                 <TableHead><span className="sr-only">Actions</span></TableHead>
@@ -256,7 +326,7 @@ export function CommissionsCalculator() {
             <TableBody>
               {isLoading ? (
                   Array.from({length: 3}).map((_, i) => (
-                    <TableRow key={i}><TableCell colSpan={9}><Skeleton className="h-10" /></TableCell></TableRow>
+                    <TableRow key={i}><TableCell colSpan={10}><Skeleton className="h-10" /></TableCell></TableRow>
                   ))
               ) : sales?.map((sale) => (
                 <TableRow key={sale.id}>
@@ -316,6 +386,9 @@ export function CommissionsCalculator() {
                             onCheckedChange={(checked) => handleSaleChange(sale.id, 'paid', !!checked)}
                         />
                       </div>
+                  </TableCell>
+                  <TableCell>
+                    {sale.paid && sale.paidDate ? format(new Date(sale.paidDate), "dd MMM, yyyy", { locale: es }) : 'Pendiente'}
                   </TableCell>
                   <TableCell>
                     <Select
