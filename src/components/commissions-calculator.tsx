@@ -74,7 +74,6 @@ export function CommissionsCalculator() {
 
   const salesQuery = useMemoFirebase(() => {
     if (!user) return null;
-    // No ordering here to prevent composite index requirement errors
     return query(collection(firestore, 'sales'), where('sellerId', '==', user.uid));
   }, [firestore, user]);
   const { data: sales, isLoading: areSalesLoading } = useCollection<Sale>(salesQuery);
@@ -94,7 +93,6 @@ export function CommissionsCalculator() {
   
   const sortedSales = useMemo(() => {
     if (!sales) return [];
-    // Sort locally after fetching
     return [...sales].sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
   }, [sales]);
 
@@ -218,10 +216,13 @@ export function CommissionsCalculator() {
 
         if (sale.commissionType === 'VENTA_PROPIA') {
             acc.propia.amount += commissionAmount;
+            acc.propia.units += units;
         } else if (sale.commissionType === 'VENTA_EXTERNA') {
             acc.externa.amount += commissionAmount;
+            acc.externa.units += units;
         } else if (sale.commissionType === 'VENTA_FINANCIADA') {
             acc.financiada.amount += commissionAmount;
+            acc.financiada.units += units;
         }
         return acc;
     }, {
@@ -410,7 +411,6 @@ export function CommissionsCalculator() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="VENTA_PROPIA">Venta Propia (1%)</SelectItem>
-                            <SelectItem value="VENTA_EXTERNA">Venta Externa (0.25%)</SelectItem>
                             <SelectItem value="VENTA_FINANCIADA">Venta Financiada (0.25% + $200)</SelectItem>
                         </SelectContent>
                     </Select>

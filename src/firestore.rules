@@ -36,7 +36,8 @@ service cloud.firestore {
 
     match /externalSellers/{sellerId} {
       allow read: if isSignedIn();
-      allow write: if isManager();
+      allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+      allow update, delete: if isManager() || resource.data.creatorId == request.auth.uid;
     }
 
     // =====================================================================
@@ -117,6 +118,23 @@ service cloud.firestore {
       match /interactions/{interactionId} {
         allow read, write: if isManager() || get(/databases/$(database)/documents/serviceTickets/$(ticketId)).data.assignedAgentId == request.auth.uid;
       }
+    }
+
+    // =====================================================================
+    // Commissions
+    // =====================================================================
+    match /sales/{saleId} {
+      allow list: if isManager() || (isSignedIn() && request.query.where.sellerId == request.auth.uid);
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && (!('sellerId' in request.resource.data) || request.resource.data.sellerId == resource.data.sellerId));
+    }
+
+    match /commissionPayments/{paymentId} {
+      allow list: if isManager() || (isSignedIn() && request.query.where.sellerId == request.auth.uid);
+      allow get, delete: if isManager() || resource.data.sellerId == request.auth.uid;
+      allow create: if request.resource.data.sellerId == request.auth.uid;
+      allow update: if isManager() || (resource.data.sellerId == request.auth.uid && (!('sellerId' in request.resource.data) || request.resource.data.sellerId == resource.data.sellerId));
     }
   }
 }
