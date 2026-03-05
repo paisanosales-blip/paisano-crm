@@ -68,6 +68,11 @@ export function CommissionsCalculator() {
   const [commissions, setCommissions] = useState<Record<string, Commission>>({});
   const [payments, setPayments] = useState<Payment[]>([]);
 
+  const sortedLeads = useMemo(() => {
+    if (!leads) return [];
+    return [...(leads as any[])].sort((a, b) => a.clientName.localeCompare(b.clientName));
+  }, [leads]);
+
   const handleAddSale = () => {
     setSales([...sales, { id: `new-sale-${Date.now()}`, units: 1, totalPrice: 0, currency: 'USD', saleDate: new Date().toISOString(), paid: false }]);
   };
@@ -213,7 +218,7 @@ export function CommissionsCalculator() {
                         <SelectValue placeholder="Seleccionar cliente..." />
                       </SelectTrigger>
                       <SelectContent>
-                        {leads?.map((lead: any) => (
+                        {sortedLeads?.map((lead: any) => (
                           <SelectItem key={lead.id} value={lead.id}>
                             {lead.clientName}
                           </SelectItem>
