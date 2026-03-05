@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc, orderBy } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -126,7 +126,7 @@ export function CommissionsCalculator() {
       const selectedLead = leads?.find(l => l.id === value);
       updatedValues = { leadId: value, clientName: selectedLead?.clientName };
     } else if (field === 'paid') {
-      updatedValues = { paid: value, paidDate: value ? new Date().toISOString() : undefined };
+      updatedValues = { paid: value, paidDate: value ? new Date().toISOString() : null };
     } else {
       updatedValues = { [field]: value };
     }
@@ -189,7 +189,7 @@ export function CommissionsCalculator() {
   const totalCommission = useMemo(() => {
     if (!sales) return 0;
     return sales.reduce((acc, sale) => {
-      if (sale.paid && sale.commissionAmount) {
+      if (sale.commissionAmount) {
         return acc + sale.commissionAmount;
       }
       return acc;
@@ -216,19 +216,13 @@ export function CommissionsCalculator() {
 
         if (sale.commissionType === 'VENTA_PROPIA') {
             acc.propia.units += units;
-            if (sale.paid) {
-                acc.propia.amount += commissionAmount;
-            }
+            acc.propia.amount += commissionAmount;
         } else if (sale.commissionType === 'VENTA_EXTERNA') {
             acc.externa.units += units;
-            if (sale.paid) {
-                acc.externa.amount += commissionAmount;
-            }
+            acc.externa.amount += commissionAmount;
         } else if (sale.commissionType === 'VENTA_FINANCIADA') {
             acc.financiada.units += units;
-            if (sale.paid) {
-                acc.financiada.amount += commissionAmount;
-            }
+            acc.financiada.amount += commissionAmount;
         }
         return acc;
     }, {
@@ -247,7 +241,7 @@ export function CommissionsCalculator() {
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="bg-muted/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                <CardTitle className="text-xs font-medium">Total Comisión (Pagadas)</CardTitle>
+                <CardTitle className="text-xs font-medium">TOTAL DE COMISIONES</CardTitle>
                 <Calculator className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
@@ -399,7 +393,7 @@ export function CommissionsCalculator() {
                         className="w-[150px]"
                         value={sale.paidDate ? format(new Date(sale.paidDate), 'yyyy-MM-dd') : ''}
                         onChange={(e) => {
-                            const newDate = e.target.value ? new Date(e.target.value + 'T00:00:00').toISOString() : undefined;
+                            const newDate = e.target.value ? new Date(e.target.value + 'T00:00:00').toISOString() : null;
                             handleSaleChange(sale.id, 'paidDate', newDate);
                         }}
                       />
