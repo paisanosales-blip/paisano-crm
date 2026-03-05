@@ -754,9 +754,10 @@
         "sellerId": { "type": "string" },
         "description": { "type": "string" },
         "amount": { "type": "number" },
-        "date": { "type": "string", "format": "date-time" }
+        "date": { "type": "string", "format": "date-time" },
+        "currency": { "type": "string" }
       },
-      "required": ["id", "sellerId", "amount", "date"]
+      "required": ["id", "sellerId", "amount", "date", "currency"]
     }
   },
   "auth": {

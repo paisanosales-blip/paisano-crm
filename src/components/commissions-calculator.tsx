@@ -43,7 +43,7 @@ interface Sale {
     clientName: string;
     units: number;
     pricePerUnit: number;
-    currency: string;
+    currency: 'USD' | 'MXN';
     saleDate: string;
     paid: boolean;
     paidDate?: string | null;
@@ -59,6 +59,7 @@ interface Payment {
     description: string;
     amount: number;
     date: string;
+    currency: 'USD' | 'MXN';
 }
 
 export function CommissionsCalculator() {
@@ -173,6 +174,7 @@ export function CommissionsCalculator() {
       description: 'Abono',
       amount: 0,
       date: new Date().toISOString(),
+      currency: 'USD',
     };
     addDocumentNonBlocking(collection(firestore, 'commissionPayments'), newPayment);
   };
@@ -181,50 +183,84 @@ export function CommissionsCalculator() {
     deleteDocumentNonBlocking(doc(firestore, 'commissionPayments', paymentId));
   };
 
-  const handlePaymentChange = (paymentId: string, field: 'description' | 'amount', value: any) => {
+  const handlePaymentChange = (paymentId: string, field: 'description' | 'amount' | 'currency', value: any) => {
     const numericValue = field === 'amount' ? Number(value) : value;
     updateDocumentNonBlocking(doc(firestore, 'commissionPayments', paymentId), { [field]: numericValue });
   };
   
   const totalCommission = useMemo(() => {
-    if (!sales) return 0;
-    return sales.reduce((acc, sale) => acc + (sale.commissionAmount || 0), 0);
+    if (!sales) return { usd: 0, mxn: 0 };
+    return sales.reduce((acc, sale) => {
+      const amount = sale.commissionAmount || 0;
+      if (sale.currency === 'USD') {
+        acc.usd += amount;
+      } else if (sale.currency === 'MXN') {
+        acc.mxn += amount;
+      }
+      return acc;
+    }, { usd: 0, mxn: 0 });
+  }, [sales]);
+  
+  const totalCommissionFromPaidSales = useMemo(() => {
+    if (!sales) return { usd: 0, mxn: 0 };
+    return sales
+      .filter(sale => sale.paid)
+      .reduce((acc, sale) => {
+        const amount = sale.commissionAmount || 0;
+        if (sale.currency === 'USD') {
+          acc.usd += amount;
+        } else if (sale.currency === 'MXN') {
+          acc.mxn += amount;
+        }
+        return acc;
+    }, { usd: 0, mxn: 0 });
   }, [sales]);
   
   const totalPaid = useMemo(() => {
-    if (!payments) return 0;
-    return payments.reduce((acc, payment) => acc + (payment.amount || 0), 0);
+    if (!payments) return { usd: 0, mxn: 0 };
+    return payments.reduce((acc, payment) => {
+      const amount = payment.amount || 0;
+      if (payment.currency === 'USD') {
+        acc.usd += amount;
+      } else if (payment.currency === 'MXN') {
+        acc.mxn += amount;
+      }
+      return acc;
+    }, { usd: 0, mxn: 0 });
   }, [payments]);
 
-  const balance = useMemo(() => totalCommission - totalPaid, [totalCommission, totalPaid]);
+  const balance = useMemo(() => {
+    return {
+      usd: totalCommissionFromPaidSales.usd - totalPaid.usd,
+      mxn: totalCommissionFromPaidSales.mxn - totalPaid.mxn,
+    };
+  }, [totalCommissionFromPaidSales, totalPaid]);
 
   const commissionStats = useMemo(() => {
-    if (!sales) return {
-        propia: { amount: 0, units: 0 },
-        externa: { amount: 0, units: 0 },
-        financiada: { amount: 0, units: 0 },
+    const stats = {
+        propia: { usd: { amount: 0, units: 0 }, mxn: { amount: 0, units: 0 } },
+        externa: { usd: { amount: 0, units: 0 }, mxn: { amount: 0, units: 0 } },
+        financiada: { usd: { amount: 0, units: 0 }, mxn: { amount: 0, units: 0 } },
     };
+    if (!sales) return stats;
 
     return sales.reduce((acc, sale) => {
         const units = sale.units || 0;
         const commissionAmount = sale.commissionAmount || 0;
+        const currencyKey = sale.currency === 'USD' ? 'usd' : 'mxn';
 
         if (sale.commissionType === 'VENTA_PROPIA') {
-            acc.propia.amount += commissionAmount;
-            acc.propia.units += units;
+            acc.propia[currencyKey].amount += commissionAmount;
+            acc.propia[currencyKey].units += units;
         } else if (sale.commissionType === 'VENTA_EXTERNA') {
-            acc.externa.amount += commissionAmount;
-            acc.externa.units += units;
+            acc.externa[currencyKey].amount += commissionAmount;
+            acc.externa[currencyKey].units += units;
         } else if (sale.commissionType === 'VENTA_FINANCIADA') {
-            acc.financiada.amount += commissionAmount;
-            acc.financiada.units += units;
+            acc.financiada[currencyKey].amount += commissionAmount;
+            acc.financiada[currencyKey].units += units;
         }
         return acc;
-    }, {
-        propia: { amount: 0, units: 0 },
-        externa: { amount: 0, units: 0 },
-        financiada: { amount: 0, units: 0 },
-    });
+    }, stats);
   }, [sales]);
 
   return (
@@ -240,7 +276,8 @@ export function CommissionsCalculator() {
                 <Calculator className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCommission)}</div>
+                <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCommission.usd)}</div>
+                <p className="text-sm text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalCommission.mxn)}</p>
             </CardContent>
         </Card>
          <Card className="bg-muted/50">
@@ -249,16 +286,18 @@ export function CommissionsCalculator() {
                 <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                <div className="text-2xl font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalPaid)}</div>
+                <div className="text-2xl font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalPaid.usd)}</div>
+                <p className="text-sm text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalPaid.mxn)}</p>
             </CardContent>
         </Card>
          <Card className="bg-muted/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                <CardTitle className="text-xs font-medium">Saldo Pendiente</CardTitle>
+                <CardTitle className="text-xs font-medium">Saldo Pendiente (de Ventas Pagadas)</CardTitle>
                 <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                <div className="text-2xl font-bold text-red-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(balance)}</div>
+                <div className="text-2xl font-bold text-red-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(balance.usd)}</div>
+                 <p className="text-sm text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(balance.mxn)}</p>
             </CardContent>
         </Card>
 
@@ -268,8 +307,9 @@ export function CommissionsCalculator() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.propia.amount)}</div>
-                <p className="text-xs text-muted-foreground">{commissionStats.propia.units} unidades</p>
+                <div className="text-xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.propia.usd.amount)}</div>
+                <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(commissionStats.propia.mxn.amount)}</p>
+                <p className="text-xs text-muted-foreground mt-1">{commissionStats.propia.usd.units + commissionStats.propia.mxn.units} unidades</p>
             </CardContent>
         </Card>
         <Card className="bg-muted/50">
@@ -278,8 +318,9 @@ export function CommissionsCalculator() {
                 <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.externa.amount)}</div>
-                 <p className="text-xs text-muted-foreground">{commissionStats.externa.units} unidades</p>
+                <div className="text-xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.externa.usd.amount)}</div>
+                <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(commissionStats.externa.mxn.amount)}</p>
+                <p className="text-xs text-muted-foreground mt-1">{commissionStats.externa.usd.units + commissionStats.externa.mxn.units} unidades</p>
             </CardContent>
         </Card>
         <Card className="bg-muted/50">
@@ -288,8 +329,9 @@ export function CommissionsCalculator() {
                 <Award className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.financiada.amount)}</div>
-                 <p className="text-xs text-muted-foreground">{commissionStats.financiada.units} unidades</p>
+                <div className="text-xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(commissionStats.financiada.usd.amount)}</div>
+                <p className="text-xs text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(commissionStats.financiada.mxn.amount)}</p>
+                <p className="text-xs text-muted-foreground mt-1">{commissionStats.financiada.usd.units + commissionStats.financiada.mxn.units} unidades</p>
             </CardContent>
         </Card>
       </div>
@@ -406,6 +448,7 @@ export function CommissionsCalculator() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="VENTA_PROPIA">Venta Propia (1%)</SelectItem>
+                            <SelectItem value="VENTA_EXTERNA">Venta Externa (0.25%)</SelectItem>
                             <SelectItem value="VENTA_FINANCIADA">Venta Financiada (0.25% + $200)</SelectItem>
                         </SelectContent>
                     </Select>
@@ -443,13 +486,14 @@ export function CommissionsCalculator() {
                 <TableHead className="w-[40%]">Descripción</TableHead>
                 <TableHead>Fecha</TableHead>
                 <TableHead>Monto</TableHead>
+                <TableHead>Moneda</TableHead>
                 <TableHead><span className="sr-only">Actions</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                   Array.from({length: 1}).map((_, i) => (
-                    <TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-10" /></TableCell></TableRow>
+                    <TableRow key={i}><TableCell colSpan={5}><Skeleton className="h-10" /></TableCell></TableRow>
                   ))
               ) : payments?.map((payment) => (
                 <TableRow key={payment.id}>
@@ -469,6 +513,20 @@ export function CommissionsCalculator() {
                       value={payment.amount}
                       onChange={(e) => handlePaymentChange(payment.id, 'amount', e.target.value)}
                     />
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={payment.currency}
+                      onValueChange={(value) => handlePaymentChange(payment.id, 'currency', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="USD">USD</SelectItem>
+                        <SelectItem value="MXN">MXN</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>
                     <Button variant="ghost" size="icon" onClick={() => handleRemovePayment(payment.id)}>
