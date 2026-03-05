@@ -9,6 +9,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from '@/components/ui/card';
 import {
   Table,
@@ -64,7 +65,10 @@ export function CommissionsCalculator() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const leadsQuery = useMemoFirebase(() => collection(firestore, 'leads'), [firestore]);
+  const leadsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, 'leads'), where('sellerId', '==', user.uid));
+  }, [firestore, user]);
   const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
 
   const salesQuery = useMemoFirebase(() => {
