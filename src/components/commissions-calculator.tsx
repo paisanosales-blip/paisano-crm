@@ -44,9 +44,11 @@ interface Sale {
     paid: boolean;
 }
 
+type CommissionType = 'VENTA_PROPIA' | 'VENTA_EXTERNA' | 'VENTA_FINANCIADA';
+
 interface Commission {
     saleId: string;
-    commissionPercentage: number;
+    commissionType: CommissionType;
     commissionAmount: number;
 }
 
@@ -92,25 +94,54 @@ export function CommissionsCalculator() {
   const handleSaleChange = (index: number, field: keyof Sale, value: any) => {
     const newSales = [...sales];
     const sale = newSales[index];
+    
+    let updatedSale;
     if (field === 'leadId') {
         const selectedLead = leads?.find(l => l.id === value);
-        newSales[index] = { ...sale, leadId: value, clientName: selectedLead?.clientName };
+        updatedSale = { ...sale, leadId: value, clientName: selectedLead?.clientName };
     } else {
-        newSales[index] = { ...sale, [field]: value };
+        updatedSale = { ...sale, [field]: value };
     }
+    newSales[index] = updatedSale;
     setSales(newSales);
+    
+    // Recalculate commission if relevant fields change
+    const saleId = updatedSale.id;
+    if (saleId && (field === 'totalPrice' || field === 'currency')) {
+      const commission = commissions[saleId];
+      if (commission?.commissionType) {
+        handleCommissionChange(saleId, commission.commissionType);
+      }
+    }
   };
   
-  const handleCommissionChange = (saleId: string, percentage: number) => {
+  const handleCommissionChange = (saleId: string, type: CommissionType) => {
       const sale = sales.find(s => s.id === saleId);
-      if (!sale) return;
+      if (!sale || !sale.totalPrice) return;
 
-      const commissionAmount = (sale.totalPrice || 0) * (percentage / 100);
+      let commissionAmount = 0;
+      switch (type) {
+        case 'VENTA_PROPIA':
+            commissionAmount = sale.totalPrice * 0.01;
+            break;
+        case 'VENTA_EXTERNA':
+            commissionAmount = sale.totalPrice * 0.00025;
+            break;
+        case 'VENTA_FINANCIADA':
+            commissionAmount = sale.totalPrice * 0.00025;
+            if (sale.currency === 'USD') {
+                commissionAmount += 200;
+            }
+            break;
+        default:
+            commissionAmount = 0;
+      }
+
       setCommissions(prev => ({
           ...prev,
           [saleId]: {
               saleId,
-              commissionPercentage: percentage,
+              commissionType: type,
               commissionAmount,
           }
       }));
@@ -200,7 +231,7 @@ export function CommissionsCalculator() {
                 <TableHead>Precio Total</TableHead>
                 <TableHead>Moneda</TableHead>
                 <TableHead>Pagado</TableHead>
-                <TableHead>% Comisión</TableHead>
+                <TableHead>Tipo Comisión</TableHead>
                 <TableHead>Monto Comisión</TableHead>
                 <TableHead><span className="sr-only">Actions</span></TableHead>
               </TableRow>
@@ -266,12 +297,19 @@ export function CommissionsCalculator() {
                       </div>
                   </TableCell>
                   <TableCell>
-                    <Input
-                        type="number"
-                        placeholder="%"
-                        value={commissions[sale.id!]?.commissionPercentage || ''}
-                        onChange={(e) => handleCommissionChange(sale.id!, Number(e.target.value))}
-                    />
+                    <Select
+                        value={commissions[sale.id!]?.commissionType || ''}
+                        onValueChange={(value) => handleCommissionChange(sale.id!, value as CommissionType)}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="VENTA_PROPIA">Venta Propia (1%)</SelectItem>
+                            <SelectItem value="VENTA_EXTERNA">Venta Externa (0.025%)</SelectItem>
+                            <SelectItem value="VENTA_FINANCIADA">Venta Financiada (0.025% + $200)</SelectItem>
+                        </SelectContent>
+                    </Select>
                   </TableCell>
                    <TableCell className="font-semibold">
                       {new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency || 'USD' }).format(commissions[sale.id!]?.commissionAmount || 0)}
