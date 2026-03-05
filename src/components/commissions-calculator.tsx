@@ -74,7 +74,7 @@ export function CommissionsCalculator() {
 
   const salesQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return query(collection(firestore, 'sales'), where('sellerId', '==', user.uid), orderBy('saleDate', 'desc'));
+    return query(collection(firestore, 'sales'), where('sellerId', '==', user.uid));
   }, [firestore, user]);
   const { data: sales, isLoading: areSalesLoading } = useCollection<Sale>(salesQuery);
   
@@ -90,6 +90,11 @@ export function CommissionsCalculator() {
     if (!leads) return [];
     return [...(leads as any[])].sort((a, b) => a.clientName.localeCompare(b.clientName));
   }, [leads]);
+  
+  const sortedSales = useMemo(() => {
+    if (!sales) return [];
+    return [...sales].sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
+  }, [sales]);
 
   const handleAddSale = () => {
     if (!user) return;
@@ -328,7 +333,7 @@ export function CommissionsCalculator() {
                   Array.from({length: 3}).map((_, i) => (
                     <TableRow key={i}><TableCell colSpan={10}><Skeleton className="h-10" /></TableCell></TableRow>
                   ))
-              ) : sales?.map((sale) => (
+              ) : sortedSales?.map((sale) => (
                 <TableRow key={sale.id}>
                   <TableCell>
                     <Select
