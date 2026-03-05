@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Home, GanttChartSquare, Users, FileText, CalendarCheck, Package, ClipboardSignature, Target, Megaphone, Files, Clapperboard, Headset } from 'lucide-react';
+import { Home, GanttChartSquare, Users, FileText, CalendarCheck, Package, ClipboardSignature, Target, Megaphone, Files, Clapperboard, Headset, Calculator } from 'lucide-react';
 import { collection, query, where, doc, getDocs } from 'firebase/firestore';
 import { isToday, isPast } from 'date-fns';
 
@@ -339,6 +339,14 @@ export default function DashboardLayout({
                 <Link href="/dashboard/service">
                   <Headset />
                   <span>Servicio al Cliente</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Comisiones">
+                <Link href="/dashboard/commissions">
+                  <Calculator />
+                  <span>Comisiones</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

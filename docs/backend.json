@@ -149,7 +149,8 @@
             "EMPRESA DE TRANSPORTE",
             "SAND INDUSTRY",
             "OWNER OPERATOR",
-            "CONSTRUCTORA"
+            "CONSTRUCTORA",
+            "AGRICULTOR"
           ]
         },
         "status": {
@@ -722,6 +723,37 @@
         "fileType": { "type": "string" }
       },
       "required": ["id", "ticketId", "agentId", "agentName", "comment", "createdAt"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "type": "object",
+      "description": "Represents a manually registered sale for commission calculation.",
+      "properties": {
+        "id": { "type": "string" },
+        "leadId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "sellerName": { "type": "string" },
+        "units": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "currency": { "type": "string" },
+        "saleDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "leadId", "clientName", "sellerId", "units", "totalPrice", "currency", "saleDate"]
+    },
+    "Commission": {
+      "title": "Commission",
+      "type": "object",
+      "description": "Represents a calculated commission for a sale.",
+      "properties": {
+        "id": { "type": "string" },
+        "saleId": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "commissionPercentage": { "type": "number" },
+        "commissionAmount": { "type": "number" },
+        "calculationDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "saleId", "sellerId", "commissionPercentage", "commissionAmount"]
     }
   },
   "auth": {
