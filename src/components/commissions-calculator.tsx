@@ -107,7 +107,7 @@ export function CommissionsCalculator() {
     
     // Recalculate commission if relevant fields change
     const saleId = updatedSale.id;
-    if (saleId && (field === 'totalPrice' || field === 'currency')) {
+    if (saleId && (field === 'totalPrice' || field === 'currency' || field === 'units')) {
       const commission = commissions[saleId];
       if (commission?.commissionType) {
         handleCommissionChange(saleId, commission.commissionType);
@@ -117,18 +117,20 @@ export function CommissionsCalculator() {
   
   const handleCommissionChange = (saleId: string, type: CommissionType) => {
       const sale = sales.find(s => s.id === saleId);
-      if (!sale || !sale.totalPrice) return;
+      if (!sale || !sale.totalPrice || !sale.units) return;
+
+      const totalValue = sale.totalPrice * sale.units;
 
       let commissionAmount = 0;
       switch (type) {
         case 'VENTA_PROPIA':
-            commissionAmount = sale.totalPrice * 0.01;
+            commissionAmount = totalValue * 0.01;
             break;
         case 'VENTA_EXTERNA':
-            commissionAmount = sale.totalPrice * 0.0025;
+            commissionAmount = totalValue * 0.0025;
             break;
         case 'VENTA_FINANCIADA':
-            commissionAmount = sale.totalPrice * 0.0025;
+            commissionAmount = totalValue * 0.0025;
             if (sale.currency === 'USD') {
                 commissionAmount += 200;
             }
@@ -228,7 +230,7 @@ export function CommissionsCalculator() {
                 <TableHead className="w-[25%]">Cliente</TableHead>
                 <TableHead>Fecha Venta</TableHead>
                 <TableHead>Unidades</TableHead>
-                <TableHead>Precio Total</TableHead>
+                <TableHead>Precio por Unidad</TableHead>
                 <TableHead>Moneda</TableHead>
                 <TableHead>Pagado</TableHead>
                 <TableHead>Tipo Comisión</TableHead>
