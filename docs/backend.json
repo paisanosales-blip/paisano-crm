@@ -737,8 +737,9 @@
         "units": { "type": "number" },
         "pricePerUnit": { "type": "number" },
         "currency": { "type": "string" },
-        "saleDate": { "type": "string", "format": "date-time" },
+        "saleDate": { "type": "string", "format": "date-time", "description": "Date the sale was registered." },
         "paid": { "type": "boolean" },
+        "paidDate": { "type": "string", "format": "date-time", "description": "Date the sale was marked as paid." },
         "commissionType": { "type": "string", "enum": ["VENTA_PROPIA", "VENTA_EXTERNA", "VENTA_FINANCIADA"] },
         "commissionAmount": { "type": "number" }
       },

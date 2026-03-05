@@ -317,7 +317,7 @@ export function CommissionsCalculator() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[20%]">Cliente</TableHead>
-                <TableHead>Fecha Venta</TableHead>
+                <TableHead>Fecha Registro</TableHead>
                 <TableHead>Unidades</TableHead>
                 <TableHead>Precio por Unidad</TableHead>
                 <TableHead>Moneda</TableHead>
@@ -393,7 +393,19 @@ export function CommissionsCalculator() {
                       </div>
                   </TableCell>
                   <TableCell>
-                    {sale.paid && sale.paidDate ? format(new Date(sale.paidDate), "dd MMM, yyyy", { locale: es }) : 'Pendiente'}
+                    {sale.paid ? (
+                      <Input
+                        type="date"
+                        className="w-[150px]"
+                        value={sale.paidDate ? format(new Date(sale.paidDate), 'yyyy-MM-dd') : ''}
+                        onChange={(e) => {
+                            const newDate = e.target.value ? new Date(e.target.value + 'T00:00:00').toISOString() : undefined;
+                            handleSaleChange(sale.id, 'paidDate', newDate);
+                        }}
+                      />
+                    ) : (
+                      'Pendiente'
+                    )}
                   </TableCell>
                   <TableCell>
                     <Select
