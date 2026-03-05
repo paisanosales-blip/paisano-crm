@@ -125,10 +125,10 @@ export function CommissionsCalculator() {
             commissionAmount = sale.totalPrice * 0.01;
             break;
         case 'VENTA_EXTERNA':
-            commissionAmount = sale.totalPrice * 0.00025;
+            commissionAmount = sale.totalPrice * 0.0025;
             break;
         case 'VENTA_FINANCIADA':
-            commissionAmount = sale.totalPrice * 0.00025;
+            commissionAmount = sale.totalPrice * 0.0025;
             if (sale.currency === 'USD') {
                 commissionAmount += 200;
             }
@@ -306,8 +306,8 @@ export function CommissionsCalculator() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="VENTA_PROPIA">Venta Propia (1%)</SelectItem>
-                            <SelectItem value="VENTA_EXTERNA">Venta Externa (0.025%)</SelectItem>
-                            <SelectItem value="VENTA_FINANCIADA">Venta Financiada (0.025% + $200)</SelectItem>
+                            <SelectItem value="VENTA_EXTERNA">Venta Externa (0.25%)</SelectItem>
+                            <SelectItem value="VENTA_FINANCIADA">Venta Financiada (0.25% + $200)</SelectItem>
                         </SelectContent>
                     </Select>
                   </TableCell>
