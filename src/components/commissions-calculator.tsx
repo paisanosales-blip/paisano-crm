@@ -183,9 +183,12 @@ export function CommissionsCalculator() {
     deleteDocumentNonBlocking(doc(firestore, 'commissionPayments', paymentId));
   };
 
-  const handlePaymentChange = (paymentId: string, field: 'description' | 'amount' | 'currency', value: any) => {
-    const numericValue = field === 'amount' ? Number(value) : value;
-    updateDocumentNonBlocking(doc(firestore, 'commissionPayments', paymentId), { [field]: numericValue });
+  const handlePaymentChange = (paymentId: string, field: 'description' | 'amount' | 'currency' | 'date', value: any) => {
+    let updateValue = value;
+    if (field === 'amount') {
+        updateValue = Number(value);
+    }
+    updateDocumentNonBlocking(doc(firestore, 'commissionPayments', paymentId), { [field]: updateValue });
   };
   
   const totalCommission = useMemo(() => {
@@ -593,7 +596,15 @@ export function CommissionsCalculator() {
                     />
                   </TableCell>
                   <TableCell>
-                    {format(new Date(payment.date), "dd MMM, yyyy", { locale: es })}
+                    <Input
+                      type="date"
+                      className="w-[150px]"
+                      value={payment.date ? format(new Date(payment.date), 'yyyy-MM-dd') : ''}
+                      onChange={(e) => {
+                        const newDate = e.target.value ? new Date(e.target.value + 'T00:00:00').toISOString() : new Date().toISOString();
+                        handlePaymentChange(payment.id, 'date', newDate);
+                      }}
+                    />
                   </TableCell>
                   <TableCell>
                     <Input
