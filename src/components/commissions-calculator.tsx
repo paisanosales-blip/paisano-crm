@@ -46,7 +46,7 @@ interface Sale {
     currency: string;
     saleDate: string;
     paid: boolean;
-    paidDate?: string;
+    paidDate?: string | null;
     sellerId: string;
     sellerName: string;
     commissionType?: CommissionType;
@@ -74,6 +74,7 @@ export function CommissionsCalculator() {
 
   const salesQuery = useMemoFirebase(() => {
     if (!user) return null;
+    // No ordering here to prevent composite index requirement errors
     return query(collection(firestore, 'sales'), where('sellerId', '==', user.uid));
   }, [firestore, user]);
   const { data: sales, isLoading: areSalesLoading } = useCollection<Sale>(salesQuery);
@@ -93,6 +94,7 @@ export function CommissionsCalculator() {
   
   const sortedSales = useMemo(() => {
     if (!sales) return [];
+    // Sort locally after fetching
     return [...sales].sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
   }, [sales]);
 
@@ -215,13 +217,10 @@ export function CommissionsCalculator() {
         const commissionAmount = sale.commissionAmount || 0;
 
         if (sale.commissionType === 'VENTA_PROPIA') {
-            acc.propia.units += units;
             acc.propia.amount += commissionAmount;
         } else if (sale.commissionType === 'VENTA_EXTERNA') {
-            acc.externa.units += units;
             acc.externa.amount += commissionAmount;
         } else if (sale.commissionType === 'VENTA_FINANCIADA') {
-            acc.financiada.units += units;
             acc.financiada.amount += commissionAmount;
         }
         return acc;
