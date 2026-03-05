@@ -1,15 +1,14 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
 import {
   Table,
@@ -32,43 +31,55 @@ import { PlusCircle, Trash2, Calculator, Wallet, Banknote } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Checkbox } from './ui/checkbox';
+import { Skeleton } from './ui/skeleton';
+
+
+type CommissionType = 'VENTA_PROPIA' | 'VENTA_EXTERNA' | 'VENTA_FINANCIADA';
 
 interface Sale {
     id: string;
     leadId: string;
     clientName: string;
     units: number;
-    totalPrice: number;
+    pricePerUnit: number;
     currency: string;
     saleDate: string;
     paid: boolean;
-}
-
-type CommissionType = 'VENTA_PROPIA' | 'VENTA_EXTERNA' | 'VENTA_FINANCIADA';
-
-interface Commission {
-    saleId: string;
-    commissionType: CommissionType;
-    commissionAmount: number;
+    sellerId: string;
+    sellerName: string;
+    commissionType?: CommissionType;
+    commissionAmount?: number;
 }
 
 interface Payment {
     id: string;
+    sellerId: string;
     description: string;
     amount: number;
     date: string;
 }
 
 export function CommissionsCalculator() {
+  const { user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
   const leadsQuery = useMemoFirebase(() => collection(firestore, 'leads'), [firestore]);
   const { data: leads, isLoading: areLeadsLoading } = useCollection(leadsQuery);
 
-  const [sales, setSales] = useState<Partial<Sale>[]>([]);
-  const [commissions, setCommissions] = useState<Record<string, Commission>>({});
-  const [payments, setPayments] = useState<Payment[]>([]);
+  const salesQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, 'sales'), where('sellerId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: sales, isLoading: areSalesLoading } = useCollection<Sale>(salesQuery);
+  
+  const paymentsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(collection(firestore, 'commissionPayments'), where('sellerId', '==', user.uid));
+  }, [firestore, user]);
+  const { data: payments, isLoading: arePaymentsLoading } = useCollection<Payment>(paymentsQuery);
+  
+  const isLoading = areLeadsLoading || areSalesLoading || arePaymentsLoading;
 
   const sortedLeads = useMemo(() => {
     if (!leads) return [];
@@ -76,109 +87,109 @@ export function CommissionsCalculator() {
   }, [leads]);
 
   const handleAddSale = () => {
-    setSales([...sales, { id: `new-sale-${Date.now()}`, units: 1, totalPrice: 0, currency: 'USD', saleDate: new Date().toISOString(), paid: false }]);
+    if (!user) return;
+    const newSale: Omit<Sale, 'id'> = {
+      leadId: '',
+      clientName: '',
+      units: 1,
+      pricePerUnit: 0,
+      currency: 'USD',
+      saleDate: new Date().toISOString(),
+      paid: false,
+      sellerId: user.uid,
+      sellerName: user.displayName || 'Vendedor',
+    };
+    addDocumentNonBlocking(collection(firestore, 'sales'), newSale);
   };
 
-  const handleRemoveSale = (index: number) => {
-    const saleIdToRemove = sales[index].id;
-    setSales(sales.filter((_, i) => i !== index));
-    if (saleIdToRemove) {
-      setCommissions(prev => {
-        const newCommissions = { ...prev };
-        delete newCommissions[saleIdToRemove];
-        return newCommissions;
-      });
-    }
+  const handleRemoveSale = (saleId: string) => {
+    deleteDocumentNonBlocking(doc(firestore, 'sales', saleId));
   };
 
-  const handleSaleChange = (index: number, field: keyof Sale, value: any) => {
-    const newSales = [...sales];
-    const sale = newSales[index];
-    
-    let updatedSale;
+  const handleSaleChange = (saleId: string, field: keyof Omit<Sale, 'id' | 'sellerId' | 'sellerName'>, value: any) => {
+    const sale = sales?.find(s => s.id === saleId);
+    if (!sale) return;
+
+    let updatedValues: Partial<Sale> = {};
+
     if (field === 'leadId') {
-        const selectedLead = leads?.find(l => l.id === value);
-        updatedSale = { ...sale, leadId: value, clientName: selectedLead?.clientName };
+      const selectedLead = leads?.find(l => l.id === value);
+      updatedValues = { leadId: value, clientName: selectedLead?.clientName };
     } else {
-        updatedSale = { ...sale, [field]: value };
+      updatedValues = { [field]: value };
     }
-    newSales[index] = updatedSale;
-    setSales(newSales);
-    
-    // Recalculate commission if relevant fields change
-    const saleId = updatedSale.id;
-    if (saleId && (field === 'totalPrice' || field === 'currency' || field === 'units')) {
-      const commission = commissions[saleId];
-      if (commission?.commissionType) {
-        handleCommissionChange(saleId, commission.commissionType);
-      }
+
+    const saleRef = doc(firestore, 'sales', saleId);
+    updateDocumentNonBlocking(saleRef, updatedValues);
+
+    const newSaleData = { ...sale, ...updatedValues };
+    if ((field === 'pricePerUnit' || field === 'units' || field === 'currency') && newSaleData.commissionType) {
+      handleCommissionChange(newSaleData, newSaleData.commissionType);
     }
   };
-  
-  const handleCommissionChange = (saleId: string, type: CommissionType) => {
-      const sale = sales.find(s => s.id === saleId);
-      if (!sale || !sale.totalPrice || !sale.units) return;
 
-      const totalValue = sale.totalPrice * sale.units;
+  const handleCommissionChange = (sale: Sale, type: CommissionType) => {
+    if (!sale || sale.pricePerUnit === undefined || sale.units === undefined) return;
 
-      let commissionAmount = 0;
-      switch (type) {
-        case 'VENTA_PROPIA':
-            commissionAmount = totalValue * 0.01;
-            break;
-        case 'VENTA_EXTERNA':
-            commissionAmount = totalValue * 0.0025;
-            break;
-        case 'VENTA_FINANCIADA':
-            commissionAmount = totalValue * 0.0025;
-            if (sale.currency === 'USD') {
-                commissionAmount += 200;
-            }
-            break;
-        default:
-            commissionAmount = 0;
-      }
+    const totalValue = sale.pricePerUnit * sale.units;
+    let commissionAmount = 0;
+    switch (type) {
+      case 'VENTA_PROPIA':
+        commissionAmount = totalValue * 0.01;
+        break;
+      case 'VENTA_EXTERNA':
+        commissionAmount = totalValue * 0.0025;
+        break;
+      case 'VENTA_FINANCIADA':
+        commissionAmount = totalValue * 0.0025;
+        if (sale.currency === 'USD') {
+          commissionAmount += 200;
+        }
+        break;
+      default:
+        commissionAmount = 0;
+    }
 
-      setCommissions(prev => ({
-          ...prev,
-          [saleId]: {
-              saleId,
-              commissionType: type,
-              commissionAmount,
-          }
-      }));
+    const saleRef = doc(firestore, 'sales', sale.id);
+    updateDocumentNonBlocking(saleRef, { commissionType: type, commissionAmount });
   };
   
   const handleAddPayment = () => {
-    setPayments([...payments, { id: `payment-${Date.now()}`, description: 'Abono', amount: 0, date: new Date().toISOString() }]);
+    if (!user) return;
+    const newPayment: Omit<Payment, 'id'> = {
+      sellerId: user.uid,
+      description: 'Abono',
+      amount: 0,
+      date: new Date().toISOString(),
+    };
+    addDocumentNonBlocking(collection(firestore, 'commissionPayments'), newPayment);
   };
 
-  const handleRemovePayment = (index: number) => {
-    setPayments(payments.filter((_, i) => i !== index));
+  const handleRemovePayment = (paymentId: string) => {
+    deleteDocumentNonBlocking(doc(firestore, 'commissionPayments', paymentId));
+  };
+
+  const handlePaymentChange = (paymentId: string, field: 'description' | 'amount', value: any) => {
+    const numericValue = field === 'amount' ? Number(value) : value;
+    updateDocumentNonBlocking(doc(firestore, 'commissionPayments', paymentId), { [field]: numericValue });
   };
   
-  const handlePaymentChange = (index: number, field: keyof Omit<Payment, 'id' | 'date'>, value: any) => {
-    const newPayments = [...payments];
-    newPayments[index] = { ...newPayments[index], [field]: value };
-    setPayments(newPayments);
-  };
-
-
   const totalCommission = useMemo(() => {
+    if (!sales) return 0;
     return sales.reduce((acc, sale) => {
-      if (sale.paid && sale.id && commissions[sale.id]) {
-        return acc + (commissions[sale.id].commissionAmount || 0);
+      if (sale.paid && sale.commissionAmount) {
+        return acc + sale.commissionAmount;
       }
       return acc;
     }, 0);
-  }, [sales, commissions]);
+  }, [sales]);
   
   const totalPaid = useMemo(() => {
+    if (!payments) return 0;
     return payments.reduce((acc, payment) => acc + (payment.amount || 0), 0);
   }, [payments]);
 
   const balance = useMemo(() => totalCommission - totalPaid, [totalCommission, totalPaid]);
-
 
   return (
     <div className="grid gap-6">
@@ -239,12 +250,16 @@ export function CommissionsCalculator() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sales.map((sale, index) => (
+              {isLoading ? (
+                  Array.from({length: 3}).map((_, i) => (
+                    <TableRow key={i}><TableCell colSpan={9}><Skeleton className="h-10" /></TableCell></TableRow>
+                  ))
+              ) : sales?.map((sale) => (
                 <TableRow key={sale.id}>
                   <TableCell>
                     <Select
                       value={sale.leadId}
-                      onValueChange={(value) => handleSaleChange(index, 'leadId', value)}
+                      onValueChange={(value) => handleSaleChange(sale.id, 'leadId', value)}
                       disabled={areLeadsLoading}
                     >
                       <SelectTrigger>
@@ -266,20 +281,20 @@ export function CommissionsCalculator() {
                     <Input
                       type="number"
                       value={sale.units}
-                      onChange={(e) => handleSaleChange(index, 'units', Number(e.target.value))}
+                      onChange={(e) => handleSaleChange(sale.id, 'units', Number(e.target.value))}
                     />
                   </TableCell>
                   <TableCell>
                     <Input
                       type="number"
-                      value={sale.totalPrice}
-                      onChange={(e) => handleSaleChange(index, 'totalPrice', Number(e.target.value))}
+                      value={sale.pricePerUnit}
+                      onChange={(e) => handleSaleChange(sale.id, 'pricePerUnit', Number(e.target.value))}
                     />
                   </TableCell>
                    <TableCell>
                     <Select
                       value={sale.currency}
-                      onValueChange={(value) => handleSaleChange(index, 'currency', value)}
+                      onValueChange={(value) => handleSaleChange(sale.id, 'currency', value)}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -294,14 +309,14 @@ export function CommissionsCalculator() {
                       <div className="flex justify-center">
                         <Checkbox
                             checked={sale.paid}
-                            onCheckedChange={(checked) => handleSaleChange(index, 'paid', !!checked)}
+                            onCheckedChange={(checked) => handleSaleChange(sale.id, 'paid', !!checked)}
                         />
                       </div>
                   </TableCell>
                   <TableCell>
                     <Select
-                        value={commissions[sale.id!]?.commissionType || ''}
-                        onValueChange={(value) => handleCommissionChange(sale.id!, value as CommissionType)}
+                        value={sale.commissionType || ''}
+                        onValueChange={(value) => handleCommissionChange(sale, value as CommissionType)}
                     >
                         <SelectTrigger>
                             <SelectValue placeholder="Seleccionar..." />
@@ -314,10 +329,10 @@ export function CommissionsCalculator() {
                     </Select>
                   </TableCell>
                    <TableCell className="font-semibold">
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency || 'USD' }).format(commissions[sale.id!]?.commissionAmount || 0)}
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency || 'USD' }).format(sale.commissionAmount || 0)}
                    </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveSale(index)}>
+                    <Button variant="ghost" size="icon" onClick={() => handleRemoveSale(sale.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </TableCell>
@@ -350,13 +365,17 @@ export function CommissionsCalculator() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {payments.map((payment, index) => (
+              {isLoading ? (
+                  Array.from({length: 1}).map((_, i) => (
+                    <TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-10" /></TableCell></TableRow>
+                  ))
+              ) : payments?.map((payment) => (
                 <TableRow key={payment.id}>
                   <TableCell>
                     <Input
                       placeholder="Ej: Abono de comisiones"
                       value={payment.description}
-                      onChange={(e) => handlePaymentChange(index, 'description', e.target.value)}
+                      onChange={(e) => handlePaymentChange(payment.id, 'description', e.target.value)}
                     />
                   </TableCell>
                   <TableCell>
@@ -366,11 +385,11 @@ export function CommissionsCalculator() {
                     <Input
                       type="number"
                       value={payment.amount}
-                      onChange={(e) => handlePaymentChange(index, 'amount', Number(e.target.value))}
+                      onChange={(e) => handlePaymentChange(payment.id, 'amount', e.target.value)}
                     />
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleRemovePayment(index)}>
+                    <Button variant="ghost" size="icon" onClick={() => handleRemovePayment(payment.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </TableCell>

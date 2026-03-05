@@ -735,25 +735,27 @@
         "sellerId": { "type": "string" },
         "sellerName": { "type": "string" },
         "units": { "type": "number" },
-        "totalPrice": { "type": "number" },
+        "pricePerUnit": { "type": "number" },
         "currency": { "type": "string" },
-        "saleDate": { "type": "string", "format": "date-time" }
+        "saleDate": { "type": "string", "format": "date-time" },
+        "paid": { "type": "boolean" },
+        "commissionType": { "type": "string", "enum": ["VENTA_PROPIA", "VENTA_EXTERNA", "VENTA_FINANCIADA"] },
+        "commissionAmount": { "type": "number" }
       },
-      "required": ["id", "leadId", "clientName", "sellerId", "units", "totalPrice", "currency", "saleDate"]
+      "required": ["id", "leadId", "clientName", "sellerId", "units", "pricePerUnit", "currency", "saleDate", "paid"]
     },
-    "Commission": {
-      "title": "Commission",
+    "CommissionPayment": {
+      "title": "Commission Payment",
       "type": "object",
-      "description": "Represents a calculated commission for a sale.",
+      "description": "Represents a payment made towards commissions.",
       "properties": {
         "id": { "type": "string" },
-        "saleId": { "type": "string" },
         "sellerId": { "type": "string" },
-        "commissionPercentage": { "type": "number" },
-        "commissionAmount": { "type": "number" },
-        "calculationDate": { "type": "string", "format": "date-time" }
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "saleId", "sellerId", "commissionPercentage", "commissionAmount"]
+      "required": ["id", "sellerId", "amount", "date"]
     }
   },
   "auth": {
@@ -950,6 +952,24 @@
             { "name": "ticketId", "description": "The ID of the parent service ticket." },
             { "name": "interactionId", "description": "The ID of the interaction." }
           ]
+        }
+      },
+      {
+        "path": "/sales/{saleId}",
+        "definition": {
+          "entityName": "Sale",
+          "schema": { "$ref": "#/backend/entities/Sale" },
+          "description": "Stores manually registered sales for commission calculation.",
+          "params": [{ "name": "saleId", "description": "Unique ID for the sale."}]
+        }
+      },
+      {
+        "path": "/commissionPayments/{paymentId}",
+        "definition": {
+          "entityName": "CommissionPayment",
+          "schema": { "$ref": "#/backend/entities/CommissionPayment" },
+          "description": "Stores commission payments.",
+          "params": [{ "name": "paymentId", "description": "Unique ID for the payment."}]
         }
       }
     ],
