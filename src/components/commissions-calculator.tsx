@@ -31,6 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Trash2, Calculator, Wallet, Banknote } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Checkbox } from './ui/checkbox';
 
 interface Sale {
     id: string;
@@ -40,6 +41,7 @@ interface Sale {
     totalPrice: number;
     currency: string;
     saleDate: string;
+    paid: boolean;
 }
 
 interface Commission {
@@ -67,7 +69,7 @@ export function CommissionsCalculator() {
   const [payments, setPayments] = useState<Payment[]>([]);
 
   const handleAddSale = () => {
-    setSales([...sales, { id: `new-sale-${Date.now()}`, units: 1, totalPrice: 0, currency: 'USD' }]);
+    setSales([...sales, { id: `new-sale-${Date.now()}`, units: 1, totalPrice: 0, currency: 'USD', saleDate: new Date().toISOString(), paid: false }]);
   };
 
   const handleRemoveSale = (index: number) => {
@@ -125,8 +127,13 @@ export function CommissionsCalculator() {
 
 
   const totalCommission = useMemo(() => {
-    return Object.values(commissions).reduce((acc, comm) => acc + (comm.commissionAmount || 0), 0);
-  }, [commissions]);
+    return sales.reduce((acc, sale) => {
+      if (sale.paid && sale.id && commissions[sale.id]) {
+        return acc + (commissions[sale.id].commissionAmount || 0);
+      }
+      return acc;
+    }, 0);
+  }, [sales, commissions]);
   
   const totalPaid = useMemo(() => {
     return payments.reduce((acc, payment) => acc + (payment.amount || 0), 0);
@@ -144,7 +151,7 @@ export function CommissionsCalculator() {
       <div className="grid lg:grid-cols-3 gap-6">
         <Card className="bg-muted/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                <CardTitle className="text-xs font-medium">Total Comisión</CardTitle>
+                <CardTitle className="text-xs font-medium">Total Comisión (Pagadas)</CardTitle>
                 <Calculator className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
@@ -182,11 +189,13 @@ export function CommissionsCalculator() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[30%]">Cliente</TableHead>
+                <TableHead className="w-[25%]">Cliente</TableHead>
+                <TableHead>Fecha Venta</TableHead>
                 <TableHead>Unidades</TableHead>
                 <TableHead>Precio Total</TableHead>
                 <TableHead>Moneda</TableHead>
-                <TableHead>Comisión (%)</TableHead>
+                <TableHead>Pagado</TableHead>
+                <TableHead>% Comisión</TableHead>
                 <TableHead>Monto Comisión</TableHead>
                 <TableHead><span className="sr-only">Actions</span></TableHead>
               </TableRow>
@@ -211,6 +220,9 @@ export function CommissionsCalculator() {
                         ))}
                       </SelectContent>
                     </Select>
+                  </TableCell>
+                  <TableCell>
+                    {sale.saleDate ? format(new Date(sale.saleDate), "dd MMM, yyyy", { locale: es }) : 'N/A'}
                   </TableCell>
                   <TableCell>
                     <Input
@@ -239,6 +251,14 @@ export function CommissionsCalculator() {
                         <SelectItem value="MXN">MXN</SelectItem>
                       </SelectContent>
                     </Select>
+                  </TableCell>
+                  <TableCell>
+                      <div className="flex justify-center">
+                        <Checkbox
+                            checked={sale.paid}
+                            onCheckedChange={(checked) => handleSaleChange(index, 'paid', !!checked)}
+                        />
+                      </div>
                   </TableCell>
                   <TableCell>
                     <Input
