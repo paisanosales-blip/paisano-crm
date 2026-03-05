@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -289,8 +290,8 @@ export function CommissionsCalculator() {
     csvRows.push(formatRow(['RESUMEN DE COMISIONES']));
     csvRows.push(formatRow(['Métrica', 'USD', 'MXN']));
     csvRows.push(formatRow(['Total de Comisiones (Ventas Pagadas)', totalCommissionFromPaidSales.usd.toFixed(2), totalCommissionFromPaidSales.mxn.toFixed(2)]));
-    csvRows.push(formatRow(['Total Pagado', totalPaid.usd.toFixed(2), totalPaid.mxn.toFixed(2)]));
-    csvRows.push(formatRow(['Saldo Pendiente', balance.usd.toFixed(2), balance.mxn.toFixed(2)]));
+    csvRows.push(formatRow(['TOTAL DE COMISIONES PAGADAS', totalPaid.usd.toFixed(2), totalPaid.mxn.toFixed(2)]));
+    csvRows.push(formatRow(['COMISIONES PENDIENTES POR PAGAR', balance.usd.toFixed(2), balance.mxn.toFixed(2)]));
     csvRows.push(formatRow(['Total Comisiones (Todas las Ventas)', totalCommission.usd.toFixed(2), totalCommission.mxn.toFixed(2)]));
     csvRows.push('');
 
@@ -363,7 +364,7 @@ export function CommissionsCalculator() {
         </Card>
          <Card className="bg-muted/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                <CardTitle className="text-xs font-medium">Total Pagado</CardTitle>
+                <CardTitle className="text-xs font-medium">TOTAL DE COMISIONES PAGADAS</CardTitle>
                 <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
@@ -375,7 +376,7 @@ export function CommissionsCalculator() {
         </Card>
          <Card className="bg-muted/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                <CardTitle className="text-xs font-medium">Saldo Pendiente (de Ventas Pagadas)</CardTitle>
+                <CardTitle className="text-xs font-medium">COMISIONES PENDIENTES POR PAGAR</CardTitle>
                 <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
