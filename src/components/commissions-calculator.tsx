@@ -270,21 +270,34 @@ export function CommissionsCalculator() {
 
   const productStats = useMemo(() => {
     const stats = {
-        DUMP: 0,
-        'TANK WATTER': 0,
-        'SAND HOPPER': 0,
-        OTHER: 0,
+      DUMP: 0,
+      'TANK WATTER': 0,
+      'SAND HOPPER': 0,
+      'SAND HOPPER externas': 0,
     };
     if (!sales) return stats;
 
     return sales.reduce((acc, sale) => {
-        const units = sale.units || 0;
-        if (sale.productType && (sale.productType === 'DUMP' || sale.productType === 'TANK WATTER' || sale.productType === 'SAND HOPPER')) {
-            acc[sale.productType] += units;
-        } else {
-            acc.OTHER += units;
-        }
-        return acc;
+      const units = sale.units || 0;
+      switch (sale.productType) {
+        case 'DUMP':
+          acc.DUMP += units;
+          break;
+        case 'TANK WATTER':
+          acc['TANK WATTER'] += units;
+          break;
+        case 'SAND HOPPER':
+          if (sale.commissionType === 'VENTA_PROPIA' || sale.commissionType === 'VENTA_FINANCIADA') {
+            acc['SAND HOPPER'] += units;
+          } else if (sale.commissionType === 'VENTA_EXTERNA') {
+            acc['SAND HOPPER externas'] += units;
+          }
+          break;
+        default:
+          // OTHER product types are not counted in these specific indicators per user request
+          break;
+      }
+      return acc;
     }, stats);
   }, [sales]);
 
@@ -480,11 +493,11 @@ export function CommissionsCalculator() {
         </Card>
         <Card className="bg-muted/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                <CardTitle className="text-xs font-medium">Otras Unidades Vendidas</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-xs font-medium">SAND HOPPER externas</CardTitle>
+                <Wind className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                <div className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-12" /> : productStats.OTHER}</div>
+                <div className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-12" /> : productStats['SAND HOPPER externas']}</div>
             </CardContent>
         </Card>
       </div>
