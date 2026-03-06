@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -328,7 +327,6 @@ export function CommissionsCalculator() {
     csvRows.push(formatRow(['RESUMEN DE COMISIONES']));
     csvRows.push(formatRow(['Métrica', 'USD', 'MXN']));
     csvRows.push(formatRow(['Total de Comisiones (Ventas Pagadas)', totalCommissionFromPaidSales.usd.toFixed(2), totalCommissionFromPaidSales.mxn.toFixed(2)]));
-    csvRows.push(formatRow(['TOTAL DE COMISIONES PAGADAS', totalPaid.usd.toFixed(2), totalPaid.mxn.toFixed(2)]));
     csvRows.push(formatRow(['COMISIONES PENDIENTES POR PAGAR', balance.usd.toFixed(2), balance.mxn.toFixed(2)]));
     csvRows.push(formatRow(['Total Comisiones (Todas las Ventas)', totalCommission.usd.toFixed(2), totalCommission.mxn.toFixed(2)]));
     csvRows.push('');
