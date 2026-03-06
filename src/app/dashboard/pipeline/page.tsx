@@ -1359,42 +1359,43 @@ export default function PipelinePage() {
                                         </div>
                                     </div>
                                     <div className="pt-2">
-                                        <Collapsible>
-                                            <div className="flex justify-between items-center">
-                                                <Label className="text-xs font-semibold text-muted-foreground">ÚLTIMA ACTIVIDAD</Label>
-                                                {prospect.activities && prospect.activities.length > 1 && (
+                                        <Label className="text-xs font-semibold text-muted-foreground">ÚLTIMA ACTIVIDAD</Label>
+                                        <div className="mt-1 p-3 rounded-md bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-200/80 dark:border-yellow-800/80 min-h-[72px] flex flex-col justify-center">
+                                            {latestActivity ? (
+                                                <p className="text-sm text-yellow-900 dark:text-yellow-100 font-medium" title={latestActivity.description}>
+                                                    {latestActivity.description}
+                                                </p>
+                                            ) : (
+                                                <p className="text-sm text-yellow-800/80 dark:text-yellow-200/80 italic">Sin seguimientos registrados.</p>
+                                            )}
+                                        </div>
+                                        
+                                        {prospect.activities && prospect.activities.length > 1 && (
+                                            <Collapsible>
+                                                <div className="text-right">
                                                     <CollapsibleTrigger asChild>
                                                         <Button variant="ghost" size="sm" className="h-auto px-2 py-0 text-xs text-muted-foreground [&[data-state=open]>svg]:rotate-180">
                                                             Ver historial
                                                             <ChevronDown className="h-3 w-3 ml-1 transition-transform duration-200" />
                                                         </Button>
                                                     </CollapsibleTrigger>
-                                                )}
-                                            </div>
-                                            <div className="mt-1 p-3 rounded-md bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-200/80 dark:border-yellow-800/80 min-h-[72px] flex flex-col justify-center">
-                                                {latestActivity ? (
-                                                    <p className="text-sm text-yellow-900 dark:text-yellow-100 font-medium" title={latestActivity.description}>
-                                                        {latestActivity.description}
-                                                    </p>
-                                                ) : (
-                                                    <p className="text-sm text-yellow-800/80 dark:text-yellow-200/80 italic">Sin seguimientos registrados.</p>
-                                                )}
-                                            </div>
-                                            <CollapsibleContent className="pt-2">
-                                                <div className="space-y-2 mt-1 border-t pt-2">
-                                                    {prospect.activities.slice(1, 4).map((act: any) => (
-                                                        <div key={act.id} className="text-xs pl-2 border-l-2">
-                                                            <p className="font-semibold">{act.type} - {format(new Date(act.createdDate), "dd/MM/yy", {locale: es})}</p>
-                                                            <p className="text-muted-foreground italic">"{act.description || 'Sin descripción.'}"</p>
-                                                        </div>
-                                                    ))}
-                                                    {prospect.activities.length > 4 && <p className="text-xs text-muted-foreground text-center mt-2">... y más.</p>}
-                                                    <Button variant="link" size="sm" className="w-full justify-center text-xs h-auto mt-2 text-primary hover:underline" onClick={() => handleViewTimeline(prospect.id)}>
-                                                        Ver línea de tiempo completa
-                                                    </Button>
                                                 </div>
-                                            </CollapsibleContent>
-                                        </Collapsible>
+                                                <CollapsibleContent className="pt-2">
+                                                    <div className="space-y-2 mt-1 border-t pt-2">
+                                                        {prospect.activities.slice(1, 4).map((act: any) => (
+                                                            <div key={act.id} className="text-xs pl-2 border-l-2">
+                                                                <p className="font-semibold">{act.type} - {format(new Date(act.createdDate), "dd/MM/yy", {locale: es})}</p>
+                                                                <p className="text-muted-foreground italic">"{act.description || 'Sin descripción.'}"</p>
+                                                            </div>
+                                                        ))}
+                                                        {prospect.activities.length > 4 && <p className="text-xs text-muted-foreground text-center mt-2">... y más.</p>}
+                                                        <Button variant="link" size="sm" className="w-full justify-center text-xs h-auto mt-2 text-primary hover:underline" onClick={() => handleViewTimeline(prospect.id)}>
+                                                            Ver línea de tiempo completa
+                                                        </Button>
+                                                    </div>
+                                                </CollapsibleContent>
+                                            </Collapsible>
+                                        )}
                                     </div>
                                   </div>
                                   
