@@ -101,7 +101,7 @@ export default function DashboardLayout({
                         const task = taskDoc.data() as CompletedMarketingTask;
                         
                         if (userProfile.role === 'manager' && task.reviewStatus === 'Pendiente') {
-                            const notifId = `task-pending-${taskDoc.id}`;
+                            const notifId = `task-pending-${plan.id}-${taskDoc.id}`;
                             generatedNotifications.push({
                                 id: notifId,
                                 type: 'new_submission',
@@ -114,7 +114,7 @@ export default function DashboardLayout({
 
                         if (task.userId === user.uid) {
                             if (task.reviewStatus === 'Requiere Cambios') {
-                                const notifId = `task-changes-${taskDoc.id}`;
+                                const notifId = `task-changes-${plan.id}-${taskDoc.id}`;
                                 generatedNotifications.push({
                                     id: notifId,
                                     type: 'changes_requested',
@@ -123,16 +123,18 @@ export default function DashboardLayout({
                                     timestamp: task.completedAt,
                                     isRead: readNotificationIds.includes(notifId)
                                 });
-                            } else if (task.reviewStatus === 'Aprobado' && !readNotificationIds.includes(`task-approved-${taskDoc.id}`)) {
-                               const notifId = `task-approved-${taskDoc.id}`;
-                                 generatedNotifications.push({
-                                    id: notifId,
-                                    type: 'task_approved',
-                                    message: `¡Tu tarea fue aprobada!`,
-                                    link: '/dashboard/marketing',
-                                    timestamp: task.completedAt,
-                                    isRead: readNotificationIds.includes(notifId)
-                                });
+                            } else {
+                                const approvedNotifId = `task-approved-${plan.id}-${taskDoc.id}`;
+                                if (task.reviewStatus === 'Aprobado' && !readNotificationIds.includes(approvedNotifId)) {
+                                    generatedNotifications.push({
+                                        id: approvedNotifId,
+                                        type: 'task_approved',
+                                        message: `¡Tu tarea fue aprobada!`,
+                                        link: '/dashboard/marketing',
+                                        timestamp: task.completedAt,
+                                        isRead: readNotificationIds.includes(approvedNotifId)
+                                    });
+                                }
                             }
                         }
                     });
