@@ -25,7 +25,7 @@ import {
   differenceInDays,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users, ListTodo, AlertOctagon, CalendarClock, CheckCheck, Lightbulb, RefreshCcw, History, MessageCircle, Globe } from 'lucide-react';
+import { Calendar, MoreVertical, Pencil, Trash2, Phone, Mail, MessageSquare, StickyNote, Users, ListTodo, AlertOctagon, CalendarClock, CheckCheck, Lightbulb, RefreshCcw, History, MessageCircle, Globe, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -62,6 +62,7 @@ import { ResponseRateChart } from '@/components/response-rate-chart';
 import { ClientTimelineDialog } from '@/components/client-timeline-dialog';
 import { getUSHolidays } from '@/lib/holidays';
 import { InformationSentDialog, type InfoSentConfirmPayload } from '@/components/information-sent-dialog';
+import { Input } from '@/components/ui/input';
 
 const groupStyleKeys = {
     destructive: {
@@ -98,6 +99,7 @@ export default function FollowUpsPage() {
 
   const [selectedUserId, setSelectedUserId] = useState<string>('me');
   const [showCompleted, setShowCompleted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
   const [currentActivity, setCurrentActivity] = useState<any | null>(null);
@@ -371,10 +373,19 @@ export default function FollowUpsPage() {
       };
     });
 
+    const filteredActivities = enriched.filter(activity => {
+        if (!searchQuery) return true;
+        const lowercasedQuery = searchQuery.toLowerCase();
+        const clientNameMatch = activity.clientName?.toLowerCase().includes(lowercasedQuery);
+        const descriptionMatch = activity.description?.toLowerCase().includes(lowercasedQuery);
+        const contactPersonMatch = activity.prospect?.contactPerson?.toLowerCase().includes(lowercasedQuery);
+        return clientNameMatch || descriptionMatch || contactPersonMatch;
+    });
+
     const pendingActivities: any[] = [];
     const completedActivities: any[] = [];
 
-    enriched.forEach((act) => {
+    filteredActivities.forEach((act) => {
       if (act.completed) {
         completedActivities.push(act);
       } else {
@@ -432,7 +443,7 @@ export default function FollowUpsPage() {
     
     return pendingGroups;
 
-  }, [activities, leads, opportunities, quotations, showCompleted]);
+  }, [activities, leads, opportunities, quotations, showCompleted, searchQuery]);
   
   const responseRateByDay = useMemo(() => {
     if (!allActivities) return [];
@@ -697,6 +708,15 @@ export default function FollowUpsPage() {
                 </SelectContent>
               </Select>
             )}
+             <div className="relative w-full sm:w-auto">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por cliente o descripción..."
+                  className="pl-8 sm:w-[250px]"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+            </div>
             <Button variant="outline" onClick={() => setShowCompleted(prev => !prev)} className="w-full sm:w-auto justify-center">
                 <History className="mr-2 h-4 w-4" />
                 {showCompleted ? 'Ocultar Historial' : 'Ver Historial'}
@@ -999,8 +1019,12 @@ export default function FollowUpsPage() {
           </div>
         ) : (
           <div className="h-48 flex flex-col items-center justify-center rounded-lg border-2 border-dashed bg-muted/50">
-            <h3 className="text-lg font-semibold">¡Todo al día!</h3>
-            <p className="text-muted-foreground mt-1">No se encontraron seguimientos pendientes.</p>
+            <h3 className="text-lg font-semibold">
+                {searchQuery ? 'Sin Resultados' : '¡Todo al día!'}
+            </h3>
+            <p className="text-muted-foreground mt-1">
+                {searchQuery ? 'No se encontraron seguimientos para tu búsqueda.' : 'No se encontraron seguimientos pendientes.'}
+            </p>
           </div>
         )}
       </div>
