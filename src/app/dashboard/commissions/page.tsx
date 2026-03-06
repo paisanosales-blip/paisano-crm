@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,14 +9,25 @@ import { KeyRound } from 'lucide-react';
 import { CommissionsCalculator } from '@/components/commissions-calculator';
 
 const ACCESS_CODE = 'PAISANO2026';
+const AUTH_KEY = 'commissionsAuthDate';
 
 export default function CommissionsPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [code, setCode] = useState('');
   const { toast } = useToast();
 
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const authDate = localStorage.getItem(AUTH_KEY);
+    if (authDate === today) {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
   const handleLogin = () => {
     if (code === ACCESS_CODE) {
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem(AUTH_KEY, today);
       setIsAuthenticated(true);
     } else {
       toast({
