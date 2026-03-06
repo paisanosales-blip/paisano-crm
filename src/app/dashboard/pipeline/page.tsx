@@ -1362,8 +1362,8 @@ export default function PipelinePage() {
                                         <Label className="text-xs font-semibold text-muted-foreground">ÚLTIMA ACTIVIDAD</Label>
                                         <div className="mt-1 p-3 rounded-md bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-200/80 dark:border-yellow-800/80 min-h-[72px] flex flex-col justify-center">
                                             {latestActivity ? (
-                                                <p className="text-sm text-yellow-900 dark:text-yellow-100 font-medium" title={latestActivity.description}>
-                                                    {latestActivity.description}
+                                                <p className="text-sm text-yellow-900 dark:text-yellow-100 font-medium" title={latestActivity.description || latestActivity.type}>
+                                                    {latestActivity.description || `${latestActivity.type}${latestActivity.dueDate ? ` - ${format(new Date(latestActivity.dueDate), "dd MMM yyyy", { locale: es })}` : ' (Sin fecha)'}`}
                                                 </p>
                                             ) : (
                                                 <p className="text-sm text-yellow-800/80 dark:text-yellow-200/80 italic">Sin seguimientos registrados.</p>
