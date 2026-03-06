@@ -34,6 +34,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Checkbox } from './ui/checkbox';
 import { Skeleton } from './ui/skeleton';
+import { cn } from '@/lib/utils';
 
 
 type CommissionType = 'VENTA_PROPIA' | 'VENTA_EXTERNA' | 'VENTA_FINANCIADA';
@@ -532,7 +533,12 @@ export function CommissionsCalculator() {
                     <TableRow key={i}><TableCell colSpan={11}><Skeleton className="h-10" /></TableCell></TableRow>
                   ))
               ) : sortedSales?.map((sale) => (
-                <TableRow key={sale.id}>
+                <TableRow
+                  key={sale.id}
+                  className={cn(
+                    sale.paid ? 'bg-green-50 dark:bg-green-950/40' : 'bg-red-50 dark:bg-red-950/40'
+                  )}
+                >
                   <TableCell>
                     <Select
                       value={sale.leadId}
