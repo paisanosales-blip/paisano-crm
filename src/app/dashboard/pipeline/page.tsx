@@ -265,7 +265,7 @@ export default function PipelinePage() {
     }
   };
   
-  const handleFinancingStatusChange = (opportunityId: string, status: 'Aprobado' | 'Rechazado' | 'Pendiente') => {
+  const handleFinancingStatusChange = (opportunityId: string, status: 'Aprobado' | 'Pendiente') => {
     if (!firestore) return;
     const opportunityRef = doc(firestore, 'opportunities', opportunityId);
     updateDocumentNonBlocking(opportunityRef, { financingStatus: status });
@@ -1276,9 +1276,6 @@ export default function PipelinePage() {
                                                             <DropdownMenuItem onSelect={() => handleFinancingStatusChange(prospect.opportunity.id, 'Aprobado')}>
                                                                 <ShieldCheck className="mr-2 h-4 w-4" /> Aprobado
                                                             </DropdownMenuItem>
-                                                            <DropdownMenuItem onSelect={() => handleFinancingStatusChange(prospect.opportunity.id, 'Rechazado')}>
-                                                                <ShieldOff className="mr-2 h-4 w-4" /> Rechazado
-                                                            </DropdownMenuItem>
                                                             <DropdownMenuItem onSelect={() => handleFinancingStatusChange(prospect.opportunity.id, 'Pendiente')}>
                                                                 <HelpCircle className="mr-2 h-4 w-4" /> Pendiente
                                                             </DropdownMenuItem>
@@ -1306,14 +1303,14 @@ export default function PipelinePage() {
                                            {isFinancingStage && prospect.opportunity.financingStatus && (
                                             <Badge
                                                 variant={
-                                                    prospect.opportunity.financingStatus === 'Aprobado' ? 'default' :
-                                                    prospect.opportunity.financingStatus === 'Rechazado' ? 'destructive' :
-                                                    'secondary'
+                                                    prospect.opportunity.financingStatus === 'Aprobado' ? 'default' : 'secondary'
                                                 }
                                                 className={cn('capitalize',
                                                     prospect.opportunity.financingStatus === 'Aprobado' && 'bg-green-600 hover:bg-green-700'
                                                 )}
                                             >
+                                                {prospect.opportunity.financingStatus === 'Aprobado' && <ShieldCheck className="mr-1 h-3 w-3" />}
+                                                {prospect.opportunity.financingStatus === 'Pendiente' && <HelpCircle className="mr-1 h-3 w-3" />}
                                                 {prospect.opportunity.financingStatus}
                                             </Badge>
                                         )}
@@ -1493,9 +1490,6 @@ export default function PipelinePage() {
                                         <DropdownMenuSubContent>
                                             <DropdownMenuItem onSelect={() => handleFinancingStatusChange(prospect.opportunity.id, 'Aprobado')}>
                                                 <ShieldCheck className="mr-2 h-4 w-4" /> Aprobado
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onSelect={() => handleFinancingStatusChange(prospect.opportunity.id, 'Rechazado')}>
-                                                <ShieldOff className="mr-2 h-4 w-4" /> Rechazado
                                             </DropdownMenuItem>
                                             <DropdownMenuItem onSelect={() => handleFinancingStatusChange(prospect.opportunity.id, 'Pendiente')}>
                                                 <HelpCircle className="mr-2 h-4 w-4" /> Pendiente
@@ -1700,17 +1694,12 @@ export default function PipelinePage() {
                           <div className="flex items-center gap-1">
                             {isFinancingStage && prospect.opportunity.financingStatus && (
                                 <Badge
-                                    variant={
-                                        prospect.opportunity.financingStatus === 'Aprobado' ? 'default' :
-                                        prospect.opportunity.financingStatus === 'Rechazado' ? 'destructive' :
-                                        'secondary'
-                                    }
+                                    variant={prospect.opportunity.financingStatus === 'Aprobado' ? 'default' : 'secondary'}
                                     className={cn('capitalize text-xs',
                                         prospect.opportunity.financingStatus === 'Aprobado' && 'bg-green-600 hover:bg-green-700'
                                     )}
                                 >
                                     {prospect.opportunity.financingStatus === 'Aprobado' && <ShieldCheck className="mr-1 h-3 w-3" />}
-                                    {prospect.opportunity.financingStatus === 'Rechazado' && <ShieldOff className="mr-1 h-3 w-3" />}
                                     {prospect.opportunity.financingStatus === 'Pendiente' && <HelpCircle className="mr-1 h-3 w-3" />}
                                     {prospect.opportunity.financingStatus}
                                 </Badge>

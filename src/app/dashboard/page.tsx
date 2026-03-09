@@ -141,7 +141,6 @@ export default function DashboardPage() {
             cotizacionesHechas: 0,
             clientesEnFinanciamiento: 0,
             financingApproved: 0,
-            financingRejected: 0,
             prospectosDescartados: 0,
         };
         
@@ -202,7 +201,6 @@ export default function DashboardPage() {
             cotizacionesHechas: quotations.length,
             clientesEnFinanciamiento: opportunitiesInFinancing.length,
             financingApproved: opportunitiesInFinancing.filter(opp => opp.financingStatus === 'Aprobado').length,
-            financingRejected: opportunitiesInFinancing.filter(opp => opp.financingStatus === 'Rechazado').length,
             prospectosDescartados: discardedOpportunities.length,
         };
     }, [periodData, allQuotations, allOpportunities]);
@@ -291,7 +289,7 @@ export default function DashboardPage() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        const fileName = `Reporte_Panel_${isWeekly ? 'Semanal' : 'Mensual'}_${format(new Date(), "yyyy-MM-dd")}_${selectedUserData.firstName}.csv`;
+        const fileName = `Reporte_Panel_${isWeekly ? 'Semanal' : 'Mensual'}_${selectedUserData.firstName}.csv`;
         link.setAttribute("download", fileName);
         document.body.appendChild(link);
         link.click();
@@ -351,7 +349,7 @@ export default function DashboardPage() {
             </div>
             {isLoading ? (
                 <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
-                    {Array.from({length: 12}).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+                    {Array.from({length: 11}).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
                 </div>
             ) : (
                 <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
@@ -444,15 +442,6 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent className="p-3 pt-0">
                             <div className="text-lg font-bold">{dashboardStats.financingApproved}</div>
-                        </CardContent>
-                    </Card>
-                    <Card className="bg-muted/50">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                            <CardTitle className="text-xs font-medium">Financiamiento Rechazado</CardTitle>
-                            <ShieldOff className="h-4 w-4 text-red-600" />
-                        </CardHeader>
-                        <CardContent className="p-3 pt-0">
-                            <div className="text-lg font-bold">{dashboardStats.financingRejected}</div>
                         </CardContent>
                     </Card>
                      <Card className="bg-muted/50">

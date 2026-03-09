@@ -330,7 +330,7 @@
         "financingStatus": {
           "type": "string",
           "description": "Indicates the status of the external financing application.",
-          "enum": ["Pendiente", "Aprobado", "Rechazado"]
+          "enum": ["Pendiente", "Aprobado"]
         }
       },
       "required": [
