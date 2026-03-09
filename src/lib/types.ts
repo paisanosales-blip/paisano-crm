@@ -23,7 +23,7 @@ export type Client = {
   createdAt: string;
 };
 
-export type OpportunityStage = 'Primer contacto' | 'Envió de Información' | 'Envió de Cotización' | 'Negociación' | 'Cierre de venta' | 'COTIZACION FINANCIAMIENTO EXTERNO' | 'Financiamiento Externo' | 'Descartado';
+export type OpportunityStage = 'Primer contacto' | 'Envió de Información' | 'Envió de Cotización' | 'Negociación' | 'Cierre de venta' | 'Financiamiento Externo' | 'Descartado';
 
 export type ClientClassification = 'PROSPECTO' | 'CLIENTE POTENCIAL' | 'CLIENTE' | 'FINANCIAMIENTO' | 'PERDIDO';
 
@@ -31,7 +31,7 @@ export const getClassification = (stage: OpportunityStage): ClientClassification
     if (stage === 'Primer contacto' || stage === 'Envió de Información') return 'PROSPECTO';
     if (stage === 'Envió de Cotización' || stage === 'Negociación') return 'CLIENTE POTENCIAL';
     if (stage === 'Cierre de venta') return 'CLIENTE';
-    if (stage === 'Financiamiento Externo' || stage === 'COTIZACION FINANCIAMIENTO EXTERNO') return 'FINANCIAMIENTO';
+    if (stage === 'Financiamiento Externo') return 'FINANCIAMIENTO';
     if (stage === 'Descartado') return 'PERDIDO';
     return 'PROSPECTO';
 };
@@ -88,8 +88,6 @@ export type Opportunity = {
   closingDate?: string;
   financiamientoExternoNotes?: string;
   financiamientoExternoDate?: string;
-  cotizacionFinanciamientoExternoNotes?: string;
-  cotizacionFinanciamientoExternoDate?: string;
   discardedDate?: string;
   discardReason?: string;
   financingStatus?: 'Pendiente' | 'Aprobado' | 'Rechazado';

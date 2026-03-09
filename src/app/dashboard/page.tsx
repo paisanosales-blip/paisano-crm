@@ -101,8 +101,8 @@ export default function DashboardPage() {
         });
 
         const opportunitiesInFinancingInPeriod = (allOpportunities || []).filter(item => {
-            if (item.stage !== 'Financiamiento Externo' && item.stage !== 'COTIZACION FINANCIAMIENTO EXTERNO') return false;
-            const dateToCheck = item.financiamientoExternoDate || item.cotizacionFinanciamientoExternoDate;
+            if (item.stage !== 'Financiamiento Externo') return false;
+            const dateToCheck = item.financiamientoExternoDate;
             if (!dateToCheck) return false;
             const itemDate = new Date(dateToCheck);
             return isWithinInterval(itemDate, { start, end });

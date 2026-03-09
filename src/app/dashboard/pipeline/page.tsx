@@ -81,7 +81,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { QuotationGeneratorDialog } from '@/components/quotation-generator-dialog';
 import { FinancingDialog, type FinancingConfirmPayload } from '@/components/financing-dialog';
-import { QuotationFinancingDialog, type QuotationFinancingConfirmPayload } from '@/components/quotation-financing-dialog';
 import { suggestNextAction } from '@/ai/flows/suggest-next-action';
 import { enrichProspectData } from '@/ai/flows/enrich-prospect-data';
 import { DiscardProspectDialog, type DiscardConfirmPayload } from '@/components/discard-prospect-dialog';
@@ -99,7 +98,6 @@ const filterButtonLabels: Record<OpportunityStage | 'Todos', string> = {
     'Envió de Cotización': 'COTIZACIÓN',
     'Negociación': 'NEGOCIACIÓN',
     'Cierre de venta': 'CIERRE',
-    'COTIZACION FINANCIAMIENTO EXTERNO': 'COT. FINANCIAMIENTO',
     'Financiamiento Externo': 'FINANCIAMIENTO',
     'Descartado': 'DESCARTADOS',
 };
@@ -127,7 +125,6 @@ export default function PipelinePage() {
   const [negotiationDialogOpen, setNegotiationDialogOpen] = useState(false);
   const [closingDialogOpen, setClosingDialogOpen] = useState(false);
   const [financingDialogOpen, setFinancingDialogOpen] = useState(false);
-  const [quotationFinancingDialogOpen, setQuotationFinancingDialogOpen] = useState(false);
   const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
   const [currentProspect, setCurrentProspect] = useState<any | null>(null);
   const [currentActivity, setCurrentActivity] = useState<any | null>(null);
@@ -283,10 +280,6 @@ export default function PipelinePage() {
     const currentIndex = stages.indexOf(prospect.opportunity.stage);
     const newIndex = stages.indexOf(newStage);
 
-    if (newStage === 'COTIZACION FINANCIAMIENTO EXTERNO') {
-      setQuotationFinancingDialogOpen(true);
-      return;
-    }
     if (newStage === 'Financiamiento Externo') {
       setFinancingDialogOpen(true);
       return;
@@ -715,46 +708,6 @@ export default function PipelinePage() {
     }
   };
 
-  const handleQuotationFinancingConfirm = async (payload: QuotationFinancingConfirmPayload) => {
-    if (!currentProspect || !firestore || !user || !userProfile) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const opportunityRef = doc(firestore, 'opportunities', currentProspect.opportunity.id);
-      const updateData = {
-        ...payload,
-        stage: 'COTIZACION FINANCIAMIENTO EXTERNO' as const,
-        cotizacionFinanciamientoExternoDate: new Date().toISOString(),
-      };
-      await updateDoc(opportunityRef, updateData);
-
-      if (payload.cotizacionFinanciamientoExternoNotes) {
-        addDocumentNonBlocking(collection(firestore, 'activities'), {
-          leadId: currentProspect.id,
-          sellerId: user.uid,
-          sellerName: `${userProfile.firstName} ${userProfile.lastName}`,
-          type: 'Nota',
-          description: `Movido a Cotización Financiamiento Externo: ${payload.cotizacionFinanciamientoExternoNotes}`,
-          completed: true,
-          createdDate: new Date().toISOString(),
-          completedDate: new Date().toISOString(),
-        });
-      }
-
-      toast({ title: 'Éxito', description: `Prospecto movido a: Cotización Financiamiento Externo` });
-      router.refresh();
-    } catch (error) {
-      console.error("Error moving to quotation financing:", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo mover el prospecto.' });
-    } finally {
-      setQuotationFinancingDialogOpen(false);
-      setCurrentProspect(null);
-      setIsSubmitting(false);
-    }
-  };
-
   const handleFollowUpSubmit = (payload: FollowUpSubmitPayload) => {
     if (!currentProspect || !firestore || !user || !userProfile) {
         toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
@@ -954,7 +907,7 @@ export default function PipelinePage() {
     }
 
     const active = clientProspects.filter(
-      p => p.opportunity && p.opportunity.stage !== 'Cierre de venta' && p.opportunity.stage !== 'Descartado' && p.opportunity.stage !== 'Financiamiento Externo' && p.opportunity.stage !== 'COTIZACION FINANCIAMIENTO EXTERNO'
+      p => p.opportunity && p.opportunity.stage !== 'Cierre de venta' && p.opportunity.stage !== 'Descartado' && p.opportunity.stage !== 'Financiamiento Externo'
     );
     
     let respondedLastFollowUp = 0;
@@ -981,7 +934,7 @@ export default function PipelinePage() {
       p => p.opportunity?.stage === 'Primer contacto' || p.opportunity?.stage === 'Envió de Información'
     ).length;
 
-    const financingClients = clientProspects.filter(p => p.opportunity?.stage === 'Financiamiento Externo' || p.opportunity?.stage === 'COTIZACION FINANCIAMIENTO EXTERNO').length;
+    const financingClients = clientProspects.filter(p => p.opportunity?.stage === 'Financiamiento Externo').length;
     
     const today = new Date();
     const monthStart = startOfMonth(today);
@@ -1013,7 +966,7 @@ export default function PipelinePage() {
       // Stage filter
       const stage = prospect.opportunity?.stage;
       const stageMatch = filterStage === 'Todos' 
-        ? (stage !== 'Descartado' && stage !== 'Financiamiento Externo' && stage !== 'COTIZACION FINANCIAMIENTO EXTERNO')
+        ? (stage !== 'Descartado' && stage !== 'Financiamiento Externo')
         : stage === filterStage;
 
       if (!stageMatch) {
@@ -1080,7 +1033,7 @@ export default function PipelinePage() {
 
   }, [clientProspects, filterStage, searchQuery, sortBy, showExternal]);
   
-  const allStagesForFilter: Array<OpportunityStage | 'Todos'> = ['Todos', ...stages, 'COTIZACION FINANCIAMIENTO EXTERNO', 'Financiamiento Externo', 'Descartado'];
+  const allStagesForFilter: Array<OpportunityStage | 'Todos'> = ['Todos', ...stages, 'Financiamiento Externo', 'Descartado'];
 
   return (
     <>
@@ -1212,7 +1165,7 @@ export default function PipelinePage() {
               <SelectContent>
                 {allStagesForFilter.map((stage) => (
                   <SelectItem key={stage} value={stage}>
-                    {filterButtonLabels[stage]}
+                    {filterButtonLabels[stage as OpportunityStage | 'Todos']}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -1260,7 +1213,7 @@ export default function PipelinePage() {
                         const classification = getClassification(prospect.opportunity.stage);
                         const latestActivity = prospect.activities && prospect.activities.length > 0 ? prospect.activities[0] : null;
                         const currentIndex = pipelineStages.indexOf(prospect.opportunity.stage);
-                        const isFinancingStage = prospect.opportunity.stage === 'Financiamiento Externo' || prospect.opportunity.stage === 'COTIZACION FINANCIAMIENTO EXTERNO';
+                        const isFinancingStage = prospect.opportunity.stage === 'Financiamiento Externo';
 
 
                         return (
@@ -1308,10 +1261,6 @@ export default function PipelinePage() {
                                                     </DropdownMenuSubContent>
                                                 </DropdownMenuPortal>
                                             </DropdownMenuSub>
-                                            <DropdownMenuItem onSelect={() => requestStageChange(prospect, 'COTIZACION FINANCIAMIENTO EXTERNO')}>
-                                                <DollarSign className="mr-2 h-4 w-4" />
-                                                <span>Cotización Financiamiento</span>
-                                            </DropdownMenuItem>
                                             <DropdownMenuItem onSelect={() => requestStageChange(prospect, 'Financiamiento Externo')}>
                                                 <Landmark className="mr-2 h-4 w-4" />
                                                 <span>Financiamiento</span>
@@ -1490,7 +1439,7 @@ export default function PipelinePage() {
               filteredProspects.map(prospect => {
                 if (!prospect.opportunity) return null;
                 const classification = getClassification(prospect.opportunity.stage);
-                const isFinancingStage = prospect.opportunity.stage === 'Financiamiento Externo' || prospect.opportunity.stage === 'COTIZACION FINANCIAMIENTO EXTERNO';
+                const isFinancingStage = prospect.opportunity.stage === 'Financiamiento Externo';
                 const isDiscarded = prospect.opportunity.stage === 'Descartado';
                 const currentIndex = isFinancingStage ? -1 : pipelineStages.indexOf(prospect.opportunity.stage);
                 
@@ -1530,10 +1479,6 @@ export default function PipelinePage() {
                             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
                             <DropdownMenuItem onSelect={() => handleEditClick(prospect)}>Editar</DropdownMenuItem>
                             <DropdownMenuSeparator />
-                             <DropdownMenuItem onSelect={() => requestStageChange(prospect, 'COTIZACION FINANCIAMIENTO EXTERNO')}>
-                                <DollarSign className="mr-2 h-4 w-4" />
-                                <span>Cotización Financiamiento</span>
-                            </DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => requestStageChange(prospect, 'Financiamiento Externo')}>
                                 <Landmark className="mr-2 h-4 w-4" />
                                 <span>Financiamiento Externo</span>
@@ -2081,18 +2026,6 @@ export default function PipelinePage() {
         isSubmitting={isSubmitting}
       />
     )}
-     {currentProspect && (
-      <QuotationFinancingDialog
-        open={quotationFinancingDialogOpen}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) setCurrentProspect(null);
-          setQuotationFinancingDialogOpen(isOpen);
-        }}
-        onConfirm={handleQuotationFinancingConfirm}
-        prospectName={currentProspect.clientName.toUpperCase()}
-        isSubmitting={isSubmitting}
-      />
-    )}
     {currentProspect && (
       <FollowUpDialog
           open={isFollowUpDialogOpen}
@@ -2219,5 +2152,3 @@ export default function PipelinePage() {
     </>
   );
 }
-
-    
