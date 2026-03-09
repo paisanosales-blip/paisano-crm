@@ -116,6 +116,16 @@ export function FollowUpDialog({
   };
 
   const handleConfirm = () => {
+    // If no future contact is scheduled, observations are required.
+    if (!nextContactDate && !observations.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Observación Requerida',
+        description: 'Debe ingresar una observación o agendar un próximo contacto.',
+      });
+      return;
+    }
+      
     // If it's a new activity (not editing), and it's a scheduled task (not just a note), then date and type are required.
     if (!isEditing && nextContactType && nextContactType !== 'Nota' && !nextContactDate) {
       toast({
