@@ -8,6 +8,7 @@ import React from 'react';
 import { Skeleton } from './ui/skeleton';
 import { getClassification } from '@/lib/types';
 import { states } from '@/lib/geography';
+import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 const pipelineConfig = {
     count: { label: 'Oportunidades' },
@@ -33,6 +34,7 @@ interface DashboardChartsProps {
     opportunities: any[] | null;
     leads: any[] | null;
     isLoading: boolean;
+    currentMonth: Date;
 }
 
 const CHART_COLORS = [
@@ -68,7 +70,27 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 };
 
 
-export function DashboardCharts({ opportunities, leads, isLoading }: DashboardChartsProps) {
+export function DashboardCharts({ opportunities: allOpportunities, leads: allLeads, isLoading, currentMonth }: DashboardChartsProps) {
+
+    const { opportunities, leads } = React.useMemo(() => {
+        if (!allOpportunities || !allLeads) {
+            return { opportunities: null, leads: null };
+        }
+
+        const monthStart = startOfMonth(currentMonth);
+        const monthEnd = endOfMonth(currentMonth);
+
+        const monthlyOpportunities = allOpportunities.filter(opp => {
+            if (!opp.createdDate) return false;
+            const createdDate = new Date(opp.createdDate);
+            return isWithinInterval(createdDate, { start: monthStart, end: monthEnd });
+        });
+
+        const leadIdsFromMonthlyOpps = new Set(monthlyOpportunities.map(o => o.leadId));
+        const relevantLeads = allLeads.filter(l => leadIdsFromMonthlyOpps.has(l.id));
+
+        return { opportunities: monthlyOpportunities, leads: relevantLeads };
+    }, [allOpportunities, allLeads, currentMonth]);
 
     const { potentialClientsByCityData, potentialClientsByCityConfig } = React.useMemo(() => {
         if (!opportunities || !leads) {

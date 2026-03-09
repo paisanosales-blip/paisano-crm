@@ -443,7 +443,7 @@ export default function DashboardPage() {
                 </div>
             )}
             <div className="grid gap-6 mt-4">
-                <DashboardCharts opportunities={allOpportunities} leads={allLeads} isLoading={isLoading} />
+                <DashboardCharts opportunities={allOpportunities} leads={allLeads} isLoading={isLoading} currentMonth={currentMonth} />
             </div>
         </div>
     );
