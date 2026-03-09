@@ -335,6 +335,11 @@
         "discardReason": {
           "type": "string",
           "description": "Reason why the opportunity was discarded."
+        },
+        "financingStatus": {
+          "type": "string",
+          "description": "Indicates the status of the external financing application.",
+          "enum": ["Pendiente", "Aprobado", "Rechazado"]
         }
       },
       "required": [

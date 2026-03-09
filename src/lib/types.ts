@@ -92,6 +92,7 @@ export type Opportunity = {
   cotizacionFinanciamientoExternoDate?: string;
   discardedDate?: string;
   discardReason?: string;
+  financingStatus?: 'Pendiente' | 'Aprobado' | 'Rechazado';
 };
 
 export type Quotation = {

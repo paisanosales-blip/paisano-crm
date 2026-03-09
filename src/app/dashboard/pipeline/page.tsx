@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, MessageCircle, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2, LayoutGrid, List, CalendarCheck, HardHat, Handshake, Award, Send, FileText } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, MessageCircle, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2, LayoutGrid, List, CalendarCheck, HardHat, Handshake, Award, Send, FileText, ShieldCheck, ShieldOff } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -266,6 +266,16 @@ export default function PipelinePage() {
       console.error("Error changing stage:", error);
       toast({ variant: 'destructive', title: 'Error', description: 'No se pudo cambiar la etapa.' });
     }
+  };
+  
+  const handleFinancingStatusChange = (opportunityId: string, status: 'Aprobado' | 'Rechazado' | 'Pendiente') => {
+    if (!firestore) return;
+    const opportunityRef = doc(firestore, 'opportunities', opportunityId);
+    updateDocumentNonBlocking(opportunityRef, { financingStatus: status });
+    toast({
+        title: 'Estado de Financiamiento Actualizado',
+        description: `La oportunidad ha sido marcada como ${status}.`,
+    });
   };
 
   const requestStageChange = (prospect: any, newStage: OpportunityStage) => {
@@ -1250,6 +1260,8 @@ export default function PipelinePage() {
                         const classification = getClassification(prospect.opportunity.stage);
                         const latestActivity = prospect.activities && prospect.activities.length > 0 ? prospect.activities[0] : null;
                         const currentIndex = pipelineStages.indexOf(prospect.opportunity.stage);
+                        const isFinancingStage = prospect.opportunity.stage === 'Financiamiento Externo' || prospect.opportunity.stage === 'COTIZACION FINANCIAMIENTO EXTERNO';
+
 
                         return (
                           <Card key={prospect.id} className={cn("flex flex-col border-2 border-black/80", getCardClass(classification))}>
@@ -1304,6 +1316,28 @@ export default function PipelinePage() {
                                                 <Landmark className="mr-2 h-4 w-4" />
                                                 <span>Financiamiento</span>
                                             </DropdownMenuItem>
+                                            {isFinancingStage && (
+                                                <DropdownMenuSub>
+                                                    <DropdownMenuSubTrigger>
+                                                        <Landmark className="mr-2 h-4 w-4" />
+                                                        <span>Estado Financiamiento</span>
+                                                    </DropdownMenuSubTrigger>
+                                                    <DropdownMenuPortal>
+                                                        <DropdownMenuSubContent>
+                                                            <DropdownMenuItem onSelect={() => handleFinancingStatusChange(prospect.opportunity.id, 'Aprobado')}>
+                                                                <ShieldCheck className="mr-2 h-4 w-4" /> Aprobado
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onSelect={() => handleFinancingStatusChange(prospect.opportunity.id, 'Rechazado')}>
+                                                                <ShieldOff className="mr-2 h-4 w-4" /> Rechazado
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onSelect={() => handleFinancingStatusChange(prospect.opportunity.id, 'Pendiente')}>
+                                                                <HelpCircle className="mr-2 h-4 w-4" /> Pendiente
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuSubContent>
+                                                    </DropdownMenuPortal>
+                                                </DropdownMenuSub>
+                                            )}
+                                            <DropdownMenuSeparator />
                                             <DropdownMenuItem onSelect={() => handleDiscardClick(prospect)} className="text-destructive">
                                                 <ArchiveX className="mr-2 h-4 w-4" />
                                                 <span>Descartar</span>
@@ -1314,14 +1348,28 @@ export default function PipelinePage() {
                               </CardHeader>
                               <CardContent className="flex-grow flex flex-col justify-between p-4 pt-2">
                                   <div className="space-y-3 flex-grow">
-                                      <div className="flex items-center justify-between text-xs">
+                                      <div className="flex items-center justify-between text-xs gap-2">
                                           {classification && (
                                               <Badge variant="outline" className={cn('font-bold', getBadgeClass(classification))}>
                                                   {prospect.opportunity.stage}
                                               </Badge>
                                           )}
+                                           {isFinancingStage && prospect.opportunity.financingStatus && (
+                                            <Badge
+                                                variant={
+                                                    prospect.opportunity.financingStatus === 'Aprobado' ? 'default' :
+                                                    prospect.opportunity.financingStatus === 'Rechazado' ? 'destructive' :
+                                                    'secondary'
+                                                }
+                                                className={cn('capitalize',
+                                                    prospect.opportunity.financingStatus === 'Aprobado' && 'bg-green-600 hover:bg-green-700'
+                                                )}
+                                            >
+                                                {prospect.opportunity.financingStatus}
+                                            </Badge>
+                                        )}
                                           {prospect.opportunity.value > 0 && (
-                                              <div className="font-bold text-primary">
+                                              <div className="font-bold text-primary truncate">
                                                   {new Intl.NumberFormat('en-US', { style: 'currency', currency: prospect.opportunity.currency || 'USD' }).format(prospect.opportunity.value)}
                                               </div>
                                           )}
@@ -1490,6 +1538,27 @@ export default function PipelinePage() {
                                 <Landmark className="mr-2 h-4 w-4" />
                                 <span>Financiamiento Externo</span>
                             </DropdownMenuItem>
+                             {isFinancingStage && (
+                                <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger>
+                                        <Landmark className="mr-2 h-4 w-4" />
+                                        <span>Estado Financiamiento</span>
+                                    </DropdownMenuSubTrigger>
+                                    <DropdownMenuPortal>
+                                        <DropdownMenuSubContent>
+                                            <DropdownMenuItem onSelect={() => handleFinancingStatusChange(prospect.opportunity.id, 'Aprobado')}>
+                                                <ShieldCheck className="mr-2 h-4 w-4" /> Aprobado
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={() => handleFinancingStatusChange(prospect.opportunity.id, 'Rechazado')}>
+                                                <ShieldOff className="mr-2 h-4 w-4" /> Rechazado
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onSelect={() => handleFinancingStatusChange(prospect.opportunity.id, 'Pendiente')}>
+                                                <HelpCircle className="mr-2 h-4 w-4" /> Pendiente
+                                            </DropdownMenuItem>
+                                        </DropdownMenuSubContent>
+                                    </DropdownMenuPortal>
+                                </DropdownMenuSub>
+                            )}
                             <DropdownMenuSeparator />
                              <DropdownMenuItem className="text-destructive" onSelect={() => handleDiscardClick(prospect)}>
                                 <ArchiveX className="mr-2 h-4 w-4" />
@@ -1683,7 +1752,26 @@ export default function PipelinePage() {
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <h4 className="font-semibold text-xs text-muted-foreground">PROGRESO DEL PROSPECTO</h4>
-                          <Badge variant="outline" className={`font-bold ${getBadgeClass(classification)}`}>{classification}</Badge>
+                          <div className="flex items-center gap-1">
+                            {isFinancingStage && prospect.opportunity.financingStatus && (
+                                <Badge
+                                    variant={
+                                        prospect.opportunity.financingStatus === 'Aprobado' ? 'default' :
+                                        prospect.opportunity.financingStatus === 'Rechazado' ? 'destructive' :
+                                        'secondary'
+                                    }
+                                    className={cn('capitalize text-xs',
+                                        prospect.opportunity.financingStatus === 'Aprobado' && 'bg-green-600 hover:bg-green-700'
+                                    )}
+                                >
+                                    {prospect.opportunity.financingStatus === 'Aprobado' && <ShieldCheck className="mr-1 h-3 w-3" />}
+                                    {prospect.opportunity.financingStatus === 'Rechazado' && <ShieldOff className="mr-1 h-3 w-3" />}
+                                    {prospect.opportunity.financingStatus === 'Pendiente' && <HelpCircle className="mr-1 h-3 w-3" />}
+                                    {prospect.opportunity.financingStatus}
+                                </Badge>
+                            )}
+                            <Badge variant="outline" className={`font-bold ${getBadgeClass(classification)}`}>{classification}</Badge>
+                          </div>
                         </div>
                         <div className="flex items-center pt-2">
                             {pipelineStages.map((stage, index) => {

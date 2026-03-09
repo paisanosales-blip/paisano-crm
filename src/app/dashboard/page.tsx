@@ -9,7 +9,7 @@ import {
 } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, DollarSign, Target, UserCheck, Users, FileText, UserX, Landmark, ArchiveX, FileDown } from 'lucide-react';
+import { TrendingUp, DollarSign, Target, UserCheck, Users, FileText, UserX, Landmark, ArchiveX, FileDown, ShieldCheck, ShieldOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -100,9 +100,11 @@ export default function DashboardPage() {
             return isWithinInterval(itemDate, { start, end });
         });
 
-        const opportunitiesMovedToFinancingInPeriod = (allOpportunities || []).filter(item => {
-            if (!item.financiamientoExternoDate || item.stage !== 'Financiamiento Externo') return false;
-            const itemDate = new Date(item.financiamientoExternoDate);
+        const opportunitiesInFinancingInPeriod = (allOpportunities || []).filter(item => {
+            if (item.stage !== 'Financiamiento Externo' && item.stage !== 'COTIZACION FINANCIAMIENTO EXTERNO') return false;
+            const dateToCheck = item.financiamientoExternoDate || item.cotizacionFinanciamientoExternoDate;
+            if (!dateToCheck) return false;
+            const itemDate = new Date(dateToCheck);
             return isWithinInterval(itemDate, { start, end });
         });
 
@@ -117,7 +119,7 @@ export default function DashboardPage() {
                 opportunities: opportunitiesCreatedInPeriod,
                 quotations: quotationsCreatedInPeriod,
                 closedOpportunities: opportunitiesClosedInPeriod,
-                movedToFinancing: opportunitiesMovedToFinancingInPeriod,
+                opportunitiesInFinancing: opportunitiesInFinancingInPeriod,
                 discardedOpportunities: opportunitiesDiscardedInPeriod,
             }
         }
@@ -125,7 +127,7 @@ export default function DashboardPage() {
     }, [currentMonth, allOpportunities, allQuotations, reportType]);
 
     const dashboardStats = React.useMemo(() => {
-        const { opportunities, quotations, closedOpportunities, movedToFinancing, discardedOpportunities } = periodData;
+        const { opportunities, quotations, closedOpportunities, opportunitiesInFinancing, discardedOpportunities } = periodData;
 
         const emptyStats = {
             totalProspectosRegistrados: 0,
@@ -138,10 +140,12 @@ export default function DashboardPage() {
             clientesNoAtendidos: 0,
             cotizacionesHechas: 0,
             clientesEnFinanciamiento: 0,
+            financingApproved: 0,
+            financingRejected: 0,
             prospectosDescartados: 0,
         };
         
-        if (!allOpportunities || !opportunities || !quotations || !closedOpportunities || !movedToFinancing || !discardedOpportunities || !allQuotations) {
+        if (!allOpportunities || !opportunities || !quotations || !closedOpportunities || !opportunitiesInFinancing || !discardedOpportunities || !allQuotations) {
             return emptyStats;
         }
         
@@ -196,7 +200,9 @@ export default function DashboardPage() {
             ingresosTotalesMXN: revenue.mxn,
             clientesNoAtendidos: prospectosNoAtendidos,
             cotizacionesHechas: quotations.length,
-            clientesEnFinanciamiento: movedToFinancing.length,
+            clientesEnFinanciamiento: opportunitiesInFinancing.length,
+            financingApproved: opportunitiesInFinancing.filter(opp => opp.financingStatus === 'Aprobado').length,
+            financingRejected: opportunitiesInFinancing.filter(opp => opp.financingStatus === 'Rechazado').length,
             prospectosDescartados: discardedOpportunities.length,
         };
     }, [periodData, allQuotations, allOpportunities]);
@@ -344,11 +350,11 @@ export default function DashboardPage() {
                 </div>
             </div>
             {isLoading ? (
-                <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-                    {Array.from({length: 10}).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+                <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
+                    {Array.from({length: 12}).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
                 </div>
             ) : (
-                <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+                <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
                     <Card className="bg-muted/50">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
                             <CardTitle className="text-xs font-medium">Total Prospectos</CardTitle>
@@ -429,6 +435,24 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent className="p-3 pt-0">
                             <div className="text-lg font-bold">{dashboardStats.clientesEnFinanciamiento}</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-muted/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Financiamiento Aprobado</CardTitle>
+                            <ShieldCheck className="h-4 w-4 text-green-600" />
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{dashboardStats.financingApproved}</div>
+                        </CardContent>
+                    </Card>
+                    <Card className="bg-muted/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Financiamiento Rechazado</CardTitle>
+                            <ShieldOff className="h-4 w-4 text-red-600" />
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{dashboardStats.financingRejected}</div>
                         </CardContent>
                     </Card>
                      <Card className="bg-muted/50">
