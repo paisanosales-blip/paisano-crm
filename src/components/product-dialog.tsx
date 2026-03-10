@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { doc, collection } from 'firebase/firestore';
 import { useFirestore, useUser, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
-import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -49,7 +48,6 @@ interface ProductDialogProps {
 }
 
 export function ProductDialog({ open, onOpenChange, product }: ProductDialogProps) {
-  const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
   const isEditing = !!product;
@@ -98,28 +96,14 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
   const handleGenerateSummary = async () => {
     const description = form.getValues('description');
     if (!description) {
-      toast({
-        variant: 'destructive',
-        title: 'Descripción requerida',
-        description: 'Por favor, escriba una descripción antes de generar un resumen.',
-      });
       return;
     }
     setIsGenerating(true);
     try {
       const result = await generateProductSummary({ description });
       form.setValue('summary', result.summary);
-      toast({
-        title: 'Resumen generado',
-        description: 'La IA ha creado un resumen del producto.',
-      });
     } catch (error) {
       console.error("Error generating summary:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Error de IA',
-        description: 'No se pudo generar el resumen.',
-      });
     } finally {
       setIsGenerating(false);
     }

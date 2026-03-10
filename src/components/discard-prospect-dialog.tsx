@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
 
 export interface DiscardConfirmPayload {
   reason: string;
@@ -34,7 +33,6 @@ export function DiscardProspectDialog({
   isSubmitting,
 }: DiscardProspectDialogProps) {
   const [reason, setReason] = useState('');
-  const { toast } = useToast();
 
   useEffect(() => {
     if (open) {

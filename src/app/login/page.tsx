@@ -15,7 +15,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { PublicLogo } from '@/components/public-logo';
-import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const loginSchema = z.object({
@@ -26,7 +25,6 @@ const loginSchema = z.object({
 export default function LoginPage() {
   const auth = useAuth();
   const router = useRouter();
-  const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
   const form = useForm<z.infer<typeof loginSchema>>({
@@ -47,11 +45,7 @@ export default function LoginPage() {
     try {
       await initiateEmailSignIn(auth, values.email, values.password);
     } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error al iniciar sesión',
-        description: 'Credenciales inválidas. Por favor, inténtelo de nuevo.',
-      });
+      console.error("Login failed:", error);
     }
   }
   

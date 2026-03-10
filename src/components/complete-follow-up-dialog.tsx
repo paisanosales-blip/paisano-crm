@@ -14,7 +14,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Activity } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 export interface CompletionPayload {
@@ -44,7 +43,6 @@ export function CompleteFollowUpDialog({ open, onOpenChange, onConfirm, isSubmit
   const [nextFollowUpType, setNextFollowUpType] = useState('');
   const [nextFollowUpDate, setNextFollowUpDate] = useState<Date | undefined>();
   const [nextFollowUpDescription, setNextFollowUpDescription] = useState('');
-  const { toast } = useToast();
 
   useEffect(() => {
     if (open) {

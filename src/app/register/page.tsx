@@ -17,7 +17,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { PublicLogo } from '@/components/public-logo';
-import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const registerSchema = z.object({
@@ -35,7 +34,6 @@ export default function RegisterPage() {
   const auth = useAuth();
   const firestore = useFirestore();
   const router = useRouter();
-  const { toast } = useToast();
   const { user, isUserLoading } = useUser();
 
   const form = useForm<RegisterFormValues>({
@@ -79,18 +77,9 @@ export default function RegisterPage() {
 
       const userDocRef = doc(firestore, 'users', newUser.uid);
       setDocumentNonBlocking(userDocRef, userProfile, { merge: true });
-
-      toast({
-        title: '¡Cuenta Creada!',
-        description: 'Bienvenido a Paisano Sales Hub. Serás redirigido.',
-      });
       
     } catch (error) {
-       toast({
-        variant: 'destructive',
-        title: 'Error de Registro',
-        description: 'Este correo electrónico ya está en uso o la contraseña es inválida.',
-      });
+       console.error("Registration failed:", error);
     }
   }
 

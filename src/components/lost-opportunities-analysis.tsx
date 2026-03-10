@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Lightbulb, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { analyzeDiscardReasons } from '@/ai/flows/analyze-discard-reasons';
 import type { Opportunity } from '@/lib/types';
 
@@ -15,7 +14,6 @@ interface LostOpportunitiesAnalysisProps {
 export function LostOpportunitiesAnalysis({ discardedOpportunities }: LostOpportunitiesAnalysisProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const handleAnalysis = async () => {
     setIsLoading(true);
@@ -26,10 +24,6 @@ export function LostOpportunitiesAnalysis({ discardedOpportunities }: LostOpport
       .filter((reason): reason is string => !!reason);
 
     if (reasons.length === 0) {
-      toast({
-        title: 'No hay datos suficientes',
-        description: 'No se encontraron motivos de descarte para analizar en el período seleccionado.',
-      });
       setIsLoading(false);
       return;
     }
@@ -39,11 +33,6 @@ export function LostOpportunitiesAnalysis({ discardedOpportunities }: LostOpport
       setAnalysis(result.summary);
     } catch (error) {
       console.error("Error analyzing discard reasons:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Error de IA',
-        description: 'No se pudo generar el análisis en este momento.',
-      });
     } finally {
       setIsLoading(false);
     }

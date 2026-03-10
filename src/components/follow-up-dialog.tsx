@@ -25,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
 import { draftFollowUpScript, type DraftFollowUpScriptInput } from '@/ai/flows/draft-follow-up-script';
 
 export interface FollowUpSubmitPayload {
@@ -54,7 +53,6 @@ export function FollowUpDialog({
 }: FollowUpDialogProps) {
 
   const isEditing = !!activity;
-  const { toast } = useToast();
 
   const [observations, setObservations] = useState('');
   const [nextContactDate, setNextContactDate] = useState<Date>();
@@ -77,11 +75,11 @@ export function FollowUpDialog({
 
   const handleGenerateDraft = async () => {
     if (!prospect) {
-      toast({ title: "Error", description: "No se encontró el prospecto.", variant: "destructive" });
+      console.error("No prospect found.");
       return;
     }
     if (!nextContactType || nextContactType === '') {
-      toast({ title: "Tipo de contacto requerido", description: "Seleccione un tipo de contacto antes de generar un borrador.", variant: "destructive" });
+      console.error("Contact type is required.");
       return;
     }
   
@@ -109,7 +107,6 @@ export function FollowUpDialog({
       
     } catch(e) {
       console.error("Error generating draft:", e);
-      toast({ title: "Error de IA", description: "No se pudo generar el borrador.", variant: "destructive" });
     } finally {
       setIsGenerating(false);
     }
@@ -118,30 +115,15 @@ export function FollowUpDialog({
   const handleConfirm = () => {
     // If no future contact is scheduled, observations are required.
     if (!nextContactDate && !observations.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'Observación Requerida',
-        description: 'Debe ingresar una observación o agendar un próximo contacto.',
-      });
       return;
     }
       
     // If it's a new activity (not editing), and it's a scheduled task (not just a note), then date and type are required.
     if (!isEditing && nextContactType && nextContactType !== 'Nota' && !nextContactDate) {
-      toast({
-        variant: 'destructive',
-        title: 'Fecha Requerida',
-        description: 'Por favor, seleccione una fecha para agendar el próximo contacto.',
-      });
       return;
     }
     // If a date is selected, a specific type (not 'Nota') must also be selected.
     if (nextContactDate && (!nextContactType || nextContactType === 'Nota')) {
-      toast({
-        variant: 'destructive',
-        title: 'Tipo de Contacto Requerido',
-        description: 'Por favor, seleccione un tipo de contacto (Llamada, Mensaje, Correo) cuando agende una fecha.',
-      });
       return;
     }
 

@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { BrainCircuit, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { generateSalesCoaching } from '@/ai/flows/generate-sales-coaching';
 
 interface SalesCoachAnalysisProps {
@@ -30,7 +29,6 @@ export function SalesCoachAnalysis({
 }: SalesCoachAnalysisProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const handleAnalysis = async () => {
     setIsLoading(true);
@@ -49,11 +47,6 @@ export function SalesCoachAnalysis({
       setAnalysis(result.coachingMessage);
     } catch (error) {
       console.error("Error generating sales coaching:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Error de IA',
-        description: 'No se pudo generar el análisis del coach en este momento.',
-      });
     } finally {
       setIsLoading(false);
     }

@@ -35,7 +35,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Lightbulb, Loader2, Paperclip, CheckCircle2, Trash2, KeyRound, Pencil, Eye, ThumbsUp, Undo2, FileCheck2, History } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import {
   generateMarketingPlan,
 } from '@/ai/flows/generate-marketing-plan';
@@ -59,7 +58,6 @@ const GENERATION_CODE = 'PAISANO2026';
 export default function MarketingPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -330,11 +328,7 @@ export default function MarketingPage() {
       setEnteredCode('');
       handleGeneratePlan();
     } else {
-      toast({
-        variant: 'destructive',
-        title: 'Código Incorrecto',
-        description: 'El código especial ingresado no es válido.',
-      });
+      console.error("Incorrect generation code");
     }
   };
   
@@ -374,11 +368,7 @@ export default function MarketingPage() {
     if (!taskToDelete || !firestore || !selectedPlanId) return;
     
     if (deleteTaskCode !== 'PAISANO2026') {
-      toast({
-        variant: 'destructive',
-        title: 'Código Incorrecto',
-        description: 'El código especial ingresado no es válido.',
-      });
+      console.error("Incorrect deletion code");
       return;
     }
 

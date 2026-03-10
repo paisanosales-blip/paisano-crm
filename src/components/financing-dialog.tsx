@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
 
 export interface FinancingConfirmPayload {
   financiamientoExternoNotes: string;
@@ -34,7 +33,6 @@ export function FinancingDialog({
   isSubmitting,
 }: FinancingDialogProps) {
   const [notes, setNotes] = useState('');
-  const { toast } = useToast();
 
   useEffect(() => {
     if (open) {

@@ -17,7 +17,6 @@ import 'jspdf-autotable';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Product, ExternalSeller } from '@/lib/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
-import { useToast } from '@/hooks/use-toast';
 import { type QuotationFormValues } from './quotation-upload-dialog';
 import QRCode from 'qrcode';
 import { Textarea } from './ui/textarea';
@@ -47,7 +46,6 @@ const newTerms = 'All applicable tariffs and taxes included in this quotation or
 export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfirm, isSubmitting }: QuotationGeneratorDialogProps) {
   const { user } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -169,11 +167,9 @@ export function QuotationGeneratorDialog({ open, onOpenChange, prospect, onConfi
   
   const generateAndConfirm = async () => {
     if (!prospect) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se ha seleccionado un prospecto.' });
       return;
     }
     if (items.length === 0 || items.every(i => i.quantity === 0)) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Debe agregar al menos un producto a la cotización.' });
         return;
     }
     

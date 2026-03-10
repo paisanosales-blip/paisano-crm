@@ -32,7 +32,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { getClassification, getBadgeClass } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -42,7 +41,6 @@ import { Input } from '@/components/ui/input';
 export default function QuotationsPage() {
     const { user, isUserLoading: isUserAuthLoading } = useUser();
     const firestore = useFirestore();
-    const { toast } = useToast();
     const [selectedUserId, setSelectedUserId] = useState<string>('me');
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [quotationToDelete, setQuotationToDelete] = useState<any | null>(null);
@@ -220,8 +218,8 @@ export default function QuotationsPage() {
     };
     
     const handleSendEmail = (quotation: any) => {
-        if (!quotation.clientEmail) { toast({ variant: 'destructive', title: 'Correo no encontrado', description: `No se encontró una dirección de correo para ${quotation.clientName}.` }); return; }
-        if (!quotation.pdfUrl) { toast({ variant: 'destructive', title: 'PDF no encontrado', description: `No se encontró el archivo PDF para esta cotización.` }); return; }
+        if (!quotation.clientEmail) { return; }
+        if (!quotation.pdfUrl) { return; }
         const subject = `Cotización de Paisano Trailer - ${quotation.clientName}`;
         const body = `Estimado/a ${quotation.contactPerson || quotation.clientName},\n\nAdjunto encontrará el enlace para descargar su cotización (versión ${quotation.version}).\n\nPor favor, haga clic en el siguiente enlace:\n${quotation.pdfUrl}\n\nSi tiene alguna pregunta, no dude en contactarnos.\n\nSaludos cordiales,\n${userProfile?.firstName || ''} ${userProfile?.lastName || ''}\nPaisano Trailer`;
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${quotation.clientEmail}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -234,14 +232,12 @@ export default function QuotationsPage() {
     };
 
     const handleDeleteConfirm = async () => {
-        if (!quotationToDelete || !firestore) { toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar la cotización a eliminar.' }); return; }
+        if (!quotationToDelete || !firestore) { return; }
         setIsDeleting(true);
         try {
             deleteDocumentNonBlocking(doc(firestore, 'quotations', quotationToDelete.id));
-            toast({ title: 'Eliminación Iniciada', description: `La cotización para ${quotationToDelete.clientName} se está eliminando.` });
         } catch (error) {
             console.error("Error deleting quotation:", error);
-            toast({ variant: 'destructive', title: 'Error al eliminar', description: 'Ocurrió un problema al eliminar la cotización.' });
         } finally {
             setIsDeleting(false);
             setIsDeleteDialogOpen(false);
@@ -256,10 +252,8 @@ export default function QuotationsPage() {
         setIsDeleting(true);
         try {
             selectedQuoteIds.forEach(id => deleteDocumentNonBlocking(doc(firestore, 'quotations', id)));
-            toast({ title: 'Eliminación en Proceso', description: `${selectedQuoteIds.size} cotizaciones se están eliminando.` });
         } catch (error) {
             console.error("Error bulk deleting quotations:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Ocurrió un problema al eliminar las cotizaciones.' });
         } finally {
             setIsDeleting(false);
             setIsBulkDeleteOpen(false);
@@ -271,7 +265,6 @@ export default function QuotationsPage() {
         if (!firestore) return;
         const quotationRef = doc(firestore, 'quotations', quotationId);
         updateDocumentNonBlocking(quotationRef, { status });
-        toast({ title: 'Estado Actualizado', description: `La cotización ha sido marcada como ${status.toLowerCase()}.` });
     };
 
     return (

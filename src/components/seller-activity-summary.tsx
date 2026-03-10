@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { BrainCircuit, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { isWithinInterval, subDays } from 'date-fns';
 
@@ -25,14 +24,12 @@ export function SellerActivitySummary({
   const [isLoading, setIsLoading] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [timePeriod, setTimePeriod] = useState<'week' | 'month'>('week');
-  const { toast } = useToast();
 
   const handleAnalysis = async () => {
     setIsLoading(true);
     setAnalysis(null);
     
     if (!opportunities || !activities) {
-        toast({ title: 'Datos no disponibles', description: 'No se pudieron cargar los datos de actividad.', variant: 'destructive'});
         setIsLoading(false);
         return;
     }
@@ -66,11 +63,6 @@ export function SellerActivitySummary({
       setAnalysis(result.summary);
     } catch (error) {
       console.error("Error generating seller summary:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Error de IA',
-        description: 'No se pudo generar el resumen en este momento.',
-      });
     } finally {
       setIsLoading(false);
     }

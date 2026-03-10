@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Loader2, Sparkles, Download, ArrowLeft, ArrowRight, Maximize, Minimize } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { generatePresentationContent, type PresentationContent } from '@/ai/flows/generate-presentation-content';
 import { PresentationSlide } from '@/components/presentation-slide';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -24,7 +23,6 @@ type ReportType = 'monthly_sales_summary' | 'lost_opportunities_analysis' | 'wee
 export default function PresentationsPage() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
 
   const [reportType, setReportType] = useState<ReportType | ''>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -223,11 +221,9 @@ export default function PresentationsPage() {
 
   const handleGenerate = async () => {
     if (!reportType) {
-      toast({ variant: 'destructive', title: 'Seleccione un reporte', description: 'Debe elegir un tipo de reporte para generar.' });
       return;
     }
     if (!reportData) {
-      toast({ variant: 'destructive', title: 'Datos no disponibles', description: 'No se pudieron cargar los datos para este reporte.' });
       return;
     }
 
@@ -245,18 +241,8 @@ export default function PresentationsPage() {
       
       setSlides(result.slides);
 
-      toast({
-        title: '¡Presentación Generada!',
-        description: 'Se han creado las diapositivas para tu reporte.',
-      });
-
     } catch (error) {
       console.error('Error generating presentation:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al generar la presentación',
-        description: 'No se pudo crear la presentación en este momento. Inténtelo de nuevo.',
-      });
     } finally {
       setIsLoading(false);
     }
@@ -264,7 +250,6 @@ export default function PresentationsPage() {
   
   const handleDownload = async () => {
     if (!slidePreviewRef.current) {
-      toast({ variant: 'destructive', title: 'Error de Descarga', description: 'No se pudo encontrar la referencia de la diapositiva.' });
       return;
     }
     
@@ -279,7 +264,6 @@ export default function PresentationsPage() {
       link.click();
     } catch (err) {
       console.error('Failed to download image:', err);
-      toast({ variant: 'destructive', title: 'Error de Descarga', description: 'No se pudo convertir la diapositiva a imagen.' });
     }
   };
 
@@ -310,11 +294,7 @@ export default function PresentationsPage() {
 
     if (!document.fullscreenElement) {
       element.requestFullscreen().catch((err) => {
-        toast({
-          variant: 'destructive',
-          title: 'Error de Pantalla Completa',
-          description: `No se pudo activar el modo de pantalla completa: ${err.message}`,
-        });
+        console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
       });
     } else {
       if (document.exitFullscreen) {
