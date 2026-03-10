@@ -19,23 +19,26 @@ export function Toaster() {
     setIsMounted(true)
   }, [])
 
+  if (!isMounted) {
+    return null
+  }
+
   return (
     <ToastProvider duration={3000}>
-      {isMounted &&
-        toasts.map(function ({ id, title, description, action, ...props }) {
-          return (
-            <Toast key={id} {...props} className="pointer-events-auto">
-              <div className="grid gap-1">
-                {title && <ToastTitle>{title}</ToastTitle>}
-                {description && (
-                  <ToastDescription>{description}</ToastDescription>
-                )}
-              </div>
-              {action}
-              <ToastClose />
-            </Toast>
-          )
-        })}
+      {toasts.map(function ({ id, title, description, action, ...props }) {
+        return (
+          <Toast key={id} {...props} className="pointer-events-auto">
+            <div className="grid gap-1">
+              {title && <ToastTitle>{title}</ToastTitle>}
+              {description && (
+                <ToastDescription>{description}</ToastDescription>
+              )}
+            </div>
+            {action}
+            <ToastClose />
+          </Toast>
+        )
+      })}
       <ToastViewport />
     </ToastProvider>
   )
