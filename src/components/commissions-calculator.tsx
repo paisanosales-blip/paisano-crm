@@ -86,10 +86,10 @@ export function CommissionsCalculator() {
   const { toast } = useToast();
   const [exchangeRate, setExchangeRate] = useState(18.0);
   const [selectedCommissionIds, setSelectedCommissionIds] = useState<Set<string>>(new Set());
-  const [paymentToRevert, setPaymentToRevert] = useState<(Payment & {sales: Sale[]}) | null>(null);
+  const [paymentToRevert, setPaymentToRevert] = useState<(Payment & {sales: Sale[], calculatedTotalMxn: number}) | null>(null);
   const [isRevertDialogOpen, setIsRevertDialogOpen] = useState(false);
   
-  const [paymentToEdit, setPaymentToEdit] = useState<(Payment & {sales: Sale[]}) | null>(null);
+  const [paymentToEdit, setPaymentToEdit] = useState<(Payment & {sales: Sale[], calculatedTotalMxn: number}) | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isEditingPayment, setIsEditingPayment] = useState(false);
 
@@ -132,10 +132,18 @@ export function CommissionsCalculator() {
 
   const paidPaymentsWithSales = useMemo(() => {
     if (!payments || !sales) return [];
-    return payments.map(p => ({
-        ...p,
-        sales: sales.filter(s => (p.paidSaleIds || []).includes(s.id))
-    })).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return payments.map(p => {
+        const associatedSales = sales.filter(s => (p.paidSaleIds || []).includes(s.id));
+        const totalMxnFromUsd = associatedSales
+            .filter(s => s.currency === 'USD' && s.exchangeRate)
+            .reduce((sum, s) => sum + ((s.commissionAmount || 0) * s.exchangeRate), 0);
+        
+        return {
+            ...p,
+            sales: associatedSales,
+            calculatedTotalMxn: (p.totalAmountMXN || 0) + totalMxnFromUsd,
+        }
+    }).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [payments, sales]);
 
   const handleAddSale = () => {
@@ -255,7 +263,7 @@ export function CommissionsCalculator() {
     });
   };
 
-  const handleRevertPaymentClick = (payment: Payment & {sales: Sale[]}) => {
+  const handleRevertPaymentClick = (payment: Payment & {sales: Sale[], calculatedTotalMxn: number}) => {
     setPaymentToRevert(payment);
     setIsRevertDialogOpen(true);
   };
@@ -282,7 +290,7 @@ export function CommissionsCalculator() {
     setPaymentToRevert(null);
   };
   
-  const handleEditPaymentClick = (payment: Payment & {sales: Sale[]}) => {
+  const handleEditPaymentClick = (payment: Payment & {sales: Sale[], calculatedTotalMxn: number}) => {
     setPaymentToEdit(payment);
     setIsEditDialogOpen(true);
   };
@@ -325,13 +333,15 @@ export function CommissionsCalculator() {
   }, [sales]);
   
   const totalPaid = useMemo(() => {
-    if (!payments) return { usd: 0, mxn: 0 };
-    return payments.reduce((acc, payment) => {
+    if (!paidPaymentsWithSales) return { usd: 0, mxn: 0 };
+    
+    return paidPaymentsWithSales.reduce((acc, payment) => {
       acc.usd += payment.totalAmountUSD || 0;
-      acc.mxn += payment.totalAmountMXN || 0;
+      acc.mxn += payment.calculatedTotalMxn || 0;
       return acc;
     }, { usd: 0, mxn: 0 });
-  }, [payments]);
+
+  }, [paidPaymentsWithSales]);
 
   const balance = useMemo(() => {
     const pendingTotal = pendingCommissions.reduce((acc, sale) => {
@@ -441,7 +451,6 @@ export function CommissionsCalculator() {
             <CardContent className="p-3 pt-0">
                 <div className="space-y-1">
                     <div className="text-2xl font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalPaid.usd)} <span className="text-base font-medium text-muted-foreground">USD</span></div>
-                    {totalPaid.usd > 0 && <div className="text-sm text-muted-foreground">~ {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalPaid.usd * exchangeRate)} MXN Aprox.</div>}
                     <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalPaid.mxn)} <span className="text-sm font-medium">MXN</span></div>
                 </div>
             </CardContent>
@@ -532,7 +541,7 @@ export function CommissionsCalculator() {
           </Button>
         </CardContent>
       </Card>
-
+      
       <Card>
         <CardHeader>
           <CardTitle>Comisiones Pendientes de Pago</CardTitle>
@@ -546,9 +555,9 @@ export function CommissionsCalculator() {
                     <TableRow>
                         <TableHead className="w-12"><span className="sr-only">Select</span></TableHead>
                         <TableHead>Cliente</TableHead>
-                        <TableHead>Fecha Pago Cliente</TableHead>
-                        <TableHead>Tipo Comisión</TableHead>
                         <TableHead>Monto Comisión</TableHead>
+                        <TableHead>Comisión (MXN Aprox)</TableHead>
+                        <TableHead>Fecha Pago Cliente</TableHead>
                         <TableHead>Tipo Cambio</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -567,16 +576,15 @@ export function CommissionsCalculator() {
                                     />
                                 </TableCell>
                                 <TableCell className="font-semibold">{sale.clientName}</TableCell>
-                                <TableCell>{sale.paidDate ? format(new Date(sale.paidDate), 'dd MMM, yyyy', { locale: es }) : 'N/A'}</TableCell>
-                                <TableCell>{sale.commissionType || 'N/A'}</TableCell>
+                                <TableCell className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency }).format(sale.commissionAmount || 0)}</TableCell>
                                 <TableCell>
-                                    <div className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency }).format(sale.commissionAmount || 0)}</div>
                                     {sale.currency === 'USD' && sale.exchangeRate && sale.commissionAmount ? (
-                                        <div className="text-xs text-muted-foreground">
+                                        <div className="font-semibold text-muted-foreground">
                                             {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(sale.commissionAmount * sale.exchangeRate)}
                                         </div>
-                                    ) : null}
+                                    ) : 'N/A'}
                                 </TableCell>
+                                <TableCell>{sale.paidDate ? format(new Date(sale.paidDate), 'dd MMM, yyyy', { locale: es }) : 'N/A'}</TableCell>
                                 <TableCell>
                                     <Input
                                         type="number"
@@ -584,7 +592,7 @@ export function CommissionsCalculator() {
                                         className="w-24"
                                         value={sale.exchangeRate || ''}
                                         onChange={(e) => handleSaleChange(sale.id, 'exchangeRate', Number(e.target.value))}
-                                        placeholder="18.00"
+                                        placeholder="18.0000"
                                     />
                                 </TableCell>
                             </TableRow>
@@ -623,19 +631,8 @@ export function CommissionsCalculator() {
                               {payment.notes && <p className="text-xs text-muted-foreground italic mt-1">Nota: "{payment.notes}"</p>}
                           </div>
                           <div className="text-right">
-                            {payment.totalAmountUSD > 0 && (
-                              <div>
-                                <p className="font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payment.totalAmountUSD)}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  ~ {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(
-                                      payment.sales
-                                        .filter(s => s.currency === 'USD')
-                                        .reduce((acc, s) => acc + (s.commissionAmount || 0) * (s.exchangeRate || 0), 0)
-                                    )}
-                                </p>
-                              </div>
-                            )}
-                            {payment.totalAmountMXN > 0 && <p className="font-semibold text-gray-500">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(payment.totalAmountMXN)}</p>}
+                            {payment.totalAmountUSD > 0 && <p className="font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payment.totalAmountUSD)}</p>}
+                            <p className="font-semibold text-gray-500">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(payment.calculatedTotalMxn)}</p>
                           </div>
                       </div>
                     </AccordionTrigger>
@@ -710,3 +707,4 @@ export function CommissionsCalculator() {
     </>
   );
 }
+
