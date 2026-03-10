@@ -318,6 +318,19 @@ export function CommissionsCalculator() {
     setIsEditingPayment(false);
   };
 
+  const totalAllCommissions = useMemo(() => {
+    if (!sales) return { usd: 0, mxn: 0 };
+    return sales.reduce((acc, sale) => {
+        const amount = sale.commissionAmount || 0;
+        if (sale.currency === 'USD') {
+          acc.usd += amount;
+        } else {
+          acc.mxn += amount;
+        }
+        return acc;
+      }, { usd: 0, mxn: 0 });
+  }, [sales]);
+
   const totalGeneratedFromPaidSales = useMemo(() => {
     if (!sales) return { usd: 0, mxn: 0 };
     return sales
@@ -427,7 +440,19 @@ export function CommissionsCalculator() {
         </Button>
       </div>
 
-       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-muted/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                <CardTitle className="text-xs font-medium">TOTAL DE COMISIONES GENERADAS</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+                 <div className="space-y-1">
+                    <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalAllCommissions.usd)} <span className="text-base font-medium text-muted-foreground">USD</span></div>
+                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalAllCommissions.mxn)} <span className="text-sm font-medium">MXN</span></div>
+                </div>
+            </CardContent>
+        </Card>
         <Card className="bg-muted/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
                 <CardTitle className="text-xs font-medium">COMISIONES PENDIENTES POR PAGAR</CardTitle>
@@ -702,5 +727,6 @@ export function CommissionsCalculator() {
     </>
   );
 }
+
 
 
