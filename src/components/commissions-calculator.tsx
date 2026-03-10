@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Trash2, Calculator, Wallet, Banknote, Award, Target, TrendingUp, FileDown, Truck, Droplets, Wind, Package } from 'lucide-react';
+import { PlusCircle, Trash2, Calculator, Wallet, Banknote, Award, Target, TrendingUp, FileDown, Truck, Droplets, Wind, Package, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Checkbox } from './ui/checkbox';
@@ -46,6 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { EditCommissionPaymentDialog, type EditPaymentPayload } from './edit-commission-payment-dialog';
 
 
 type CommissionType = 'VENTA_PROPIA' | 'VENTA_EXTERNA' | 'VENTA_FINANCIADA';
@@ -76,6 +77,7 @@ interface Payment {
     paidSaleIds: string[];
     totalAmountUSD: number;
     totalAmountMXN: number;
+    notes?: string;
 }
 
 export function CommissionsCalculator() {
@@ -86,6 +88,11 @@ export function CommissionsCalculator() {
   const [selectedCommissionIds, setSelectedCommissionIds] = useState<Set<string>>(new Set());
   const [paymentToRevert, setPaymentToRevert] = useState<(Payment & {sales: Sale[]}) | null>(null);
   const [isRevertDialogOpen, setIsRevertDialogOpen] = useState(false);
+  
+  const [paymentToEdit, setPaymentToEdit] = useState<(Payment & {sales: Sale[]}) | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isEditingPayment, setIsEditingPayment] = useState(false);
+
 
   const leadsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -273,6 +280,23 @@ export function CommissionsCalculator() {
 
     setIsRevertDialogOpen(false);
     setPaymentToRevert(null);
+  };
+  
+  const handleEditPaymentClick = (payment: Payment & {sales: Sale[]}) => {
+    setPaymentToEdit(payment);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditPaymentConfirm = (payload: EditPaymentPayload) => {
+    if (!paymentToEdit || !firestore) return;
+    
+    setIsEditingPayment(true);
+    const paymentRef = doc(firestore, 'commissionPayments', paymentToEdit.id);
+    updateDocumentNonBlocking(paymentRef, payload);
+    
+    toast({ title: 'Pago Actualizado', description: 'Los detalles del pago han sido guardados.' });
+    setIsEditDialogOpen(false);
+    setIsEditingPayment(false);
   };
 
   
@@ -538,7 +562,7 @@ export function CommissionsCalculator() {
                                 <TableCell className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency }).format(sale.commissionAmount || 0)}</TableCell>
                                 <TableCell className="text-muted-foreground">
                                   {sale.currency === 'USD' && sale.exchangeRate && sale.commissionAmount
-                                      ? `~ ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(sale.commissionAmount * sale.exchangeRate)}`
+                                      ? `~ ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 4, maximumFractionDigits: 4 }).format(sale.commissionAmount * sale.exchangeRate)}`
                                       : 'N/A'}
                                 </TableCell>
                                 <TableCell>
@@ -583,14 +607,26 @@ export function CommissionsCalculator() {
                         <div className="text-left">
                             <p className="font-semibold">Pago del {format(new Date(payment.date), "dd MMM, yyyy", { locale: es })}</p>
                             <p className="text-sm text-muted-foreground">{payment.sales.length} comision(es) pagada(s)</p>
+                             {payment.notes && <p className="text-xs text-muted-foreground italic mt-1">Nota: "{payment.notes}"</p>}
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1">
                             <div className="text-right">
                               {payment.totalAmountUSD > 0 && <p className="font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payment.totalAmountUSD)}</p>}
                               {payment.totalAmountMXN > 0 && <p className="font-semibold text-gray-500">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(payment.totalAmountMXN)}</p>}
                             </div>
                             <Button
-                                asChild
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditPaymentClick(payment);
+                                }}
+                            >
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Editar Pago</span>
+                            </Button>
+                            <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
@@ -599,10 +635,8 @@ export function CommissionsCalculator() {
                                     handleRevertPaymentClick(payment);
                                 }}
                             >
-                                <div>
-                                    <Trash2 className="h-4 w-4" />
-                                    <span className="sr-only">Revertir Pago</span>
-                                </div>
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Revertir Pago</span>
                             </Button>
                         </div>
                     </div>
@@ -647,6 +681,13 @@ export function CommissionsCalculator() {
             </AlertDialogFooter>
         </AlertDialogContent>
     </AlertDialog>
+     <EditCommissionPaymentDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onConfirm={handleEditPaymentConfirm}
+        payment={paymentToEdit}
+        isSubmitting={isEditingPayment}
+    />
     </>
   );
 }

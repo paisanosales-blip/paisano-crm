@@ -764,6 +764,7 @@
         "id": { "type": "string" },
         "sellerId": { "type": "string" },
         "date": { "type": "string", "format": "date-time" },
+        "notes": { "type": "string", "description": "Optional notes for the payment." },
         "paidSaleIds": {
             "type": "array",
             "items": { "type": "string" },

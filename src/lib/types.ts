@@ -252,6 +252,7 @@ export type CommissionPayment = {
   id: string;
   sellerId: string;
   date: string;
+  notes?: string;
   paidSaleIds: string[];
   totalAmountUSD: number;
   totalAmountMXN: number;
