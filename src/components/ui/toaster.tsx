@@ -1,6 +1,5 @@
 "use client"
 
-import { useToast } from "@/hooks/use-toast"
 import {
   Toast,
   ToastClose,
@@ -9,23 +8,49 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
+import { subscribe, type ToasterToast } from "@/hooks/use-toast"
 import * as React from "react"
+import { useRouter } from "next/navigation"
+
+const TOAST_LIMIT = 1
+const TOAST_REMOVE_DELAY = 3000
 
 export function Toaster() {
-  const { toasts } = useToast()
-  const [isMounted, setIsMounted] = React.useState(false)
+  const [toasts, setToasts] = React.useState<ToasterToast[]>([]);
+  const router = useRouter();
 
   React.useEffect(() => {
-    setIsMounted(true)
-  }, [])
+    const unsubscribe = subscribe(({ toast }) => {
+      // Add toast to state to display it
+      setToasts((prevToasts) => [
+        {
+          ...toast,
+          open: true,
+          onOpenChange: (open) => {
+            if (!open) {
+              // When Radix closes the toast, remove it from our state
+              setToasts((currentToasts) =>
+                currentToasts.filter((t) => t.id !== toast.id)
+              );
+            }
+          },
+        },
+        ...prevToasts,
+      ].slice(0, TOAST_LIMIT));
 
-  if (!isMounted) {
-    return null
-  }
+      // After showing the toast, refresh the page data
+      setTimeout(() => {
+        router.refresh();
+      }, 100);
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   return (
-    <ToastProvider duration={3000}>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+    <ToastProvider duration={TOAST_REMOVE_DELAY}>
+      {toasts.map(function (toast) {
+        const { id, title, description, action, ...props } = toast;
         return (
           <Toast key={id} {...props} className="pointer-events-auto">
             <div className="grid gap-1">
@@ -37,9 +62,9 @@ export function Toaster() {
             {action}
             <ToastClose />
           </Toast>
-        )
+        );
       })}
       <ToastViewport />
     </ToastProvider>
-  )
+  );
 }
