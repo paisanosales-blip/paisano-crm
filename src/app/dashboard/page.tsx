@@ -108,7 +108,7 @@ export default function DashboardPage() {
             return isWithinInterval(itemDate, { start, end });
         });
 
-        const opportunitiesDiscardedInPeriod = (allOpportunities || []).filter(item => {
+        const discardedOpportunitiesInPeriod = (allOpportunities || []).filter(item => {
             if (!item.discardedDate || item.stage !== 'Descartado') return false;
             const itemDate = new Date(item.discardedDate);
             return isWithinInterval(itemDate, { start, end });
@@ -120,7 +120,7 @@ export default function DashboardPage() {
                 quotations: quotationsCreatedInPeriod,
                 closedOpportunities: opportunitiesClosedInPeriod,
                 opportunitiesInFinancing: opportunitiesInFinancingInPeriod,
-                discardedOpportunities: opportunitiesDiscardedInPeriod,
+                discardedOpportunities: discardedOpportunitiesInPeriod,
             }
         }
 
@@ -142,6 +142,7 @@ export default function DashboardPage() {
             clientesEnFinanciamiento: 0,
             financingApproved: 0,
             prospectosDescartados: 0,
+            tasaAprobacionFinanciamiento: 0,
         };
         
         if (!allOpportunities || !opportunities || !quotations || !closedOpportunities || !opportunitiesInFinancing || !discardedOpportunities || !allQuotations) {
@@ -188,6 +189,11 @@ export default function DashboardPage() {
             return acc;
         }, { usd: 0, mxn: 0 });
 
+        const clientesEnFinanciamiento = opportunitiesInFinancing.length;
+        const financingApproved = opportunitiesInFinancing.filter(opp => opp.financingStatus === 'Aprobado').length;
+        const tasaAprobacionFinanciamiento = clientesEnFinanciamiento > 0
+            ? (financingApproved / clientesEnFinanciamiento) * 100
+            : 0;
 
         return {
             totalProspectosRegistrados: allOpportunities.length,
@@ -199,9 +205,10 @@ export default function DashboardPage() {
             ingresosTotalesMXN: revenue.mxn,
             clientesNoAtendidos: prospectosNoAtendidos,
             cotizacionesHechas: quotations.length,
-            clientesEnFinanciamiento: opportunitiesInFinancing.length,
-            financingApproved: opportunitiesInFinancing.filter(opp => opp.financingStatus === 'Aprobado').length,
+            clientesEnFinanciamiento,
+            financingApproved,
             prospectosDescartados: discardedOpportunities.length,
+            tasaAprobacionFinanciamiento: parseFloat(tasaAprobacionFinanciamiento.toFixed(1)),
         };
     }, [periodData, allQuotations, allOpportunities]);
     
@@ -349,7 +356,7 @@ export default function DashboardPage() {
             </div>
             {isLoading ? (
                 <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
-                    {Array.from({length: 11}).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+                    {Array.from({length: 12}).map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
                 </div>
             ) : (
                 <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
@@ -442,6 +449,15 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent className="p-3 pt-0">
                             <div className="text-lg font-bold">{dashboardStats.financingApproved}</div>
+                        </CardContent>
+                    </Card>
+                     <Card className="bg-muted/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                            <CardTitle className="text-xs font-medium">Tasa Aprobación Financ.</CardTitle>
+                            <TrendingUp className="h-4 w-4 text-indigo-500" />
+                        </CardHeader>
+                        <CardContent className="p-3 pt-0">
+                            <div className="text-lg font-bold">{dashboardStats.tasaAprobacionFinanciamiento}%</div>
                         </CardContent>
                     </Card>
                      <Card className="bg-muted/50">
