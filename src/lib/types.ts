@@ -228,3 +228,31 @@ export type ServiceInteraction = {
   fileName?: string;
   fileType?: string;
 };
+
+export type Sale = {
+  id: string;
+  leadId: string;
+  clientName: string;
+  sellerId: string;
+  sellerName: string;
+  units: number;
+  pricePerUnit: number;
+  currency: 'USD' | 'MXN';
+  saleDate: string;
+  paid: boolean;
+  paidDate?: string | null;
+  commissionType?: 'VENTA_PROPIA' | 'VENTA_EXTERNA' | 'VENTA_FINANCIADA';
+  commissionAmount?: number;
+  productType?: 'DUMP' | 'TANK WATTER' | 'SAND HOPPER' | 'OTHER';
+  exchangeRate?: number;
+  commissionStatus?: 'Pendiente' | 'Pagada';
+};
+
+export type CommissionPayment = {
+  id: string;
+  sellerId: string;
+  date: string;
+  paidSaleIds: string[];
+  totalAmountUSD: number;
+  totalAmountMXN: number;
+};

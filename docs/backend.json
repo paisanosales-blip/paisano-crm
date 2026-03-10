@@ -750,23 +750,29 @@
           "type": "string",
           "description": "The type of product sold.",
           "enum": ["DUMP", "TANK WATTER", "SAND HOPPER", "OTHER"]
-        }
+        },
+        "exchangeRate": { "type": "number", "description": "Manual exchange rate at the time of commission calculation." },
+        "commissionStatus": { "type": "string", "enum": ["Pendiente", "Pagada"], "description": "Status of the commission payment to the seller." }
       },
-      "required": ["id", "leadId", "clientName", "sellerId", "units", "pricePerUnit", "currency", "saleDate", "paid"]
+      "required": ["id", "leadId", "clientName", "sellerId", "units", "pricePerUnit", "currency", "saleDate", "paid", "commissionStatus"]
     },
     "CommissionPayment": {
       "title": "Commission Payment",
       "type": "object",
-      "description": "Represents a payment made towards commissions.",
+      "description": "Represents a payment made towards commissions, linking to specific sales.",
       "properties": {
         "id": { "type": "string" },
         "sellerId": { "type": "string" },
-        "description": { "type": "string" },
-        "amount": { "type": "number" },
         "date": { "type": "string", "format": "date-time" },
-        "currency": { "type": "string" }
+        "paidSaleIds": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Array of Sale IDs that this payment covers."
+        },
+        "totalAmountUSD": { "type": "number" },
+        "totalAmountMXN": { "type": "number" }
       },
-      "required": ["id", "sellerId", "amount", "date", "currency"]
+      "required": ["id", "sellerId", "date", "paidSaleIds", "totalAmountUSD", "totalAmountMXN"]
     }
   },
   "auth": {
