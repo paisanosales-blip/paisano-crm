@@ -128,7 +128,7 @@ export default function CustomerServicePage() {
   const isLoading = isUserLoading || areTicketsLoading || areAgentsLoading;
 
   const stats = useMemo(() => {
-    if (!tickets) return { open: 0, inProgress: 0, solvedToday: 0, avgResolutionHours: 0 };
+    if (!tickets) return { open: 0, inProgress: 0, totalSolved: 0, avgResolutionHours: 0 };
     
     const solvedTickets = tickets.filter(t => t.solvedAt);
     const totalHours = solvedTickets.reduce((acc, t) => {
@@ -139,7 +139,7 @@ export default function CustomerServicePage() {
     return {
         open: tickets.filter(t => t.status === 'Abierto').length,
         inProgress: tickets.filter(t => t.status === 'En Progreso').length,
-        solvedToday: solvedTickets.filter(t => new Date(t.solvedAt!).toDateString() === new Date().toDateString()).length,
+        totalSolved: solvedTickets.length,
         avgResolutionHours: solvedTickets.length > 0 ? Math.round(totalHours / solvedTickets.length) : 0,
     };
   }, [tickets]);
@@ -158,7 +158,7 @@ export default function CustomerServicePage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-muted/50"><CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2"><CardTitle className="text-xs font-medium">Abiertos</CardTitle><Wrench className="h-4 w-4 text-red-500" /></CardHeader><CardContent className="p-3 pt-0"><div className="text-lg font-bold">{isLoading ? <Skeleton className="h-7 w-12" /> : stats.open}</div></CardContent></Card>
         <Card className="bg-muted/50"><CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2"><CardTitle className="text-xs font-medium">En Progreso</CardTitle><Hourglass className="h-4 w-4 text-yellow-500" /></CardHeader><CardContent className="p-3 pt-0"><div className="text-lg font-bold">{isLoading ? <Skeleton className="h-7 w-12" /> : stats.inProgress}</div></CardContent></Card>
-        <Card className="bg-muted/50"><CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2"><CardTitle className="text-xs font-medium">Solucionados Hoy</CardTitle><CheckCircle className="h-4 w-4 text-green-500" /></CardHeader><CardContent className="p-3 pt-0"><div className="text-lg font-bold">{isLoading ? <Skeleton className="h-7 w-12" /> : stats.solvedToday}</div></CardContent></Card>
+        <Card className="bg-muted/50"><CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2"><CardTitle className="text-xs font-medium">Total Solucionados</CardTitle><CheckCircle className="h-4 w-4 text-green-500" /></CardHeader><CardContent className="p-3 pt-0"><div className="text-lg font-bold">{isLoading ? <Skeleton className="h-7 w-12" /> : stats.totalSolved}</div></CardContent></Card>
         <Card className="bg-muted/50"><CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2"><CardTitle className="text-xs font-medium">T. de Solución Prom.</CardTitle><Clock className="h-4 w-4 text-blue-500" /></CardHeader><CardContent className="p-3 pt-0"><div className="text-lg font-bold">{isLoading ? <Skeleton className="h-7 w-12" /> : `${stats.avgResolutionHours}h`}</div></CardContent></Card>
       </div>
 
