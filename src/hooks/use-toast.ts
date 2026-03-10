@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
 import type {
   ToastActionElement,
   ToastProps,
@@ -169,8 +168,6 @@ function toast(props: Toast) {
 }
 
 function useToast() {
-  const router = useRouter(); 
-
   const [state, setState] = React.useState<State>(memoryState)
 
   React.useEffect(() => {
@@ -185,11 +182,7 @@ function useToast() {
 
   return {
     ...state,
-    toast: (props: Toast) => {
-      const toastControls = toast(props);
-      router.refresh();
-      return toastControls;
-    },
+    toast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
 }

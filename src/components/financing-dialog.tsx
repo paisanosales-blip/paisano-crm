@@ -44,11 +44,6 @@ export function FinancingDialog({
 
   const handleConfirm = () => {
     if (!notes.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'Comentario Requerido',
-        description: 'Por favor, ingrese una observación para mover el prospecto a financiamiento.',
-      });
       return;
     }
     onConfirm({ financiamientoExternoNotes: notes });

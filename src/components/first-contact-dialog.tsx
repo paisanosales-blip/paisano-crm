@@ -63,11 +63,9 @@ export function FirstContactDialog({
 
   const handleConfirm = async () => {
     if (!firestore || !user || !userProfile || !lead) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Faltan datos para registrar el contacto.' });
       return;
     }
     if (!observation.trim()) {
-      toast({ variant: 'destructive', title: 'Observación requerida', description: 'Por favor, ingrese una observación del primer contacto.' });
       return;
     }
 
@@ -117,14 +115,11 @@ export function FirstContactDialog({
         addDocumentNonBlocking(collection(firestore, 'activities'), followUpData);
       }
 
-      toast({ title: 'Primer Contacto Registrado', description: 'El prospecto está ahora en tu flujo de ventas.' });
-      
       onConfirm({ lead, opportunity: { ...opportunityData, id: opportunityRef.id } });
       onOpenChange(false);
 
     } catch (error) {
       console.error('Error registering first contact:', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo guardar el registro.' });
     } finally {
       setIsSubmitting(false);
     }

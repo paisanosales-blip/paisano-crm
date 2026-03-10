@@ -152,24 +152,20 @@ export default function ServiceTicketDetailPage() {
       updateData.solvedAt = new Date().toISOString();
     }
     updateDocumentNonBlocking(ticketRef, updateData);
-    toast({ title: "Estado actualizado", description: `El ticket se ha movido a "${newStatus}".` });
   };
 
   const handleWarrantyChange = (isWarranty: boolean) => {
     updateDocumentNonBlocking(ticketRef, { isWarranty });
-    toast({ title: "Garantía actualizada", description: `El ticket se ha marcado como ${isWarranty ? 'procedente' : 'no procedente'} de garantía.` });
   };
   
   const handleAgentChange = (agentId: string) => {
     const agent = agents?.find(a => a.id === agentId);
     if (!agent) return;
     updateDocumentNonBlocking(ticketRef, { assignedAgentId: agent.id, assignedAgentName: `${agent.firstName} ${agent.lastName}` });
-    toast({ title: "Agente reasignado", description: `El ticket ha sido asignado a ${agent.firstName} ${agent.lastName}.` });
   };
 
   const handlePostInteraction = async () => {
     if (!newComment.trim() && !fileToUpload) {
-      toast({ variant: 'destructive', title: 'Contenido requerido', description: 'Debe escribir un comentario o seleccionar un archivo.' });
       return;
     }
     if (!user || !userProfile) return;
@@ -195,7 +191,6 @@ export default function ServiceTicketDetailPage() {
             filePayload = { fileUrl: downloadURL, fileName: fileToUpload.name, fileType: fileToUpload.type };
         } catch (error) {
             console.error("Upload failed:", error);
-            toast({ variant: 'destructive', title: 'Error de Subida', description: 'No se pudo subir el archivo.' });
             setIsUploading(false);
             return;
         }
@@ -218,7 +213,6 @@ export default function ServiceTicketDetailPage() {
     if (fileInputRef.current) fileInputRef.current.value = '';
     setIsUploading(false);
     setUploadProgress(0);
-    toast({ title: "Interacción registrada" });
   };
 
   const handleDeleteInteractionClick = (interaction: ServiceInteraction) => {
@@ -243,15 +237,9 @@ export default function ServiceTicketDetailPage() {
         } catch (error: any) {
             if (error.code !== 'storage/object-not-found') {
                 console.error("Error deleting file from storage:", error);
-                toast({
-                    variant: 'destructive',
-                    title: 'Error de Storage',
-                    description: 'No se pudo eliminar el archivo adjunto, pero el comentario fue eliminado.'
-                });
             }
         }
     }
-    toast({ title: "Interacción eliminada" });
     setIsDeleteInteractionDialogOpen(false);
   };
 
@@ -259,7 +247,6 @@ export default function ServiceTicketDetailPage() {
     if (!interactionToEdit) return;
     const interactionRef = doc(firestore, 'serviceTickets', ticketId, 'interactions', interactionToEdit.id);
     updateDocumentNonBlocking(interactionRef, { comment: newComment });
-    toast({ title: "Comentario actualizado" });
     setIsEditInteractionDialogOpen(false);
   };
 

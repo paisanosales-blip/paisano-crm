@@ -184,11 +184,6 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
 
   async function onSubmit(values: ProspectFormValues) {
     if (!firestore || !user || !userProfile) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Debe iniciar sesión para crear un prospecto.',
-      });
       return;
     }
     
@@ -225,11 +220,6 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
     
     try {
       const leadRef = await addDoc(collection(firestore, 'leads'), leadData);
-
-      toast({
-        title: '¡Prospecto Creado!',
-        description: `${values.clientName.toUpperCase()} ha sido agregado. Ahora registre el primer contacto.`,
-      });
       onSuccess({ ...leadData, id: leadRef.id });
       setOpen(false);
       form.reset();
@@ -240,11 +230,6 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
           requestResourceData: leadData,
         });
         errorEmitter.emit('permission-error', permissionError);
-        toast({
-          variant: 'destructive',
-          title: 'Error al crear prospecto',
-          description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
-        });
     } finally {
         setIsSubmitting(false);
     }
@@ -253,18 +238,12 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
   const handleFinancingClick = async () => {
     const isValid = await form.trigger();
     if (!isValid) {
-        toast({
-            variant: "destructive",
-            title: "Datos inválidos",
-            description: "Por favor revise los campos marcados en rojo.",
-        });
         return;
     }
 
     const values = form.getValues();
     
     if (!firestore || !user || !userProfile) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Debe iniciar sesión para crear un prospecto.' });
       return;
     }
     
@@ -311,11 +290,6 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
           requestResourceData: leadData,
         });
         errorEmitter.emit('permission-error', permissionError);
-        toast({
-          variant: 'destructive',
-          title: 'Error al crear prospecto',
-          description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
-        });
     } finally {
         setIsSubmitting(false);
     } 
@@ -323,7 +297,6 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
   
   async function handleFinancingConfirm(payload: FinancingConfirmPayload) {
     if (!newlyCreatedLead || !firestore || !user || !userProfile) {
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
     }
     
@@ -359,8 +332,6 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
             });
         }
         
-        toast({ title: 'Éxito', description: `Prospecto movido a: Financiamiento Externo` });
-        
         setShowFinancingDialog(false);
         setOpen(false);
         form.reset();
@@ -371,11 +342,6 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
           requestResourceData: {},
         });
         errorEmitter.emit('permission-error', permissionError);
-        toast({
-          variant: 'destructive',
-          title: 'Error al crear oportunidad',
-          description: 'Ocurrió un problema al guardar los datos. Por favor, inténtelo de nuevo.',
-        });
     } finally {
         setIsSubmitting(false);
     }

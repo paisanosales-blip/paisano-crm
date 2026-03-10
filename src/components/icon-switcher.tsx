@@ -49,22 +49,12 @@ export function IconSwitcher({ className }: { className?: string }) {
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!isManager) {
-      toast({
-        variant: 'destructive',
-        title: 'Permiso denegado',
-        description: 'Solo los gerentes pueden cambiar el logo.',
-      });
       return;
     }
     const file = event.target.files?.[0];
     if (file && storage && settingsRef) {
       const storageRef = ref(storage, 'app/logo/sidebar-logo');
       const uploadTask = uploadBytesResumable(storageRef, file);
-
-      toast({
-        title: 'Subiendo logo...',
-        description: 'Por favor espere.',
-      });
 
       uploadTask.on(
         'state_changed',
@@ -73,19 +63,10 @@ export function IconSwitcher({ className }: { className?: string }) {
         },
         (error) => {
           console.error("Upload failed:", error);
-          toast({
-            variant: 'destructive',
-            title: 'Error al subir',
-            description: 'No se pudo subir el logo. Verifique los permisos de Storage.',
-          });
         },
         () => {
           getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
             setDocumentNonBlocking(settingsRef, { logoUrl: downloadURL }, { merge: true });
-            toast({
-              title: 'Logo actualizado',
-              description: 'El nuevo logo será visible para todos los usuarios.',
-            });
           });
         }
       );

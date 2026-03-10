@@ -211,7 +211,6 @@ export default function MarketingPage() {
 
   const handleGeneratePlan = async () => {
     if (!firestore || !user || !userProfile) {
-        toast({ variant: 'destructive', title: 'Error de autenticación' });
         return;
     }
     setIsGenerating(true);
@@ -232,16 +231,10 @@ export default function MarketingPage() {
       const newDocRef = await addDocumentNonBlocking(collection(firestore, 'marketingPlans'), newPlan);
       if (newDocRef) {
         setSelectedPlanId(newDocRef.id);
-        toast({ title: '¡Nuevo Plan de Grupo Generado!', description: `El plan con código ${newPlan.code} ya está disponible para todos.` });
       }
 
     } catch (error) {
       console.error("Error generating marketing plan:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Error de IA',
-        description: 'No se pudo generar el plan de marketing en este momento.',
-      });
     } finally {
       setIsGenerating(false);
     }
@@ -327,7 +320,6 @@ export default function MarketingPage() {
           reviewFeedback: payload.reviewFeedback,
       });
       
-      toast({ title: 'Revisión Guardada' });
       setIsReviewDialogOpen(false);
       setTaskToReview(null);
   };
@@ -362,11 +354,9 @@ export default function MarketingPage() {
 
         await deleteDoc(doc(firestore, 'marketingPlans', planToDelete.id));
 
-        toast({ title: "Plan Eliminado", description: `El plan ${planToDelete.code} y sus tareas han sido eliminados.` });
         setSelectedPlanId(null);
     } catch (error) {
         console.error("Error deleting plan:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo eliminar el plan.' });
     } finally {
         setIsGenerating(false);
         setPlanToDelete(null);
@@ -394,7 +384,6 @@ export default function MarketingPage() {
 
     const taskDocRef = doc(firestore, 'marketingPlans', selectedPlanId, 'completedTasks', taskToDelete.id);
     await deleteDoc(taskDocRef);
-    toast({ title: 'Actividad Eliminada', description: 'La actividad completada ha sido eliminada.' });
     setIsDeleteTaskDialogOpen(false);
     setTaskToDelete(null);
   };

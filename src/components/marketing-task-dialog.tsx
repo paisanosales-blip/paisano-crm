@@ -86,7 +86,6 @@ export function MarketingTaskDialog({
 
   function onSubmit(values: TaskCompletionFormValues) {
     if (values.file && !storage) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Servicio de almacenamiento no disponible.' });
         return;
     }
     
@@ -100,7 +99,6 @@ export function MarketingTaskDialog({
             fileName,
             fileType,
         });
-        toast({ title: isEditing ? '¡Tarea Actualizada!' : '¡Tarea Completada!', description: 'El registro de la tarea ha sido guardado.' });
         onOpenChange(false);
     };
     
@@ -117,7 +115,6 @@ export function MarketingTaskDialog({
           setUploadProgress(progress);
         },
         (error) => {
-          toast({ variant: 'destructive', title: 'Error de Subida', description: 'No se pudo subir el archivo.' });
           setIsSubmitting(false);
         },
         () => {

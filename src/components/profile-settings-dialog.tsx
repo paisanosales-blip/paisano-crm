@@ -93,7 +93,6 @@ export function ProfileSettingsDialog({
 
   function onSubmit(values: ProfileFormValues) {
     if (!firestore || !user) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo conectar con Firebase.' });
       return;
     }
   
@@ -125,8 +124,6 @@ export function ProfileSettingsDialog({
           setUploadProgress(progress);
         },
         (error) => {
-          // Image upload failed, but text fields were likely updated.
-          toast({ variant: 'destructive', title: 'Error de Subida', description: 'La imagen no pudo subirse, pero los demás datos se guardaron.' });
           setIsSubmitting(false);
           onOpenChange(false);
         },
@@ -134,14 +131,9 @@ export function ProfileSettingsDialog({
           // Image upload success, now get URL and update avatarUrl
           getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
             updateDocumentNonBlocking(userDocRef, { avatarUrl: downloadURL });
-            toast({
-              title: '¡Perfil Actualizado!',
-              description: 'Tu información y foto de perfil se han guardado.',
-            });
             setIsSubmitting(false);
             onOpenChange(false);
           }).catch((urlError) => {
-            toast({ variant: 'destructive', title: 'Error de URL', description: 'La imagen se subió, pero no se pudo guardar la URL. Los demás datos sí se guardaron.' });
             setIsSubmitting(false);
             onOpenChange(false);
           });
@@ -149,10 +141,6 @@ export function ProfileSettingsDialog({
       );
     } else {
       // No new picture, so we're done.
-      toast({
-        title: '¡Perfil Actualizado!',
-        description: 'Tu información se ha guardado.',
-      });
       setIsSubmitting(false);
       onOpenChange(false);
     }

@@ -62,29 +62,14 @@ export function CompleteFollowUpDialog({ open, onOpenChange, onConfirm, isSubmit
     if (!activity) return;
 
     if (clientResponded === null) {
-        toast({
-            variant: "destructive",
-            title: "Respuesta Requerida",
-            description: "Por favor, indique si el cliente respondió.",
-        });
         return;
     }
     
     if (scheduleNext) {
       if (!nextFollowUpType) {
-        toast({
-            variant: "destructive",
-            title: "Tipo de Contacto Requerido",
-            description: "Por favor, seleccione un tipo para el próximo seguimiento.",
-        });
         return;
       }
        if (!nextFollowUpDate) {
-        toast({
-            variant: "destructive",
-            title: "Fecha Requerida",
-            description: "Por favor, seleccione una fecha para el próximo seguimiento.",
-        });
         return;
       }
     }

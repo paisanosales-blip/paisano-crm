@@ -44,11 +44,6 @@ export function DiscardProspectDialog({
 
   const handleConfirm = () => {
     if (!reason.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'Motivo Requerido',
-        description: 'Por favor, ingrese un motivo para descartar el prospecto.',
-      });
       return;
     }
     onConfirm({ reason });

@@ -50,11 +50,9 @@ export function MarketingReviewDialog({
 
   const handleConfirm = () => {
     if (!status) {
-      toast({ variant: 'destructive', title: 'Estado requerido', description: 'Por favor, seleccione un estado para la revisión.' });
       return;
     }
     if (status === 'Requiere Cambios' && !feedback.trim()) {
-      toast({ variant: 'destructive', title: 'Comentario requerido', description: 'Por favor, provea un comentario con los cambios necesarios.' });
       return;
     }
     onConfirm({

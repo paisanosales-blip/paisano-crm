@@ -80,7 +80,6 @@ export default function NewServiceTicketPage() {
     
     const selectedAgent = agents?.find(a => a.id === values.assignedAgentId);
     if (!selectedAgent) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Agente seleccionado no válido.' });
         setIsSubmitting(false);
         return;
     }
@@ -95,11 +94,9 @@ export default function NewServiceTicketPage() {
 
     try {
       const newDocRef = await addDocumentNonBlocking(collection(firestore, 'serviceTickets'), ticketData);
-      toast({ title: 'Ticket Creado', description: 'El nuevo ticket de servicio ha sido registrado.' });
       router.push(`/dashboard/service/${newDocRef.id}`);
     } catch (error) {
       console.error("Error creating ticket:", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo crear el ticket.' });
       setIsSubmitting(false);
     }
   }

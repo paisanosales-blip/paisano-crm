@@ -41,11 +41,6 @@ export function EditInteractionDialog({
 
   const handleConfirm = () => {
     if (!comment.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'Comentario requerido',
-        description: 'El comentario no puede estar vacío.',
-      });
       return;
     }
     onConfirm(comment);

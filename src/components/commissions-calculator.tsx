@@ -223,7 +223,6 @@ export function CommissionsCalculator() {
 
   const handlePaySelectedCommissions = () => {
     if (selectedCommissionIds.size === 0) {
-        toast({ title: 'Ninguna comisión seleccionada', variant: 'destructive' });
         return;
     }
     if (!user) return;
@@ -250,7 +249,6 @@ export function CommissionsCalculator() {
         updateDocumentNonBlocking(doc(firestore, 'sales', sale.id), { commissionStatus: 'Pagada' });
     });
 
-    toast({ title: 'Pago Registrado', description: `Se ha registrado el pago de ${selectedCommissionIds.size} comisiones.` });
     setSelectedCommissionIds(new Set());
   };
 
@@ -281,11 +279,6 @@ export function CommissionsCalculator() {
     const paymentRef = doc(firestore, 'commissionPayments', paymentToRevert.id);
     deleteDocumentNonBlocking(paymentRef);
 
-    toast({
-        title: 'Pago Revertido',
-        description: 'Las comisiones asociadas están pendientes de nuevo.',
-    });
-
     setIsRevertDialogOpen(false);
     setPaymentToRevert(null);
   };
@@ -313,7 +306,6 @@ export function CommissionsCalculator() {
       });
     }
     
-    toast({ title: 'Pago Actualizado', description: 'Los detalles del pago y tasas de cambio han sido guardados.' });
     setIsEditDialogOpen(false);
     setIsEditingPayment(false);
   };
@@ -438,7 +430,6 @@ export function CommissionsCalculator() {
 
   const handleDownloadReport = () => {
     // This function can be adapted to the new data model
-    toast({ title: 'Función en desarrollo' });
   };
 
   return (
