@@ -389,6 +389,78 @@ export function CommissionsCalculator() {
 
        <Card>
         <CardHeader>
+          <CardTitle>Registro de Ventas General</CardTitle>
+          <CardDescription>
+            Añada o edite las ventas manualmente para calcular las comisiones.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[20%]">Cliente</TableHead>
+                <TableHead>Fecha Registro</TableHead>
+                <TableHead>Pagado</TableHead>
+                <TableHead>Tipo Comisión</TableHead>
+                <TableHead>Monto Comisión</TableHead>
+                <TableHead><span className="sr-only">Actions</span></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                  Array.from({length: 3}).map((_, i) => (
+                    <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-10" /></TableCell></TableRow>
+                  ))
+              ) : sortedSales?.map((sale) => (
+                <TableRow
+                  key={sale.id}
+                  className={cn(sale.commissionStatus === 'Pagada' ? 'bg-blue-50 dark:bg-blue-950/40' : sale.paid ? 'bg-green-50 dark:bg-green-950/40' : '')}
+                >
+                  <TableCell>
+                    <Select
+                      value={sale.leadId}
+                      onValueChange={(value) => handleSaleChange(sale.id, 'leadId', value)}
+                      disabled={areLeadsLoading}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                      <SelectContent>{sortedLeads?.map((lead: any) => (<SelectItem key={lead.id} value={lead.id}>{lead.clientName}</SelectItem>))}</SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>{sale.saleDate ? format(new Date(sale.saleDate), "dd MMM, yyyy", { locale: es }) : 'N/A'}</TableCell>
+                  <TableCell>
+                      <div className="flex justify-center">
+                        <Checkbox checked={sale.paid} onCheckedChange={(checked) => handleSaleChange(sale.id, 'paid', !!checked)} />
+                      </div>
+                  </TableCell>
+                  <TableCell>
+                    <Select value={sale.commissionType || ''} onValueChange={(value) => handleCommissionChange(sale, value as CommissionType)}>
+                        <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="VENTA_PROPIA">Venta Propia (1%)</SelectItem>
+                            <SelectItem value="VENTA_EXTERNA">Venta Externa (0.25%)</SelectItem>
+                            <SelectItem value="VENTA_FINANCIADA">Venta Financiada (0.25% + $200)</SelectItem>
+                        </SelectContent>
+                    </Select>
+                  </TableCell>
+                   <TableCell className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency || 'USD' }).format(sale.commissionAmount || 0)}</TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" onClick={() => handleRemoveSale(sale.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <Button onClick={handleAddSale} variant="outline" className="mt-4">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Añadir Venta
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Comisiones Pendientes de Pago</CardTitle>
           <CardDescription>
             Seleccione las comisiones de ventas ya pagadas por el cliente para registrarlas como pagadas.
@@ -492,77 +564,6 @@ export function CommissionsCalculator() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Registro de Ventas General</CardTitle>
-          <CardDescription>
-            Añada o edite las ventas manualmente para calcular las comisiones.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[20%]">Cliente</TableHead>
-                <TableHead>Fecha Registro</TableHead>
-                <TableHead>Pagado</TableHead>
-                <TableHead>Tipo Comisión</TableHead>
-                <TableHead>Monto Comisión</TableHead>
-                <TableHead><span className="sr-only">Actions</span></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                  Array.from({length: 3}).map((_, i) => (
-                    <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-10" /></TableCell></TableRow>
-                  ))
-              ) : sortedSales?.map((sale) => (
-                <TableRow
-                  key={sale.id}
-                  className={cn(sale.commissionStatus === 'Pagada' ? 'bg-blue-50 dark:bg-blue-950/40' : sale.paid ? 'bg-green-50 dark:bg-green-950/40' : '')}
-                >
-                  <TableCell>
-                    <Select
-                      value={sale.leadId}
-                      onValueChange={(value) => handleSaleChange(sale.id, 'leadId', value)}
-                      disabled={areLeadsLoading}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                      <SelectContent>{sortedLeads?.map((lead: any) => (<SelectItem key={lead.id} value={lead.id}>{lead.clientName}</SelectItem>))}</SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell>{sale.saleDate ? format(new Date(sale.saleDate), "dd MMM, yyyy", { locale: es }) : 'N/A'}</TableCell>
-                  <TableCell>
-                      <div className="flex justify-center">
-                        <Checkbox checked={sale.paid} onCheckedChange={(checked) => handleSaleChange(sale.id, 'paid', !!checked)} />
-                      </div>
-                  </TableCell>
-                  <TableCell>
-                    <Select value={sale.commissionType || ''} onValueChange={(value) => handleCommissionChange(sale, value as CommissionType)}>
-                        <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="VENTA_PROPIA">Venta Propia (1%)</SelectItem>
-                            <SelectItem value="VENTA_EXTERNA">Venta Externa (0.25%)</SelectItem>
-                            <SelectItem value="VENTA_FINANCIADA">Venta Financiada (0.25% + $200)</SelectItem>
-                        </SelectContent>
-                    </Select>
-                  </TableCell>
-                   <TableCell className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency || 'USD' }).format(sale.commissionAmount || 0)}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveSale(sale.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Button onClick={handleAddSale} variant="outline" className="mt-4">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Añadir Venta
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 }
