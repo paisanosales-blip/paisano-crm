@@ -423,7 +423,7 @@ export function CommissionsCalculator() {
             </CardContent>
         </Card>
       </div>
-
+      
        <Card>
         <CardHeader>
           <CardTitle>Registro de Ventas General</CardTitle>
@@ -587,7 +587,8 @@ export function CommissionsCalculator() {
                               {payment.totalAmountUSD > 0 && <p className="font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payment.totalAmountUSD)}</p>}
                               {payment.totalAmountMXN > 0 && <p className="font-semibold text-gray-500">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(payment.totalAmountMXN)}</p>}
                             </div>
-                             <Button
+                            <Button
+                                asChild
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
@@ -596,8 +597,10 @@ export function CommissionsCalculator() {
                                     handleRevertPaymentClick(payment);
                                 }}
                             >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Revertir Pago</span>
+                                <div>
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Revertir Pago</span>
+                                </div>
                             </Button>
                         </div>
                     </div>
