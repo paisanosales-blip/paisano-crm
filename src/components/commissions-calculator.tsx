@@ -292,9 +292,20 @@ export function CommissionsCalculator() {
     
     setIsEditingPayment(true);
     const paymentRef = doc(firestore, 'commissionPayments', paymentToEdit.id);
-    updateDocumentNonBlocking(paymentRef, payload);
+    const { salesUpdates, ...paymentUpdates } = payload;
     
-    toast({ title: 'Pago Actualizado', description: 'Los detalles del pago han sido guardados.' });
+    // Update the payment document
+    updateDocumentNonBlocking(paymentRef, paymentUpdates);
+
+    // Update each sale document
+    if (salesUpdates) {
+      salesUpdates.forEach(update => {
+        const saleRef = doc(firestore, 'sales', update.saleId);
+        updateDocumentNonBlocking(saleRef, { exchangeRate: update.exchangeRate });
+      });
+    }
+    
+    toast({ title: 'Pago Actualizado', description: 'Los detalles del pago y tasas de cambio han sido guardados.' });
     setIsEditDialogOpen(false);
     setIsEditingPayment(false);
   };
