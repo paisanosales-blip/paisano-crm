@@ -318,20 +318,21 @@ export function CommissionsCalculator() {
     setIsEditingPayment(false);
   };
 
-  
-  const totalCommission = useMemo(() => {
+  const totalGeneratedFromPaidSales = useMemo(() => {
     if (!sales) return { usd: 0, mxn: 0 };
-    return sales.reduce((acc, sale) => {
-      const amount = sale.commissionAmount || 0;
-      if (sale.currency === 'USD') {
-        acc.usd += amount;
-      } else if (sale.currency === 'MXN') {
-        acc.mxn += amount;
-      }
-      return acc;
-    }, { usd: 0, mxn: 0 });
+    return sales
+      .filter(sale => sale.paid)
+      .reduce((acc, sale) => {
+        const amount = sale.commissionAmount || 0;
+        if (sale.currency === 'USD') {
+          acc.usd += amount;
+        } else {
+          acc.mxn += amount;
+        }
+        return acc;
+      }, { usd: 0, mxn: 0 });
   }, [sales]);
-  
+
   const totalPaid = useMemo(() => {
     if (!paidPaymentsWithSales) return { usd: 0, mxn: 0 };
     
@@ -343,15 +344,12 @@ export function CommissionsCalculator() {
 
   }, [paidPaymentsWithSales]);
 
-  const balance = useMemo(() => {
-    const pendingTotal = pendingCommissions.reduce((acc, sale) => {
-        const amount = sale.commissionAmount || 0;
-        if (sale.currency === 'USD') acc.usd += amount;
-        else if (sale.currency === 'MXN') acc.mxn += amount;
-        return acc;
-    }, { usd: 0, mxn: 0 });
-    return pendingTotal;
-  }, [pendingCommissions]);
+  const pendingBalance = useMemo(() => {
+    return {
+        usd: totalGeneratedFromPaidSales.usd - totalPaid.usd,
+        mxn: totalGeneratedFromPaidSales.mxn - totalPaid.mxn,
+    };
+  }, [totalGeneratedFromPaidSales, totalPaid]);
 
     const commissionStats = useMemo(() => {
     const stats = {
@@ -437,9 +435,20 @@ export function CommissionsCalculator() {
             </CardHeader>
             <CardContent className="p-3 pt-0">
                 <div className="space-y-1">
-                    <div className="text-2xl font-bold text-red-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(balance.usd)} <span className="text-base font-medium text-muted-foreground">USD</span></div>
-                    {balance.usd > 0 && <div className="text-sm text-muted-foreground">~ {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(balance.usd * exchangeRate)} MXN Aprox.</div>}
-                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(balance.mxn)} <span className="text-sm font-medium">MXN</span></div>
+                    <div className="text-2xl font-bold text-red-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(pendingBalance.usd)} <span className="text-base font-medium text-muted-foreground">USD</span></div>
+                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(pendingBalance.mxn)} <span className="text-sm font-medium">MXN</span></div>
+                </div>
+            </CardContent>
+        </Card>
+        <Card className="bg-muted/50">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
+                <CardTitle className="text-xs font-medium">COMISIONES GENERADAS (VENTAS PAGADAS)</CardTitle>
+                <Calculator className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+                 <div className="space-y-1">
+                    <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalGeneratedFromPaidSales.usd)} <span className="text-base font-medium text-muted-foreground">USD</span></div>
+                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalGeneratedFromPaidSales.mxn)} <span className="text-sm font-medium">MXN</span></div>
                 </div>
             </CardContent>
         </Card>
@@ -455,22 +464,9 @@ export function CommissionsCalculator() {
                 </div>
             </CardContent>
         </Card>
-        <Card className="bg-muted/50">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                <CardTitle className="text-xs font-medium">TOTAL COMISIONES GENERADAS</CardTitle>
-                <Calculator className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="p-3 pt-0">
-                 <div className="space-y-1">
-                    <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCommission.usd)} <span className="text-base font-medium text-muted-foreground">USD</span></div>
-                    {totalCommission.usd > 0 && <div className="text-sm text-muted-foreground">~ {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalCommission.usd * exchangeRate)} MXN Aprox.</div>}
-                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalCommission.mxn)} <span className="text-sm font-medium">MXN</span></div>
-                </div>
-            </CardContent>
-        </Card>
       </div>
       
-       <Card>
+      <Card>
         <CardHeader>
           <CardTitle>Registro de Ventas General</CardTitle>
           <CardDescription>
@@ -556,7 +552,6 @@ export function CommissionsCalculator() {
                         <TableHead className="w-12"><span className="sr-only">Select</span></TableHead>
                         <TableHead>Cliente</TableHead>
                         <TableHead>Monto Comisión</TableHead>
-                        <TableHead>Comisión (MXN Aprox)</TableHead>
                         <TableHead>Fecha Pago Cliente</TableHead>
                         <TableHead>Tipo Cambio</TableHead>
                     </TableRow>
@@ -576,13 +571,13 @@ export function CommissionsCalculator() {
                                     />
                                 </TableCell>
                                 <TableCell className="font-semibold">{sale.clientName}</TableCell>
-                                <TableCell className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency }).format(sale.commissionAmount || 0)}</TableCell>
                                 <TableCell>
-                                    {sale.currency === 'USD' && sale.exchangeRate && sale.commissionAmount ? (
-                                        <div className="font-semibold text-muted-foreground">
-                                            {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(sale.commissionAmount * sale.exchangeRate)}
+                                  <div className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency }).format(sale.commissionAmount || 0)}</div>
+                                  {sale.currency === 'USD' && sale.exchangeRate && sale.commissionAmount ? (
+                                        <div className="text-xs text-muted-foreground">
+                                            {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(sale.commissionAmount * sale.exchangeRate)} MXN
                                         </div>
-                                    ) : 'N/A'}
+                                    ) : null}
                                 </TableCell>
                                 <TableCell>{sale.paidDate ? format(new Date(sale.paidDate), 'dd MMM, yyyy', { locale: es }) : 'N/A'}</TableCell>
                                 <TableCell>
@@ -621,7 +616,7 @@ export function CommissionsCalculator() {
               <Skeleton className="h-20" />
             ) : paidPaymentsWithSales.length > 0 ? (
               paidPaymentsWithSales.map((payment) => (
-                <AccordionItem value={payment.id} key={payment.id}>
+                <AccordionItem value={payment.id} key={payment.id} className="border-b">
                   <div className="flex items-center hover:bg-muted/50 rounded-t-md">
                     <AccordionTrigger className="flex-1 text-left p-4 hover:no-underline">
                       <div className="flex justify-between items-center w-full">
@@ -636,7 +631,7 @@ export function CommissionsCalculator() {
                           </div>
                       </div>
                     </AccordionTrigger>
-                    <div className="flex items-center gap-1 px-4">
+                     <div className="flex items-center gap-1 px-4">
                         <Button
                             variant="ghost"
                             size="icon"
@@ -707,4 +702,5 @@ export function CommissionsCalculator() {
     </>
   );
 }
+
 
