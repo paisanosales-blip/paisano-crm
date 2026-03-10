@@ -69,6 +69,7 @@ const prospectSchema = z
     contactMethod: z.string().optional(),
     language: z.string().min(1, 'El idioma es requerido.'),
     clientType: z.string().min(1, 'El tipo de cliente es requerido.'),
+    interest: z.array(z.string()).optional(),
     website: z.preprocess(
       (val) => {
         if (typeof val !== 'string' || !val) {
@@ -144,7 +145,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
     resolver: zodResolver(prospectSchema),
     defaultValues: {
       contactPerson: '', clientName: '', secondContact: false, secondContactName: '', secondContactPhone: '', isExternal: false, externalSellerId: '',
-      country: '', state: '', city: '', contactMethod: '', language: '', clientType: '', website: '', phone: '', email: '',
+      country: '', state: '', city: '', contactMethod: '', language: '', clientType: '', interest: [], website: '', phone: '', email: '',
     },
   });
 
@@ -161,6 +162,7 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
         isExternal: client.isExternal || false,
         externalSellerId: client.isExternal ? externalSellerForClient?.id : '',
         secondContact: !!client.secondContactName,
+        interest: client.interest || [],
       });
     }
   }, [client, externalSellerForClient, form]);
@@ -509,6 +511,46 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
                 </FormItem>
               )}
             />
+
+            <div className="col-span-6">
+                <FormLabel>INTERÉS EN</FormLabel>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-2">
+                    {(['Sand Hopper', 'Dump', 'Watter Tank'] as const).map((item) => (
+                        <FormField
+                            key={item}
+                            control={form.control}
+                            name="interest"
+                            render={({ field }) => {
+                                return (
+                                    <FormItem
+                                        key={item}
+                                        className="flex flex-row items-center space-x-2 space-y-0 rounded-md border p-3"
+                                    >
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={field.value?.includes(item)}
+                                                onCheckedChange={(checked) => {
+                                                    return checked
+                                                        ? field.onChange([...(field.value || []), item])
+                                                        : field.onChange(
+                                                            field.value?.filter(
+                                                                (value) => value !== item
+                                                            )
+                                                        )
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <FormLabel className="font-normal text-sm">
+                                            {item}
+                                        </FormLabel>
+                                    </FormItem>
+                                )
+                            }}
+                        />
+                    ))}
+                </div>
+                <FormMessage />
+            </div>
 
             <FormField
               control={form.control}

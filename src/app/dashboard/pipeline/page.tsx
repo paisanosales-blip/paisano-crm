@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { MoreVertical, FileDown, Phone, Mail, MessageSquare, MessageCircle, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2, LayoutGrid, List, CalendarCheck, HardHat, Handshake, Award, Send, FileText, ShieldCheck, ShieldOff } from 'lucide-react';
+import { MoreVertical, FileDown, Phone, Mail, MessageSquare, MessageCircle, Globe, Pencil, Check, PlusCircle, History, X, ChevronDown, Landmark, Sparkles, Loader2, ArchiveX, Search, Users, DollarSign, Target, UserX, TrendingUp, HelpCircle, UserCheck, Undo2, LayoutGrid, List, CalendarCheck, HardHat, Handshake, Award, Send, FileText, ShieldCheck, ShieldOff, Truck, Droplets, Wind } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -109,6 +109,12 @@ const stageIcons: Record<string, React.ElementType> = {
     'Envió de Cotización': FileText,
     'Negociación': Handshake,
     'Cierre de venta': Award,
+};
+
+const interestIcons: Record<string, React.ElementType> = {
+    'Sand Hopper': Wind,
+    'Dump': Truck,
+    'Watter Tank': Droplets,
 };
 
 export default function PipelinePage() {
@@ -714,6 +720,36 @@ export default function PipelinePage() {
         return;
     }
 
+    // If no future contact is scheduled, observations are required.
+    if (!payload.nextContactDate && (!payload.observations || !payload.observations.trim())) {
+      toast({
+        variant: 'destructive',
+        title: 'Observación Requerida',
+        description: 'Debe ingresar una observación o agendar un próximo contacto.',
+      });
+      return;
+    }
+
+    // If it's a new activity (not editing), and it's a scheduled task (not just a note), then date and type are required.
+    if (!payload.id && payload.nextContactType && payload.nextContactType !== 'Nota' && !payload.nextContactDate) {
+      toast({
+        variant: 'destructive',
+        title: 'Fecha Requerida',
+        description: 'Por favor, seleccione una fecha para agendar el próximo contacto.',
+      });
+      return;
+    }
+    // If a date is selected, a specific type (not 'Nota') must also be selected.
+    if (payload.nextContactDate && (!payload.nextContactType || payload.nextContactType === 'Nota')) {
+      toast({
+        variant: 'destructive',
+        title: 'Tipo de Contacto Requerido',
+        description: 'Por favor, seleccione un tipo de contacto (Llamada, Mensaje, Correo) cuando agende una fecha.',
+      });
+      return;
+    }
+
+
     setIsSubmitting(true);
 
     const { id, observations, nextContactDate, nextContactType } = payload;
@@ -1233,6 +1269,17 @@ export default function PipelinePage() {
                                                     </Badge>
                                                 )}
                                             </div>
+                                            <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                                {prospect.interest?.map((interest: string) => {
+                                                    const Icon = interestIcons[interest];
+                                                    return Icon ? (
+                                                        <Badge key={interest} variant="outline" className="font-normal text-xs">
+                                                            <Icon className="h-3 w-3 mr-1" />
+                                                            {interest}
+                                                        </Badge>
+                                                    ) : null;
+                                                })}
+                                            </div>
                                       </div>
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-7 w-7 flex-shrink-0"><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
@@ -1356,7 +1403,7 @@ export default function PipelinePage() {
                                         <Label className="text-xs font-semibold text-muted-foreground">ÚLTIMA ACTIVIDAD</Label>
                                         <div className="mt-1 p-3 rounded-md bg-yellow-100 dark:bg-yellow-900/40 border border-yellow-200/80 dark:border-yellow-800/80 min-h-[72px] flex flex-col justify-center">
                                             {latestActivity ? (
-                                                <p className="text-sm text-yellow-900 dark:text-yellow-100 font-medium" title={latestActivity.description || latestActivity.type}>
+                                                <p className="text-sm text-yellow-900 dark:text-yellow-100 font-medium" title={latestActivity.description?.trim() || (latestActivity.type ? `${latestActivity.type}${latestActivity.dueDate ? ` - ${format(new Date(latestActivity.dueDate), "dd MMM yyyy", { locale: es })}` : ''}` : (latestActivity.dueDate ? `Seguimiento: ${format(new Date(latestActivity.dueDate), "dd MMM yyyy", { locale: es })}` : 'Actividad registrada sin detalles'))}>
                                                   {
                                                     latestActivity.description?.trim() ||
                                                     (latestActivity.type
@@ -1509,7 +1556,18 @@ export default function PipelinePage() {
                     <CardContent className="grid md:grid-cols-2 gap-2 p-2">
                       <div className="space-y-1">
                         <div className="space-y-0.5 text-xs">
-                          {prospect.clientType && <Badge variant="secondary" className="text-xs mb-1">{prospect.clientType}</Badge>}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                              {prospect.clientType && <Badge variant="secondary" className="text-xs mb-1">{prospect.clientType}</Badge>}
+                              {prospect.interest?.map((interest: string) => {
+                                  const Icon = interestIcons[interest];
+                                  return Icon ? (
+                                      <Badge key={interest} variant="outline" className="font-normal text-xs py-0.5">
+                                          <Icon className="h-3 w-3 mr-1.5" />
+                                          {interest}
+                                      </Badge>
+                                  ) : null;
+                              })}
+                          </div>
                           <div className="text-muted-foreground">{prospect.email || 'N/A'}</div>
                           <div className="text-muted-foreground">{prospect.phone || 'N/A'}</div>
                         </div>

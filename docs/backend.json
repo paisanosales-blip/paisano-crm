@@ -153,6 +153,14 @@
             "AGRICULTOR"
           ]
         },
+        "interest": {
+            "type": "array",
+            "description": "Products the lead is interested in.",
+            "items": {
+                "type": "string",
+                "enum": ["Sand Hopper", "Dump", "Watter Tank"]
+            }
+        },
         "status": {
           "type": "string",
           "description": "Status of the lead (e.g., New, Contacted, Qualified)."

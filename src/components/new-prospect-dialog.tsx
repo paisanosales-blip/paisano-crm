@@ -75,6 +75,7 @@ const prospectSchema = z
     contactMethod: z.string().optional(),
     language: z.string().min(1, 'El idioma es requerido.'),
     clientType: z.string().min(1, 'El tipo de cliente es requerido.'),
+    interest: z.array(z.string()).optional(),
     website: z.preprocess(
       (val) => {
         if (typeof val !== 'string' || !val) {
@@ -166,6 +167,7 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
       contactMethod: '',
       language: 'Español',
       clientType: '',
+      interest: [],
       website: '',
       phone: '',
       email: '',
@@ -670,6 +672,46 @@ export function NewProspectDialog({ onSuccess }: NewProspectDialogProps) {
                 </FormItem>
               )}
             />
+
+            <div className="col-span-6">
+                <FormLabel>INTERÉS EN</FormLabel>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-2">
+                    {(['Sand Hopper', 'Dump', 'Watter Tank'] as const).map((item) => (
+                        <FormField
+                            key={item}
+                            control={form.control}
+                            name="interest"
+                            render={({ field }) => {
+                                return (
+                                    <FormItem
+                                        key={item}
+                                        className="flex flex-row items-center space-x-2 space-y-0 rounded-md border p-3"
+                                    >
+                                        <FormControl>
+                                            <Checkbox
+                                                checked={field.value?.includes(item)}
+                                                onCheckedChange={(checked) => {
+                                                    return checked
+                                                        ? field.onChange([...(field.value || []), item])
+                                                        : field.onChange(
+                                                            field.value?.filter(
+                                                                (value) => value !== item
+                                                            )
+                                                        )
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <FormLabel className="font-normal text-sm">
+                                            {item}
+                                        </FormLabel>
+                                    </FormItem>
+                                )
+                            }}
+                        />
+                    ))}
+                </div>
+                <FormMessage />
+            </div>
 
             <FormField
               control={form.control}
