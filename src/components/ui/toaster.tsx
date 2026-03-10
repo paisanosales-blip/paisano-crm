@@ -13,15 +13,10 @@ import * as React from "react"
 
 export function Toaster() {
   const { toasts } = useToast()
-  const [isMounted, setIsMounted] = React.useState(false)
-
-  React.useEffect(() => {
-    setIsMounted(true)
-  }, [])
 
   return (
     <ToastProvider duration={3000}>
-      {isMounted && toasts.map(function ({ id, title, description, action, ...props }) {
+      {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props} className="pointer-events-auto">
             <div className="grid gap-1">
