@@ -1,7 +1,8 @@
 "use client"
 
 // Inspired by react-hot-toast library
-import React, { useSyncExternalStore } from "react"
+import * as React from "react"
+import { useSyncExternalStore } from "react"
 
 import type {
   ToastActionElement,
@@ -131,7 +132,8 @@ export const reducer = (state: State, action: Action): State => {
 
 const listeners: Array<(state: State) => void> = []
 
-let memoryState: State = { toasts: [] }
+const initialState: State = { toasts: [] }
+let memoryState: State = initialState
 
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action)
@@ -183,7 +185,7 @@ function useToast() {
       }
     },
     () => memoryState,
-    () => memoryState
+    () => initialState
   )
 
   return {

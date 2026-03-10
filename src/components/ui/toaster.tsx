@@ -13,18 +13,9 @@ import * as React from "react"
 
 export function Toaster() {
   const { toasts } = useToast()
-  const [isMounted, setIsMounted] = React.useState(false)
-
-  React.useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  if (!isMounted) {
-    return null
-  }
 
   return (
-    <ToastProvider duration={2000}>
+    <ToastProvider duration={3000}>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props} className="pointer-events-auto">
