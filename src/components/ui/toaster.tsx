@@ -19,33 +19,36 @@ export function Toaster() {
   const [toasts, setToasts] = React.useState<ToasterToast[]>([]);
   const router = useRouter();
 
-  React.useEffect(() => {
-    const unsubscribe = subscribe(({ toast }) => {
-      // Add toast to state to display it
-      setToasts((prevToasts) => [
-        {
-          ...toast,
-          open: true,
-          onOpenChange: (open) => {
-            if (!open) {
-              // When Radix closes the toast, remove it from our state
-              setToasts((currentToasts) =>
-                currentToasts.filter((t) => t.id !== toast.id)
-              );
-            }
-          },
+  // Memoize the callback to prevent re-subscribing on every render
+  const handleToast = React.useCallback(({ toast }: { toast: ToasterToast }) => {
+    // Add toast to state to display it
+    setToasts((prevToasts) => [
+      {
+        ...toast,
+        open: true,
+        onOpenChange: (open) => {
+          if (!open) {
+            // When Radix closes the toast (e.g., after duration), remove it from our state
+            setToasts((currentToasts) =>
+              currentToasts.filter((t) => t.id !== toast.id)
+            );
+          }
         },
-        ...prevToasts,
-      ].slice(0, TOAST_LIMIT));
+      },
+      ...prevToasts,
+    ].slice(0, TOAST_LIMIT));
 
-      // After showing the toast, refresh the page data
-      setTimeout(() => {
-        router.refresh();
-      }, 100);
-    });
-
-    return () => unsubscribe();
+    // After showing the toast, refresh the page data
+    // This is non-blocking and will re-fetch data for Server Components.
+    router.refresh();
+    
   }, [router]);
+
+  // Subscribe to the global toast events
+  React.useEffect(() => {
+    const unsubscribe = subscribe(handleToast);
+    return () => unsubscribe();
+  }, [handleToast]);
 
   return (
     <ToastProvider duration={TOAST_REMOVE_DELAY}>
