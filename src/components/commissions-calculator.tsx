@@ -256,10 +256,12 @@ export function CommissionsCalculator() {
   const handleRevertPaymentConfirm = () => {
     if (!paymentToRevert || !firestore) return;
 
-    paymentToRevert.paidSaleIds.forEach(saleId => {
-        const saleRef = doc(firestore, 'sales', saleId);
-        updateDocumentNonBlocking(saleRef, { commissionStatus: 'Pendiente' });
-    });
+    if (paymentToRevert.paidSaleIds && Array.isArray(paymentToRevert.paidSaleIds)) {
+      paymentToRevert.paidSaleIds.forEach(saleId => {
+          const saleRef = doc(firestore, 'sales', saleId);
+          updateDocumentNonBlocking(saleRef, { commissionStatus: 'Pendiente' });
+      });
+    }
 
     const paymentRef = doc(firestore, 'commissionPayments', paymentToRevert.id);
     deleteDocumentNonBlocking(paymentRef);
