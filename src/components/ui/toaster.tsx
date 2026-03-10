@@ -13,23 +13,29 @@ import * as React from "react"
 
 export function Toaster() {
   const { toasts } = useToast()
+  const [isMounted, setIsMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   return (
     <ToastProvider duration={3000}>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
-        return (
-          <Toast key={id} {...props} className="pointer-events-auto">
-            <div className="grid gap-1">
-              {title && <ToastTitle>{title}</ToastTitle>}
-              {description && (
-                <ToastDescription>{description}</ToastDescription>
-              )}
-            </div>
-            {action}
-            <ToastClose />
-          </Toast>
-        )
-      })}
+      {isMounted &&
+        toasts.map(function ({ id, title, description, action, ...props }) {
+          return (
+            <Toast key={id} {...props} className="pointer-events-auto">
+              <div className="grid gap-1">
+                {title && <ToastTitle>{title}</ToastTitle>}
+                {description && (
+                  <ToastDescription>{description}</ToastDescription>
+                )}
+              </div>
+              {action}
+              <ToastClose />
+            </Toast>
+          )
+        })}
       <ToastViewport />
     </ToastProvider>
   )
