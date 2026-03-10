@@ -8,48 +8,14 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
-import { subscribe, type ToasterToast } from "@/hooks/use-toast"
-import * as React from "react"
-
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 3000
+import { useToast } from "@/hooks/use-toast"
 
 export function Toaster() {
-  const [toasts, setToasts] = React.useState<ToasterToast[]>([]);
-  const [isMounted, setIsMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  React.useEffect(() => {
-    const unsubscribe = subscribe(({ toast }) => {
-      setToasts((prevToasts) => [
-        {
-          ...toast,
-          open: true,
-          onOpenChange: (open) => {
-            if (!open) {
-              setToasts((currentToasts) =>
-                currentToasts.filter((t) => t.id !== toast.id)
-              );
-            }
-          },
-        },
-        ...prevToasts,
-      ].slice(0, TOAST_LIMIT));
-    });
-    return () => unsubscribe();
-  }, []);
-
-  if (!isMounted) {
-    return null;
-  }
+  const { toasts } = useToast()
 
   return (
-    <ToastProvider duration={TOAST_REMOVE_DELAY}>
-      {toasts.map(function (toast) {
-        const { id, title, description, action, ...props } = toast;
+    <ToastProvider>
+      {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>
             <div className="grid gap-1">
@@ -61,9 +27,9 @@ export function Toaster() {
             {action}
             <ToastClose />
           </Toast>
-        );
+        )
       })}
       <ToastViewport />
     </ToastProvider>
-  );
+  )
 }
