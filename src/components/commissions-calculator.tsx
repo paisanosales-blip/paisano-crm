@@ -330,6 +330,10 @@ export function CommissionsCalculator() {
         return acc;
       }, { usd: 0, mxn: 0 });
   }, [sales]);
+  
+  const approxTotalAllCommissionsMXN = useMemo(() => {
+    return totalAllCommissions.mxn + (totalAllCommissions.usd * exchangeRate);
+  }, [totalAllCommissions, exchangeRate]);
 
   const totalGeneratedFromPaidSales = useMemo(() => {
     if (!sales) return { usd: 0, mxn: 0 };
@@ -345,6 +349,10 @@ export function CommissionsCalculator() {
         return acc;
       }, { usd: 0, mxn: 0 });
   }, [sales]);
+  
+  const approxTotalGeneratedMXN = useMemo(() => {
+    return totalGeneratedFromPaidSales.mxn + (totalGeneratedFromPaidSales.usd * exchangeRate);
+  }, [totalGeneratedFromPaidSales, exchangeRate]);
 
   const totalPaid = useMemo(() => {
     if (!paidPaymentsWithSales) return { usd: 0, mxn: 0 };
@@ -363,6 +371,10 @@ export function CommissionsCalculator() {
         mxn: totalGeneratedFromPaidSales.mxn - totalPaid.mxn,
     };
   }, [totalGeneratedFromPaidSales, totalPaid]);
+  
+  const approxPendingBalanceMXN = useMemo(() => {
+    return pendingBalance.mxn + (pendingBalance.usd * exchangeRate);
+  }, [pendingBalance, exchangeRate]);
 
     const commissionStats = useMemo(() => {
     const stats = {
@@ -447,9 +459,9 @@ export function CommissionsCalculator() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                 <div className="space-y-1">
+                <div className="space-y-1">
                     <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalAllCommissions.usd)} <span className="text-base font-medium text-muted-foreground">USD</span></div>
-                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalAllCommissions.mxn)} <span className="text-sm font-medium">MXN</span></div>
+                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(approxTotalAllCommissionsMXN)} <span className="text-sm font-medium">MXN (aprox.)</span></div>
                 </div>
             </CardContent>
         </Card>
@@ -461,7 +473,7 @@ export function CommissionsCalculator() {
             <CardContent className="p-3 pt-0">
                 <div className="space-y-1">
                     <div className="text-2xl font-bold text-red-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(pendingBalance.usd)} <span className="text-base font-medium text-muted-foreground">USD</span></div>
-                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(pendingBalance.mxn)} <span className="text-sm font-medium">MXN</span></div>
+                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(approxPendingBalanceMXN)} <span className="text-sm font-medium">MXN (aprox.)</span></div>
                 </div>
             </CardContent>
         </Card>
@@ -471,9 +483,9 @@ export function CommissionsCalculator() {
                 <Calculator className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
-                 <div className="space-y-1">
+                <div className="space-y-1">
                     <div className="text-2xl font-bold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalGeneratedFromPaidSales.usd)} <span className="text-base font-medium text-muted-foreground">USD</span></div>
-                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalGeneratedFromPaidSales.mxn)} <span className="text-sm font-medium">MXN</span></div>
+                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(approxTotalGeneratedMXN)} <span className="text-sm font-medium">MXN (aprox.)</span></div>
                 </div>
             </CardContent>
         </Card>
@@ -598,7 +610,7 @@ export function CommissionsCalculator() {
                                 <TableCell className="font-semibold">{sale.clientName}</TableCell>
                                 <TableCell>
                                   <div className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency }).format(sale.commissionAmount || 0)}</div>
-                                  {sale.currency === 'USD' && sale.exchangeRate && sale.commissionAmount ? (
+                                    {sale.currency === 'USD' && sale.exchangeRate && sale.commissionAmount ? (
                                         <div className="text-xs text-muted-foreground">
                                             {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(sale.commissionAmount * sale.exchangeRate)} MXN
                                         </div>
@@ -727,6 +739,7 @@ export function CommissionsCalculator() {
     </>
   );
 }
+
 
 
 
