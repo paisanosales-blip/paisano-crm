@@ -467,7 +467,7 @@ export function CommissionsCalculator() {
         </Card>
         <Card className="bg-muted/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-2">
-                <CardTitle className="text-xs font-medium">COMISIONES PENDIENTES POR PAGAR</CardTitle>
+                <CardTitle className="text-xs font-medium">COMISIONES PENDIENTES POR PAGAR (DE VENTAS PAGADAS)</CardTitle>
                 <Banknote className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-3 pt-0">
@@ -497,7 +497,7 @@ export function CommissionsCalculator() {
             <CardContent className="p-3 pt-0">
                 <div className="space-y-1">
                     <div className="text-2xl font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalPaid.usd)} <span className="text-base font-medium text-muted-foreground">USD</span></div>
-                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalPaid.mxn)} <span className="text-sm font-medium">MXN</span></div>
+                    <div className="text-lg font-semibold text-muted-foreground">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(totalPaid.mxn)}</div>
                 </div>
             </CardContent>
         </Card>
@@ -596,7 +596,7 @@ export function CommissionsCalculator() {
                 <TableBody>
                     {isLoading ? (
                         Array.from({length: 3}).map((_, i) => (
-                            <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-10" /></TableCell></TableRow>
+                            <TableRow key={i}><TableCell colSpan={5}><Skeleton className="h-10" /></TableCell></TableRow>
                         ))
                     ) : pendingCommissions.length > 0 ? (
                         pendingCommissions.map((sale) => (
@@ -630,7 +630,7 @@ export function CommissionsCalculator() {
                             </TableRow>
                         ))
                     ) : (
-                        <TableRow><TableCell colSpan={6} className="text-center h-24">No hay comisiones pendientes.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={5} className="text-center h-24">No hay comisiones pendientes.</TableCell></TableRow>
                     )}
                 </TableBody>
             </Table>
@@ -739,7 +739,3 @@ export function CommissionsCalculator() {
     </>
   );
 }
-
-
-
-
