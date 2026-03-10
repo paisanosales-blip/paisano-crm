@@ -36,6 +36,16 @@ import { Skeleton } from './ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 
 type CommissionType = 'VENTA_PROPIA' | 'VENTA_EXTERNA' | 'VENTA_FINANCIADA';
@@ -74,6 +84,8 @@ export function CommissionsCalculator() {
   const { toast } = useToast();
   const [exchangeRate, setExchangeRate] = useState(18.0);
   const [selectedCommissionIds, setSelectedCommissionIds] = useState<Set<string>>(new Set());
+  const [paymentToRevert, setPaymentToRevert] = useState<(Payment & {sales: Sale[]}) | null>(null);
+  const [isRevertDialogOpen, setIsRevertDialogOpen] = useState(false);
 
   const leadsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -236,6 +248,31 @@ export function CommissionsCalculator() {
     });
   };
 
+  const handleRevertPaymentClick = (payment: Payment & {sales: Sale[]}) => {
+    setPaymentToRevert(payment);
+    setIsRevertDialogOpen(true);
+  };
+  
+  const handleRevertPaymentConfirm = () => {
+    if (!paymentToRevert || !firestore) return;
+
+    paymentToRevert.paidSaleIds.forEach(saleId => {
+        const saleRef = doc(firestore, 'sales', saleId);
+        updateDocumentNonBlocking(saleRef, { commissionStatus: 'Pendiente' });
+    });
+
+    const paymentRef = doc(firestore, 'commissionPayments', paymentToRevert.id);
+    deleteDocumentNonBlocking(paymentRef);
+
+    toast({
+        title: 'Pago Revertido',
+        description: 'Las comisiones asociadas están pendientes de nuevo.',
+    });
+
+    setIsRevertDialogOpen(false);
+    setPaymentToRevert(null);
+  };
+
   
   const totalCommission = useMemo(() => {
     if (!sales) return { usd: 0, mxn: 0 };
@@ -269,7 +306,6 @@ export function CommissionsCalculator() {
     return pendingTotal;
   }, [pendingCommissions]);
 
-  // Other stats remain the same...
     const commissionStats = useMemo(() => {
     const stats = {
         propia: { usd: { amount: 0, units: 0 }, mxn: { amount: 0, units: 0 } },
@@ -336,6 +372,7 @@ export function CommissionsCalculator() {
   };
 
   return (
+    <>
     <div className="grid gap-6">
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-headline font-bold">Comisiones de Venta</h1>
@@ -475,13 +512,14 @@ export function CommissionsCalculator() {
                         <TableHead>Fecha Pago Cliente</TableHead>
                         <TableHead>Tipo Comisión</TableHead>
                         <TableHead>Monto Comisión</TableHead>
+                        <TableHead>Comisión (MXN Aprox)</TableHead>
                         <TableHead>Tipo Cambio</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {isLoading ? (
                         Array.from({length: 3}).map((_, i) => (
-                            <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-10" /></TableCell></TableRow>
+                            <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-10" /></TableCell></TableRow>
                         ))
                     ) : pendingCommissions.length > 0 ? (
                         pendingCommissions.map((sale) => (
@@ -496,9 +534,15 @@ export function CommissionsCalculator() {
                                 <TableCell>{sale.paidDate ? format(new Date(sale.paidDate), 'dd MMM, yyyy', { locale: es }) : 'N/A'}</TableCell>
                                 <TableCell>{sale.commissionType || 'N/A'}</TableCell>
                                 <TableCell className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency }).format(sale.commissionAmount || 0)}</TableCell>
+                                <TableCell className="text-muted-foreground">
+                                  {sale.currency === 'USD' && sale.exchangeRate && sale.commissionAmount
+                                      ? `~ ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(sale.commissionAmount * sale.exchangeRate)}`
+                                      : 'N/A'}
+                                </TableCell>
                                 <TableCell>
                                     <Input
                                         type="number"
+                                        step="0.0001"
                                         className="w-24"
                                         value={sale.exchangeRate || ''}
                                         onChange={(e) => handleSaleChange(sale.id, 'exchangeRate', Number(e.target.value))}
@@ -508,7 +552,7 @@ export function CommissionsCalculator() {
                             </TableRow>
                         ))
                     ) : (
-                        <TableRow><TableCell colSpan={6} className="text-center h-24">No hay comisiones pendientes.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={7} className="text-center h-24">No hay comisiones pendientes.</TableCell></TableRow>
                     )}
                 </TableBody>
             </Table>
@@ -532,13 +576,30 @@ export function CommissionsCalculator() {
             ) : paidPaymentsWithSales.length > 0 ? (
               paidPaymentsWithSales.map((payment) => (
                 <AccordionItem value={payment.id} key={payment.id}>
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className="flex justify-between items-center w-full pr-4">
-                      <span>Pago del {format(new Date(payment.date), "dd MMM, yyyy", { locale: es })}</span>
-                      <div className="text-right">
-                        {payment.totalAmountUSD > 0 && <p className="font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payment.totalAmountUSD)}</p>}
-                        {payment.totalAmountMXN > 0 && <p className="font-semibold text-gray-500">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(payment.totalAmountMXN)}</p>}
-                      </div>
+                  <AccordionTrigger className="hover:no-underline p-4">
+                    <div className="flex justify-between items-center w-full">
+                        <div className="text-left">
+                            <p className="font-semibold">Pago del {format(new Date(payment.date), "dd MMM, yyyy", { locale: es })}</p>
+                            <p className="text-sm text-muted-foreground">{payment.sales.length} comision(es) pagada(s)</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              {payment.totalAmountUSD > 0 && <p className="font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payment.totalAmountUSD)}</p>}
+                              {payment.totalAmountMXN > 0 && <p className="font-semibold text-gray-500">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(payment.totalAmountMXN)}</p>}
+                            </div>
+                             <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRevertPaymentClick(payment);
+                                }}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                                <span className="sr-only">Revertir Pago</span>
+                            </Button>
+                        </div>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
@@ -565,5 +626,22 @@ export function CommissionsCalculator() {
       </Card>
 
     </div>
+    <AlertDialog open={isRevertDialogOpen} onOpenChange={setIsRevertDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>¿Revertir este pago?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Esta acción eliminará el registro de pago y marcará las comisiones asociadas como "Pendientes" de nuevo. Esta acción no se puede deshacer.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleRevertPaymentConfirm} variant="destructive">
+                    Sí, Revertir Pago
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
