@@ -115,7 +115,7 @@ export function CommissionsCalculator() {
     if (!payments || !sales) return [];
     return payments.map(p => ({
         ...p,
-        sales: sales.filter(s => p.paidSaleIds.includes(s.id))
+        sales: sales.filter(s => (p.paidSaleIds || []).includes(s.id))
     })).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [payments, sales]);
 
