@@ -602,45 +602,41 @@ export function CommissionsCalculator() {
             ) : paidPaymentsWithSales.length > 0 ? (
               paidPaymentsWithSales.map((payment) => (
                 <AccordionItem value={payment.id} key={payment.id}>
-                  <AccordionTrigger className="hover:no-underline p-4">
-                    <div className="flex justify-between items-center w-full">
-                        <div className="text-left">
-                            <p className="font-semibold">Pago del {format(new Date(payment.date), "dd MMM, yyyy", { locale: es })}</p>
-                            <p className="text-sm text-muted-foreground">{payment.sales.length} comision(es) pagada(s)</p>
-                             {payment.notes && <p className="text-xs text-muted-foreground italic mt-1">Nota: "{payment.notes}"</p>}
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <div className="text-right">
-                              {payment.totalAmountUSD > 0 && <p className="font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payment.totalAmountUSD)}</p>}
-                              {payment.totalAmountMXN > 0 && <p className="font-semibold text-gray-500">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(payment.totalAmountMXN)}</p>}
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEditPaymentClick(payment);
-                                }}
-                            >
-                                <Pencil className="h-4 w-4" />
-                                <span className="sr-only">Editar Pago</span>
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRevertPaymentClick(payment);
-                                }}
-                            >
-                                <Trash2 className="h-4 w-4" />
-                                <span className="sr-only">Revertir Pago</span>
-                            </Button>
-                        </div>
+                  <div className="flex items-center hover:bg-muted/50 rounded-t-md">
+                    <AccordionTrigger className="flex-1 text-left p-4 hover:no-underline">
+                      <div className="flex justify-between items-center w-full">
+                          <div className="text-left">
+                              <p className="font-semibold">Pago del {format(new Date(payment.date), "dd MMM, yyyy", { locale: es })}</p>
+                              <p className="text-sm text-muted-foreground">{payment.sales.length} comision(es) pagada(s)</p>
+                              {payment.notes && <p className="text-xs text-muted-foreground italic mt-1">Nota: "{payment.notes}"</p>}
+                          </div>
+                          <div className="text-right">
+                            {payment.totalAmountUSD > 0 && <p className="font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payment.totalAmountUSD)}</p>}
+                            {payment.totalAmountMXN > 0 && <p className="font-semibold text-gray-500">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(payment.totalAmountMXN)}</p>}
+                          </div>
+                      </div>
+                    </AccordionTrigger>
+                    <div className="flex items-center gap-1 px-4">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleEditPaymentClick(payment)}
+                        >
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Editar Pago</span>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                            onClick={() => handleRevertPaymentClick(payment)}
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Revertir Pago</span>
+                        </Button>
                     </div>
-                  </AccordionTrigger>
+                  </div>
                   <AccordionContent>
                     <Table>
                         <TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Monto Comisión</TableHead><TableHead>Fecha Venta</TableHead></TableRow></TableHeader>
