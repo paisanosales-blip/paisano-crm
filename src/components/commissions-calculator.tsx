@@ -549,14 +549,13 @@ export function CommissionsCalculator() {
                         <TableHead>Fecha Pago Cliente</TableHead>
                         <TableHead>Tipo Comisión</TableHead>
                         <TableHead>Monto Comisión</TableHead>
-                        <TableHead>Comisión (MXN Aprox)</TableHead>
                         <TableHead>Tipo Cambio</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {isLoading ? (
                         Array.from({length: 3}).map((_, i) => (
-                            <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-10" /></TableCell></TableRow>
+                            <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-10" /></TableCell></TableRow>
                         ))
                     ) : pendingCommissions.length > 0 ? (
                         pendingCommissions.map((sale) => (
@@ -570,11 +569,13 @@ export function CommissionsCalculator() {
                                 <TableCell className="font-semibold">{sale.clientName}</TableCell>
                                 <TableCell>{sale.paidDate ? format(new Date(sale.paidDate), 'dd MMM, yyyy', { locale: es }) : 'N/A'}</TableCell>
                                 <TableCell>{sale.commissionType || 'N/A'}</TableCell>
-                                <TableCell className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency }).format(sale.commissionAmount || 0)}</TableCell>
-                                <TableCell className="text-muted-foreground">
-                                  {sale.currency === 'USD' && sale.exchangeRate && sale.commissionAmount
-                                      ? `~ ${new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 4, maximumFractionDigits: 4 }).format(sale.commissionAmount * sale.exchangeRate)}`
-                                      : 'N/A'}
+                                <TableCell>
+                                    <div className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: sale.currency }).format(sale.commissionAmount || 0)}</div>
+                                    {sale.currency === 'USD' && sale.exchangeRate && sale.commissionAmount ? (
+                                        <div className="text-xs text-muted-foreground">
+                                            {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(sale.commissionAmount * sale.exchangeRate)}
+                                        </div>
+                                    ) : null}
                                 </TableCell>
                                 <TableCell>
                                     <Input
@@ -589,7 +590,7 @@ export function CommissionsCalculator() {
                             </TableRow>
                         ))
                     ) : (
-                        <TableRow><TableCell colSpan={7} className="text-center h-24">No hay comisiones pendientes.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={6} className="text-center h-24">No hay comisiones pendientes.</TableCell></TableRow>
                     )}
                 </TableBody>
             </Table>
@@ -622,7 +623,18 @@ export function CommissionsCalculator() {
                               {payment.notes && <p className="text-xs text-muted-foreground italic mt-1">Nota: "{payment.notes}"</p>}
                           </div>
                           <div className="text-right">
-                            {payment.totalAmountUSD > 0 && <p className="font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payment.totalAmountUSD)}</p>}
+                            {payment.totalAmountUSD > 0 && (
+                              <div>
+                                <p className="font-bold text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payment.totalAmountUSD)}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  ~ {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(
+                                      payment.sales
+                                        .filter(s => s.currency === 'USD')
+                                        .reduce((acc, s) => acc + (s.commissionAmount || 0) * (s.exchangeRate || 0), 0)
+                                    )}
+                                </p>
+                              </div>
+                            )}
                             {payment.totalAmountMXN > 0 && <p className="font-semibold text-gray-500">{new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(payment.totalAmountMXN)}</p>}
                           </div>
                       </div>
