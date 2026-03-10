@@ -127,21 +127,12 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
 
   function onSubmit(values: ProductFormValues) {
     if (!firestore || !user || !userProfile) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Debe iniciar sesión para administrar productos.',
-      });
       return;
     }
 
     if (isEditing && product) {
       const productRef = doc(firestore, 'products', product.id);
       updateDocumentNonBlocking(productRef, values);
-      toast({
-        title: '¡Producto Actualizado!',
-        description: `El producto ${values.name} ha sido actualizado.`,
-      });
     } else {
       const productData = {
         ...values,
@@ -150,10 +141,6 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
         createdAt: new Date().toISOString(),
       };
       addDocumentNonBlocking(collection(firestore, 'products'), productData);
-      toast({
-        title: '¡Producto Creado!',
-        description: `El producto ${values.name} ha sido agregado.`,
-      });
     }
 
     onOpenChange(false);

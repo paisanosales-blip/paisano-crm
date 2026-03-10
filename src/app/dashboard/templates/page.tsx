@@ -45,7 +45,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { MoreHorizontal, PlusCircle, Mail, MessageSquare, MessageCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
 import { TemplateDialog } from '@/components/template-dialog';
 import type { Template } from '@/lib/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -66,7 +65,6 @@ const typeColors = {
 export default function TemplatesPage() {
   const firestore = useFirestore();
   const { user } = useUser();
-  const { toast } = useToast();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
@@ -144,11 +142,6 @@ export default function TemplatesPage() {
   
   const handleDeleteConfirm = async () => {
     if (!templateToDelete || !firestore) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo encontrar la plantilla a eliminar.',
-      });
       return;
     }
 
@@ -157,18 +150,8 @@ export default function TemplatesPage() {
     try {
       deleteDocumentNonBlocking(doc(firestore, 'templates', templateToDelete.id));
 
-      toast({
-        title: 'Eliminación Iniciada',
-        description: `La plantilla ${templateToDelete.name} se está eliminando.`,
-      });
-
     } catch (error) {
       console.error("Error deleting template:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al eliminar',
-        description: 'Ocurrió un problema al eliminar la plantilla.',
-      });
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);

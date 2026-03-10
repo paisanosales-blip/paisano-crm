@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { doc, collection } from 'firebase/firestore';
 
 import { useFirestore, updateDocumentNonBlocking, addDocumentNonBlocking, useUser } from '@/firebase';
-import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -46,7 +45,6 @@ interface ExternalSellerDialogProps {
 }
 
 export function ExternalSellerDialog({ open, onOpenChange, seller }: ExternalSellerDialogProps) {
-  const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
   const isEditing = !!seller;
@@ -81,27 +79,18 @@ export function ExternalSellerDialog({ open, onOpenChange, seller }: ExternalSel
 
   function onSubmit(values: ExternalSellerFormValues) {
     if (!firestore || !user) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Debe iniciar sesión para realizar esta acción.' });
       return;
     }
 
     if (isEditing && seller) {
       const sellerRef = doc(firestore, 'externalSellers', seller.id);
       updateDocumentNonBlocking(sellerRef, values);
-      toast({
-        title: '¡Vendedor Actualizado!',
-        description: `Los datos de ${values.firstName} ${values.lastName} han sido actualizados.`,
-      });
     } else {
       const sellerData = {
         ...values,
         creatorId: user.uid,
       };
       addDocumentNonBlocking(collection(firestore, 'externalSellers'), sellerData);
-      toast({
-        title: '¡Vendedor Creado!',
-        description: `${values.firstName} ${values.lastName} ha sido agregado como vendedor externo.`,
-      });
     }
 
     onOpenChange(false);

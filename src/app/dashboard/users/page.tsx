@@ -26,7 +26,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { EditUserDialog } from '@/components/edit-user-dialog';
@@ -40,7 +39,6 @@ const ROLES = ['seller', 'manager'];
 export default function UsersPage() {
   const { user: currentUser, isUserLoading: isUserAuthLoading } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
   
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<any | null>(null);
@@ -78,10 +76,6 @@ export default function UsersPage() {
     if (!firestore) return;
     const userDocRef = doc(firestore, 'users', userId);
     setDocumentNonBlocking(userDocRef, { role: newRole }, { merge: true });
-    toast({
-      title: 'Rol actualizado',
-      description: `El rol del usuario ha sido cambiado a ${newRole}.`,
-    });
   };
   
   const getInitials = (firstName?: string, lastName?: string) => {
@@ -111,7 +105,6 @@ export default function UsersPage() {
   
   const handleDeleteConfirm = async () => {
     if (!userToDelete || !firestore) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el registro a eliminar.' });
       return;
     }
 
@@ -121,14 +114,8 @@ export default function UsersPage() {
       const collectionName = userToDelete.isExternal ? 'externalSellers' : 'users';
       deleteDocumentNonBlocking(doc(firestore, collectionName, userToDelete.id));
 
-      toast({
-        title: 'Eliminación Iniciada',
-        description: `El registro de ${userToDelete.firstName} ${userToDelete.lastName} se está eliminando.`,
-      });
-
     } catch (error) {
       console.error("Error deleting record:", error);
-      toast({ variant: 'destructive', title: 'Error al eliminar', description: 'Ocurrió un problema al eliminar el registro.' });
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);

@@ -27,7 +27,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Trash2, Calculator, Wallet, Banknote, Award, Target, TrendingUp, FileDown, Truck, Droplets, Wind, Package, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -83,7 +82,6 @@ interface Payment {
 export function CommissionsCalculator() {
   const { user } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
   const [exchangeRate, setExchangeRate] = useState(18.0);
   const [selectedCommissionIds, setSelectedCommissionIds] = useState<Set<string>>(new Set());
   const [paymentToRevert, setPaymentToRevert] = useState<(Payment & {sales: Sale[], calculatedTotalMxn: number}) | null>(null);
@@ -568,7 +566,7 @@ export function CommissionsCalculator() {
       
       <Card>
         <CardHeader>
-          <CardTitle>Comisiones Pendientes de Pago</CardTitle>
+          <CardTitle>Comisiones Pendientes de Pago (de Ventas Pagadas)</CardTitle>
           <CardDescription>
             Seleccione las comisiones de ventas ya pagadas por el cliente para registrarlas como pagadas.
           </CardDescription>
@@ -659,25 +657,25 @@ export function CommissionsCalculator() {
                           </div>
                       </div>
                     </AccordionTrigger>
-                     <div className="flex items-center gap-1 px-4">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleEditPaymentClick(payment)}
-                        >
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">Editar Pago</span>
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                            onClick={() => handleRevertPaymentClick(payment)}
-                        >
-                            <Trash2 className="h-4 w-4" />
-                            <span className="sr-only">Revertir Pago</span>
-                        </Button>
+                    <div className="flex items-center gap-1 px-4">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEditPaymentClick(payment)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                        <span className="sr-only">Editar Pago</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                        onClick={() => handleRevertPaymentClick(payment)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Revertir Pago</span>
+                      </Button>
                     </div>
                   </div>
                   <AccordionContent>

@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { collection, doc } from 'firebase/firestore';
 import { useFirestore, useUser, useDoc, useMemoFirebase, addDocumentNonBlocking, useStorage } from '@/firebase';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -48,7 +47,6 @@ interface FileUploadDialogProps {
 }
 
 export function FileUploadDialog({ open, onOpenChange }: FileUploadDialogProps) {
-  const { toast } = useToast();
   const firestore = useFirestore();
   const storage = useStorage();
   const { user } = useUser();
@@ -78,11 +76,6 @@ export function FileUploadDialog({ open, onOpenChange }: FileUploadDialogProps) 
 
   function onSubmit(values: FileUploadFormValues) {
     if (!firestore || !user || !userProfile || !storage || !values.file) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se puede subir el archivo. Verifique su sesión y que haya seleccionado un archivo.',
-      });
       return;
     }
 
@@ -101,7 +94,6 @@ export function FileUploadDialog({ open, onOpenChange }: FileUploadDialogProps) 
         },
         (error) => {
           console.error('Upload failed:', error);
-          toast({ variant: 'destructive', title: 'Error de Subida', description: 'No se pudo subir el archivo.' });
           setIsSubmitting(false);
         },
         () => {
@@ -118,12 +110,9 @@ export function FileUploadDialog({ open, onOpenChange }: FileUploadDialogProps) 
             };
 
             addDocumentNonBlocking(collection(firestore, 'sharedFiles'), fileData);
-
-            toast({ title: '¡Archivo Subido!', description: `${file.name} ha sido compartido.` });
             onOpenChange(false);
           }).catch((urlError) => {
             console.error('Get URL failed:', urlError);
-            toast({ variant: 'destructive', title: 'Error de Guardado', description: 'El archivo se subió pero no se pudo guardar el registro.' });
           }).finally(() => {
             setIsSubmitting(false);
             reset();

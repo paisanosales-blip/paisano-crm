@@ -49,7 +49,6 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EditClientDialog } from '@/components/edit-client-dialog';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -58,7 +57,6 @@ import { Input } from '@/components/ui/input';
 export default function ProspectsPage() {
   const { user, isUserLoading: isUserAuthLoading } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
   const router = useRouter();
   
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -170,11 +168,6 @@ export default function ProspectsPage() {
   
   const handleDeleteConfirm = async () => {
     if (!clientToDelete || !firestore) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo encontrar el prospecto a eliminar.',
-      });
       return;
     }
 
@@ -207,18 +200,8 @@ export default function ProspectsPage() {
       // Delete the lead itself
       deleteDocumentNonBlocking(doc(firestore, 'leads', clientToDelete.id));
 
-      toast({
-        title: 'Eliminación Iniciada',
-        description: `${clientToDelete.clientName} y sus datos asociados se están eliminando.`,
-      });
-
     } catch (error) {
       console.error("Error deleting client:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al eliminar',
-        description: 'Ocurrió un problema al leer los datos a eliminar. Es posible que no tenga los permisos necesarios.',
-      });
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);

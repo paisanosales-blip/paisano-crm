@@ -13,7 +13,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
 import type { Template } from '@/lib/types';
 import { Mail, MessageSquare, MessageCircle, User, Send } from 'lucide-react';
 import { Input } from './ui/input';
@@ -27,7 +26,6 @@ interface IndividualSendDialogProps {
 
 export function IndividualSendDialog({ open, onOpenChange, template }: IndividualSendDialogProps) {
   const firestore = useFirestore();
-  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [manualContact, setManualContact] = useState('');
 
@@ -104,43 +102,18 @@ export function IndividualSendDialog({ open, onOpenChange, template }: Individua
 
     if (url) {
         window.open(url, '_blank', 'noopener,noreferrer');
-        toast({
-            title: 'Redireccionando...',
-            description: `Se está abriendo la aplicación para enviar el mensaje a ${lead.clientName.toUpperCase()}.`,
-        });
         onOpenChange(false);
-    } else {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'No se pudo generar el enlace de envío.',
-        });
     }
   };
 
   const handleManualSend = () => {
     if (!manualContact.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'Contacto requerido',
-        description: 'Por favor ingrese un correo o número de teléfono.',
-      });
       return;
     }
     const url = generateUrl(manualContact.trim());
     if (url) {
         window.open(url, '_blank', 'noopener,noreferrer');
-        toast({
-            title: 'Redireccionando...',
-            description: `Se está abriendo la aplicación para enviar el mensaje.`,
-        });
         onOpenChange(false);
-    } else {
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'No se pudo generar el enlace de envío.',
-        });
     }
   }
 

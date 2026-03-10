@@ -43,14 +43,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
 import { ProductDialog } from '@/components/product-dialog';
 import type { Product } from '@/lib/types';
 
 
 export default function ProductsPage() {
   const firestore = useFirestore();
-  const { toast } = useToast();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -82,11 +80,6 @@ export default function ProductsPage() {
   
   const handleDeleteConfirm = async () => {
     if (!productToDelete || !firestore) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo encontrar el producto a eliminar.',
-      });
       return;
     }
 
@@ -94,19 +87,8 @@ export default function ProductsPage() {
 
     try {
       deleteDocumentNonBlocking(doc(firestore, 'products', productToDelete.id));
-
-      toast({
-        title: 'Eliminación Iniciada',
-        description: `El producto ${productToDelete.name} se está eliminando.`,
-      });
-
     } catch (error) {
       console.error("Error deleting product:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al eliminar',
-        description: 'Ocurrió un problema al eliminar el producto.',
-      });
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);

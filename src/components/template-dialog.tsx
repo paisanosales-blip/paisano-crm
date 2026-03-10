@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { doc, collection } from 'firebase/firestore';
 import { useFirestore, useUser, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
-import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -46,7 +45,6 @@ interface TemplateDialogProps {
 }
 
 export function TemplateDialog({ open, onOpenChange, template }: TemplateDialogProps) {
-  const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
   const isEditing = !!template;
@@ -91,21 +89,12 @@ export function TemplateDialog({ open, onOpenChange, template }: TemplateDialogP
 
   function onSubmit(values: TemplateFormValues) {
     if (!firestore || !user || !userProfile) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Debe iniciar sesión para administrar plantillas.',
-      });
       return;
     }
 
     if (isEditing && template) {
       const templateRef = doc(firestore, 'templates', template.id);
       updateDocumentNonBlocking(templateRef, values);
-      toast({
-        title: '¡Plantilla Actualizada!',
-        description: `La plantilla ${values.name} ha sido actualizada.`,
-      });
     } else {
       const templateData = {
         ...values,
@@ -114,10 +103,6 @@ export function TemplateDialog({ open, onOpenChange, template }: TemplateDialogP
         createdAt: new Date().toISOString(),
       };
       addDocumentNonBlocking(collection(firestore, 'templates'), templateData);
-      toast({
-        title: '¡Plantilla Creada!',
-        description: `La plantilla ${values.name} ha sido agregada.`,
-      });
     }
 
     onOpenChange(false);

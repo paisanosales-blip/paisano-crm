@@ -49,7 +49,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -95,7 +94,6 @@ const groupStyleKeys = {
 export default function FollowUpsPage() {
   const { user, isUserLoading: isUserAuthLoading } = useUser();
   const firestore = useFirestore();
-  const { toast } = useToast();
 
   const [selectedUserId, setSelectedUserId] = useState<string>('me');
   const [showCompleted, setShowCompleted] = useState(false);
@@ -307,11 +305,10 @@ export default function FollowUpsPage() {
     } catch (error) {
       console.error("Failed to generate assistant summary:", error);
       setAssistantSummary("No se pudo cargar el resumen del asistente en este momento. Intente de nuevo.");
-      toast({ variant: "destructive", title: "Error de IA" });
     } finally {
       setIsSummaryLoading(false);
     }
-  }, [user, userProfile, followUpStats, prospectsWithoutFollowUp, toast]);
+  }, [user, userProfile, followUpStats, prospectsWithoutFollowUp]);
 
   useEffect(() => {
     if (isLoading || !user || !userProfile) {
@@ -509,10 +506,6 @@ export default function FollowUpsPage() {
         clientResponded: null,
         completionNotes: null,
       });
-      toast({
-        title: `Actividad Pendiente`,
-        description: 'El seguimiento ha sido marcado como no completado.',
-      });
     }
   };
 
@@ -548,8 +541,6 @@ export default function FollowUpsPage() {
             createdDate: new Date().toISOString(),
         });
     }
-
-    toast({ title: "Seguimiento completado", description: "El resultado ha sido guardado y el prospecto etiquetado." });
     
     setIsSubmitting(false);
     setIsCompleteDialogOpen(false);
@@ -558,7 +549,6 @@ export default function FollowUpsPage() {
   
   const handleInfoSentConfirm = (payload: InfoSentConfirmPayload) => {
     if (!currentProspect || !activityToComplete || !firestore || !user || !userProfile) {
-        toast({ variant: 'destructive', title: 'Error', description: 'No se pudo procesar la solicitud.' });
         return;
     }
 
@@ -604,13 +594,6 @@ export default function FollowUpsPage() {
         });
     }
     
-    toast({ 
-      title: 'Éxito', 
-      description: isStageChange 
-        ? `Prospecto movido a: Envió de Información` 
-        : 'Resumen de información actualizado.'
-    });
-
     setIsInfoSentDialogOpen(false);
     setCurrentProspect(null);
     setActivityToComplete(null);
@@ -639,7 +622,6 @@ export default function FollowUpsPage() {
     setIsSubmitting(true);
     const activityRef = doc(firestore, 'activities', activityToDelete.id);
     deleteDocumentNonBlocking(activityRef);
-    toast({ title: 'Seguimiento eliminado' });
     setIsDeleteDialogOpen(false);
     setActivityToDelete(null);
     setIsSubmitting(false);
@@ -649,6 +631,7 @@ export default function FollowUpsPage() {
     if (!currentProspect || !firestore || !user || !userProfile) return;
 
     setIsSubmitting(true);
+
     const { id, observations, nextContactDate, nextContactType } = payload;
     
     const activityData: any = {
@@ -669,7 +652,6 @@ export default function FollowUpsPage() {
         addDocumentNonBlocking(collection(firestore, 'activities'), activityData);
     }
     
-    toast({ title: payload.id ? 'Seguimiento Actualizado' : 'Actividad Creada' });
     setIsFollowUpDialogOpen(false);
     setCurrentActivity(null);
     setCurrentProspect(null);

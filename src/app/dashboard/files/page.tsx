@@ -53,7 +53,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/hooks/use-toast';
 import { FileUploadDialog } from '@/components/file-upload-dialog';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -80,7 +79,6 @@ const formatFileSize = (bytes: number) => {
 export default function SharedFilesPage() {
   const firestore = useFirestore();
   const { user } = useUser();
-  const { toast } = useToast();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -119,19 +117,11 @@ export default function SharedFilesPage() {
   const handleCopyLink = (fileId: string) => {
     const url = `${window.location.origin}/dashboard/files/${fileId}`;
     navigator.clipboard.writeText(url);
-    toast({
-      title: 'Enlace Copiado',
-      description: 'El enlace para compartir ha sido copiado al portapapeles.',
-    });
+    // You can add a toast notification here if you have a toast system
   };
 
   const handleDeleteConfirm = async () => {
     if (!fileToDelete || !firestore) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudo encontrar el archivo a eliminar.',
-      });
       return;
     }
 
@@ -143,18 +133,8 @@ export default function SharedFilesPage() {
       // For this implementation, we'll just delete the reference.
       deleteDocumentNonBlocking(doc(firestore, 'sharedFiles', fileToDelete.id));
 
-      toast({
-        title: 'Eliminación Iniciada',
-        description: `El archivo ${fileToDelete.fileName} se está eliminando.`,
-      });
-
     } catch (error) {
       console.error("Error deleting file record:", error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al eliminar',
-        description: 'Ocurrió un problema al eliminar el registro del archivo.',
-      });
     } finally {
       setIsDeleting(false);
       setIsDeleteDialogOpen(false);

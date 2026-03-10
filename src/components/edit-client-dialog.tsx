@@ -14,7 +14,6 @@ import {
   useMemoFirebase,
   useCollection,
 } from '@/firebase';
-import { useToast } from '@/hooks/use-toast';
 import { countries, states, cities } from '@/lib/geography';
 import type { ExternalSeller } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -126,7 +125,6 @@ interface EditClientDialogProps {
 }
 
 export function EditClientDialog({ open, onOpenChange, client }: EditClientDialogProps) {
-  const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
   const userProfileRef = useMemoFirebase(() => {
@@ -177,7 +175,6 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
 
   function onSubmit(values: ProspectFormValues) {
     if (!firestore || !client?.id || !userProfile) {
-      toast({ variant: 'destructive', title: 'Error', description: 'No se pudo encontrar el cliente para actualizar.' });
       return;
     }
     const leadRef = doc(firestore, 'leads', client.id);
@@ -214,10 +211,6 @@ export function EditClientDialog({ open, onOpenChange, client }: EditClientDialo
 
     updateDocumentNonBlocking(leadRef, finalData);
     
-    toast({
-      title: '¡Cliente Actualizado!',
-      description: `${values.clientName} ha sido actualizado correctamente.`,
-    });
     onOpenChange(false);
     form.reset();
   }
