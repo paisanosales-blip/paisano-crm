@@ -14,7 +14,6 @@ type ToasterToast = ToastProps & {
   action?: ToastActionElement
 }
 
-// A simple event emitter
 type ToastEvent = { toast: ToasterToast };
 type Listener = (event: ToastEvent) => void;
 const listeners = new Set<Listener>();
@@ -43,7 +42,6 @@ function toast(props: Toast) {
   emit({ toast: { ...props, id } });
 }
 
-// The hook is now just a convenient wrapper around the global toast function.
 function useToast() {
   return {
     toast,
